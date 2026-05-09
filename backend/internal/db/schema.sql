@@ -32,3 +32,24 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id UUID NOT NULL REFERENCES connected_accounts(id) ON DELETE CASCADE,
+    pluggy_transaction_id TEXT UNIQUE,
+    amount NUMERIC(12,2) NOT NULL,
+    direction TEXT NOT NULL CHECK (direction IN ('debit', 'credit')),
+    description TEXT NOT NULL,
+    merchant_name TEXT,
+    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    date DATE NOT NULL,
+    is_recurring BOOLEAN NOT NULL DEFAULT false,
+    -- IA Fields (Feature Estrela)
+    needs_review BOOLEAN NOT NULL DEFAULT false,
+    confidence_score NUMERIC(5,2),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_transactions_account_id_date ON transactions(account_id, date);
+CREATE INDEX idx_transactions_category_id ON transactions(category_id);
+CREATE INDEX idx_transactions_merchant_name ON transactions(merchant_name);
