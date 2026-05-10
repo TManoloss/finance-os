@@ -1,0 +1,172 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"regexp"
+	"time"
+	"unicode"
+
+	"github.com/finance-os/backend/internal/models"
+	"github.com/finance-os/backend/internal/repository"
+	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrUserNotFound      = errors.New("usuário não encontrado")
+	ErrInvalidCredentials = errors.New("credenciais inválidas")
+	ErrEmailTaken        = errors.New("este email já está em uso")
+	ErrInvalidPassword   = errors.New("a senha não atende aos requisitos de segurança")
+)
+
+// AuthService lida com a lógica de negócio de autenticação.
+type AuthService struct {
+	repo       *repository.UserRepository
+	jwtService *JWTService
+}
+
+// NewAuthService cria uma nova instância de AuthService.
+func NewAuthService(repo *repository.UserRepository, jwtService *JWTService) *AuthService {
+	return &AuthService{
+		repo:       repo,
+		jwtService: jwtService,
+	}
+}
+
+// AuthResponse representa a resposta de sucesso na autenticação.
+type AuthResponse struct {
+	User         *models.User `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+}
+
+// Register realiza o cadastro de um novo usuário.
+func (s *AuthService) Register(ctx context.Context, name, email, password string) (*AuthResponse, error) {
+	// 1. Validar política de senha
+	if err := s.validatePassword(password); err != nil {
+		return nil, err
+	}
+
+	// 2. Verificar se o e-mail já está em uso
+	existingUser, _ := s.repo.FindByEmail(ctx, email)
+	if existingUser != nil {
+		return nil, ErrEmailTaken
+	}
+
+	// 3. Gerar hash da senha
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Criar usuário no banco
+	user := &models.User{
+		Name:         name,
+		Email:        email,
+		PasswordHash: string(hashedPassword),
+	}
+
+	if err := s.repo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	// 5. Gerar par de tokens
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// 6. Salvar Refresh Token
+	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 dias
+	if err := s.repo.SaveRefreshToken(ctx, user.ID, refreshToken, expiresAt); err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// Login realiza a autenticação de um usuário.
+func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthResponse, error) {
+	// 1. Buscar usuário por email
+	user, err := s.repo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	// 2. Verificar senha
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	// 3. Gerar par de tokens
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Salvar Refresh Token
+	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 dias
+	if err := s.repo.SaveRefreshToken(ctx, user.ID, refreshToken, expiresAt); err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+// validatePassword verifica se a senha atende aos requisitos mínimos.
+func (s *AuthService) validatePassword(password string) error {
+	if len(password) < 10 {
+		return ErrInvalidPassword
+	}
+
+	var (
+		hasUpper   bool
+		hasLower   bool
+		hasNumber  bool
+		hasSpecial bool
+	)
+
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsNumber(char):
+			hasNumber = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		}
+	}
+
+	// Verifica caracteres especiais adicionais se IsPunct/IsSymbol não pegar tudo
+	if !hasSpecial {
+		specialCharMatch, _ := regexp.MatchString(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`, password)
+		hasSpecial = specialCharMatch
+	}
+
+	if !hasUpper || !hasLower || !hasNumber || !hasSpecial {
+		return ErrInvalidPassword
+	}
+
+	return nil
+}
