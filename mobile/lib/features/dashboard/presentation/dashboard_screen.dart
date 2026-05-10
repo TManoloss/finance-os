@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../shared/widgets/blueprint_card.dart';
+import 'dashboard_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(summaryProvider);
+    final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+
     return Scaffold(
       backgroundColor: const Color(0xFFD4D1CA),
       appBar: AppBar(
@@ -20,112 +26,145 @@ class DashboardScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const BlueprintCard(
-              label: 'TELEMETRIA_GASTOS',
-              height: 200,
-              child: Center(
-                child: Text(
-                  '[GRAFICO_DONUT_AQUI]',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.bold,
+      body: summaryAsync.when(
+        data: (summary) {
+          final balance = summary.totalReceived - summary.totalSpent;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const BlueprintCard(
+                  label: 'TELEMETRIA_GASTOS',
+                  height: 200,
+                  child: Center(
+                    child: Text(
+                      '[GRAFICO_DONUT_AQUI]',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.2,
-              children: const [
-                BlueprintCard(
-                  label: 'ALIMENTACAO',
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'R\$ 1.250,00',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                const SizedBox(height: 24),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.2,
+                  children: [
+                    BlueprintCard(
+                      label: 'TOTAL_RECEBIDO',
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            currencyFormat.format(summary.totalReceived),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const Text(
+                            'REF: ATUAL',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'REF: MAIO',
-                        style: TextStyle(fontSize: 10),
+                    ),
+                    BlueprintCard(
+                      label: 'TOTAL_GASTO',
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            currencyFormat.format(summary.totalSpent),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          const Text(
+                            'REF: ATUAL',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                BlueprintCard(
-                  label: 'TRANSPORTE',
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'R\$ 450,00',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ),
+                    BlueprintCard(
+                      label: 'SALDO_DISPONIVEL',
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            currencyFormat.format(balance),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: balance >= 0 ? Colors.blue : Colors.orange,
+                            ),
+                          ),
+                          const Text(
+                            'CALC_SYSTEM',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'REF: MAIO',
-                        style: TextStyle(fontSize: 10),
+                    ),
+                    BlueprintCard(
+                      label: 'CATEGORIAS',
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${summary.byCategory.length}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'ATIVAS',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                BlueprintCard(
-                  label: 'SAUDE',
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'R\$ 320,00',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'REF: MAIO',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-                BlueprintCard(
-                  label: 'LAZER',
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'R\$ 890,00',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'REF: MAIO',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Colors.black),
+        ),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'ERRO_SISTEMA: $err',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.refresh(summaryProvider),
+                  child: const Text('RETRY_CONNECTION'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
