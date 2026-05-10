@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finance_os/core/api/api_client.dart';
+import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class ChatMessage {
   final String role;
