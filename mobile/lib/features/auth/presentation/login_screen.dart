@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -68,6 +69,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () {
                   // ignore: avoid_print
                   print('EXECUTE_LOGIN: ${_emailController.text}');
+                  context.go('/dashboard');
                 },
                 child: const Text('EXECUTE_LOGIN'),
               ),

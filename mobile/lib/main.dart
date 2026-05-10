@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'core/theme/blueprint_theme.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
+import 'package:finance_os/core/router/app_router.dart';
 
 void main() {
   runApp(
@@ -15,13 +16,11 @@ class FinanceOSApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'FINANCE_OS',
       debugShowCheckedModeBanner: false,
       theme: BlueprintTheme.light,
-      home: const Scaffold(
-        body: Center(child: Text('FINANCE_OS_BOOT...')),
-      ),
+      routerConfig: appRouter,
     );
   }
 }
