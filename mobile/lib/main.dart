@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'core/theme/blueprint_theme.dart';
 
 void main() {
   runApp(
@@ -18,10 +18,7 @@ class FinanceOSApp extends StatelessWidget {
     return MaterialApp(
       title: 'FINANCE_OS',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        textTheme: GoogleFonts.courierPrimeTextTheme(),
-      ),
+      theme: BlueprintTheme.light,
       home: const Scaffold(
         body: Center(child: Text('FINANCE_OS_BOOT...')),
       ),
