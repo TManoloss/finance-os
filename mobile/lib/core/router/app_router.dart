@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:finance_os/features/auth/presentation/login_screen.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:finance_os/features/transactions/presentation/transactions_screen.dart';
 import 'package:finance_os/core/layout/main_layout.dart';
 
 final appRouter = GoRouter(
@@ -31,7 +32,7 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/transactions',
               name: 'transactions',
-              builder: (context, state) => const Scaffold(body: Center(child: Text('TRANSACTIONS_MODULE'))),
+              builder: (context, state) => const TransactionsScreen(),
             ),
           ],
         ),
