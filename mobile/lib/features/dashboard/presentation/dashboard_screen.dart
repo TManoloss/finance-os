@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/widgets/blueprint_card.dart';
 import 'dashboard_provider.dart';
+import 'widgets/category_chart.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -35,18 +36,10 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const BlueprintCard(
+                BlueprintCard(
                   label: 'TELEMETRIA_GASTOS',
                   height: 200,
-                  child: Center(
-                    child: Text(
-                      '[GRAFICO_DONUT_AQUI]',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  child: CategoryChart(categories: summary.byCategory),
                 ),
                 const SizedBox(height: 24),
                 GridView.count(
