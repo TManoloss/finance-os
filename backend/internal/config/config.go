@@ -11,6 +11,7 @@ type Config struct {
 	DatabaseURL         string
 	JWTSecret           string
 	JWTRefreshSecret    string
+	EncryptionKey       string
 	PluggyClientID      string
 	PluggyClientSecret  string
 	AgentsServiceURL    string
@@ -27,6 +28,7 @@ func Load() (*Config, error) {
 		DatabaseURL:        getEnv("DATABASE_URL", "postgres://finance:finance123@localhost:5432/financedb"),
 		JWTSecret:          getEnv("JWT_SECRET", "secret"),
 		JWTRefreshSecret:   getEnv("JWT_REFRESH_SECRET", "refresh_secret"),
+		EncryptionKey:      getEnv("ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"), // 32 bytes default for AES-256
 		PluggyClientID:     getEnv("PLUGGY_CLIENT_ID", ""),
 		PluggyClientSecret: getEnv("PLUGGY_CLIENT_SECRET", ""),
 		AgentsServiceURL:   getEnv("AGENTS_SERVICE_URL", "http://localhost:8000"),
