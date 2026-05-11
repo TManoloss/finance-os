@@ -6,13 +6,15 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    pluggy_client_id TEXT,
+    pluggy_client_secret_encrypted TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS connected_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    pluggy_item_id TEXT,
+    pluggy_item_id TEXT UNIQUE,
     institution_name TEXT NOT NULL,
     account_type TEXT NOT NULL, -- checking, savings, credit
     balance NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -71,7 +73,8 @@ CREATE TABLE IF NOT EXISTS category_rules (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     merchant_pattern TEXT NOT NULL,
     category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-    priority INT NOT NULL DEFAULT 0
+    priority INT NOT NULL DEFAULT 0,
+    UNIQUE(user_id, merchant_pattern)
 );
 
 CREATE TABLE IF NOT EXISTS agent_reports (
