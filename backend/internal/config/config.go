@@ -21,8 +21,10 @@ type Config struct {
 
 // Load carrega as configurações de variáveis de ambiente.
 func Load() (*Config, error) {
-	// Carrega .env se existir, mas não falha se não existir (ex: produção)
+	// Carrega .env se existir no diretório atual ou no pai (caso esteja rodando dentro de backend/)
 	_ = godotenv.Load()
+	_ = godotenv.Load("../.env")
+	_ = godotenv.Load("../../.env")
 
 	return &Config{
 		DatabaseURL:        getEnv("DATABASE_URL", "postgres://finance:finance123@localhost:5432/financedb"),

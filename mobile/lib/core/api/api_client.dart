@@ -9,7 +9,7 @@ class ApiClient {
     required this.dio,
     required this.storage,
   }) {
-    dio.options.baseUrl = 'http://localhost:8080/api/v1';
+    dio.options.baseUrl = 'http://192.168.1.177:8080/api/v1';
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {

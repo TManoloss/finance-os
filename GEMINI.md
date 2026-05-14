@@ -848,3 +848,775 @@ Semana 6:
 - **Custos**: Com uso pessoal/familiar (~4 usuários, sync diário), o custo estimado na API Anthropic é < US$5/mês usando claude-sonnet-4-20250514.
 - **Segurança**: Nunca expor o PLUGGY_CLIENT_SECRET no frontend. O connect token é gerado sempre pelo backend. JWTs com rotação de refresh token.
 - **Dados**: Todas as queries filtram implicitamente por user_id via JOIN. Nunca retornar dados de outros usuários.
+
+## FASE 11 — Inteligência Financeira Avançada ("Você vê o que normalmente não veria")
+
+> Esta fase transforma o app de um visualizador de dados em um sistema de inteligência financeira real.
+> Cada módulo abaixo é um agente ou feature independente que pode ser desenvolvido em paralelo.
+
+---
+
+### 11.1 Cashflow Timeline — Linha do tempo real do dinheiro
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em análise financeira.
+
+Implemente o módulo `agents/cashflow_timeline.py` e o endpoint Go correspondente.
+
+**O que é:** Um gráfico de linha mostrando o saldo real dia a dia — não agregado por mês, mas cada dia individual. O usuário vê exatamente quando o dinheiro entrou, quando saiu, e como o saldo evoluiu ao longo do tempo.
+
+**agents/cashflow_timeline.py** — CashflowTimelineService:
+
+`build_daily_cashflow(user_id, from_date, to_date)` → lista de DailyBalance:
+- Para cada dia no período: saldo_inicio_dia, total_entradas, total_saidas, saldo_fim_dia
+- Calcular saldo_inicio usando o saldo atual e trabalhando retroativamente com as transações
+- Incluir: maior_gasto_do_dia (merchant + valor), maior_receita_do_dia
+- Marcar dias "críticos": saldo abaixo de um threshold configurável (ex: R$500)
+
+`detect_cashflow_patterns(user_id)` → CashflowPatterns:
+- salary_day: dia do mês em que normalmente cai a renda (detectar por maior crédito recorrente)
+- low_balance_days: lista de dias do mês historicamente com saldo baixo
+- pre_salary_stress_period: quantos dias antes do salário o saldo fica abaixo de R$500
+- peak_spending_days: dias da semana com maior gasto (ex: "você gasta 60% mais às sextas")
+- monthly_cashflow_cycle: descrição em texto do ciclo financeiro pessoal do usuário
+
+**backend/internal/handler/reports.go** — adicionar:
+GET /reports/cashflow?from=&to=
+- Retornar o cashflow diário com os padrões detectados
+- Incluir: projeção dos próximos 7 dias baseada nos padrões históricos
+
+**web/components/CashflowChart.tsx** — área chart com:
+- Linha de saldo ao longo do tempo
+- Área preenchida: verde quando acima da média, vermelho quando abaixo
+- Marcadores nos dias críticos (círculo vermelho com tooltip)
+- Marcador no dia do salário (ícone de entrada)
+- Tooltip ao hover: saldo, entradas, saídas, maior gasto do dia
+- Linha pontilhada para os 7 dias futuros projetados
+
+**Flutter: lib/widgets/cashflow_timeline_chart.dart**
+- Mesmo comportamento usando fl_chart LineChart
+- Gestos: pinch para zoom, scroll horizontal para navegar no histórico
+```
+
+---
+
+### 11.2 Agente de Padrões de Comportamento (Behavioral Intelligence)
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em análise comportamental financeira.
+
+Implemente `agents/behavioral_agent.py` — o agente que detecta padrões de comportamento
+que o usuário nunca perceberia olhando para os números brutos.
+
+**BehavioralAgent(BaseAgent)**:
+
+`analyze_emotional_spending(user_id)` → EmotionalSpendingReport:
+Detectar correlação entre dia da semana/hora e valor dos gastos:
+- Calcular média de gasto por dia da semana (seg-dom)
+- Calcular média de gasto por faixa horária (manhã/tarde/noite/madrugada)
+- Identificar os 3 padrões mais fortes (ex: "Você gasta 73% mais às sextas à noite")
+- Detectar "revenge spending": sequência de gastos altos após período de contenção
+- Retornar insights em texto gerado pelo Claude explicando o padrão em linguagem humana
+
+`detect_lifestyle_inflation(user_id)` → LifestyleInflationReport:
+Comparar média de gastos por categoria nos últimos 3 meses vs 3 meses anteriores:
+- Identificar categorias com crescimento > 20% sem aumento de renda correspondente
+- Calcular "lifestyle inflation rate": percentual de aumento dos gastos discricionários
+- Projetar impacto anual se o padrão continuar
+- Exemplo de output: "Seus gastos com lazer cresceram R$340/mês nos últimos 3 meses.
+  Se mantido, você gastará R$4.080 a mais por ano nessa categoria."
+
+`calculate_opportunity_cost(user_id)` → OpportunityCostReport:
+Para cada hábito de gasto recorrente detectado:
+- Calcular custo mensal, anual, e em 5 anos
+- Calcular o equivalente em investimento (usar taxa SELIC atual como referência: 10.5% a.a.)
+- Exemplo: "Seu hábito de delivery (R$847/mês) custará R$10.164/ano.
+  Investido à taxa SELIC, seriam R$64.200 em 5 anos."
+- Não ser moralista — apresentar como informação, não como julgamento
+
+`analyze_spending_velocity(user_id)` → SpendingVelocityReport:
+- Calcular em que dia do mês normalmente 25%, 50%, 75% do orçamento mensal é consumido
+- Detectar se há aceleração de gastos no fim do mês ("corrida para gastar")
+- Comparar velocidade atual do mês com meses anteriores
+- Alert se o usuário vai estourar o padrão histórico antes do fim do mês
+
+Prompt template BEHAVIORAL_INSIGHTS_PROMPT (incluir como constante):
+```
+Você é um analista financeiro pessoal com acesso ao histórico completo de transações do usuário.
+
+Analise os seguintes padrões detectados algoritmicamente:
+{patterns_json}
+
+Gere insights em português, tom direto mas empático, primeira pessoa como se fosse um
+conselheiro financeiro de confiança. Não use linguagem corporativa. Seja específico com
+números reais. Máximo 3 insights por análise, ordenados por impacto financeiro.
+
+Formato de resposta JSON:
+{
+  "insights": [
+    {
+      "title": "título curto do insight",
+      "description": "explicação em 2-3 frases com números específicos",
+      "impact_monthly": float,
+      "impact_annual": float,
+      "type": "pattern|warning|opportunity",
+      "severity": "info|medium|high"
+    }
+  ],
+  "summary": "resumo geral em 1 frase"
+}
+```
+
+Novo endpoint em `main.py`:
+POST /agents/behavioral — executar análise comportamental completa para um user_id
+Retornar: emotional_spending, lifestyle_inflation, opportunity_costs, spending_velocity
+```
+
+---
+
+### 11.3 Detector de Gastos Invisíveis
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/invisible_spending_agent.py`
+— o agente que encontra dinheiro sendo perdido silenciosamente.
+
+**InvisibleSpendingAgent(BaseAgent)**:
+
+`detect_forgotten_subscriptions(user_id)` → lista de ForgottenSubscription:
+- Buscar todas as assinaturas detectadas (cobranças recorrentes mensais)
+- Cruzar com frequência de uso: se o merchant é apenas de assinatura (Netflix, Spotify, etc.)
+  não tem como detectar uso, então marcar como "não verificável"
+- Para merchants que TAMBÉM aparecem como uso direto (ex: academia que cobra mensalidade),
+  verificar se há transações de uso além da mensalidade
+- Calcular: custo_mensal, custo_anual, meses_ativo, total_gasto_historico
+- Ordenar por "custo do esquecimento" (valor × tempo sem atenção do usuário)
+
+`detect_duplicate_charges(user_id, lookback_days=30)` → lista de DuplicateCharge:
+- Buscar transações com mesmo merchant_name E mesmo valor nos últimos lookback_days
+- Calcular janela de suspeita: mesma cobrança em até 5 dias de diferença
+- Incluir: merchant, valor, datas, total_cobrado_duplicado
+- Severity: HIGH se valor > R$50, MEDIUM se > R$20, LOW se menor
+
+`detect_price_increases(user_id)` → lista de PriceIncrease:
+- Para cada assinatura recorrente, comparar valor atual vs valor 6 meses atrás
+- Detectar aumentos silenciosos (sem ação do usuário)
+- Calcular impacto mensal e anual do aumento
+- Exemplo: "Netflix aumentou R$7/mês (de R$39,90 para R$46,90). Custo anual: +R$84"
+
+`detect_unused_services(user_id)` → lista de UnusedService:
+- Detectar merchants com padrão de "cobrança mensal mas zero uso" (academias, apps)
+- Identificar cobranças de apps que provavelmente têm versão gratuita (usar lista curada)
+- Detectar cobranças em horário incomum (madrugada) que podem indicar serviços esquecidos
+
+`calculate_total_invisible_waste(user_id)` → InvisibleWasteSummary:
+- Somar tudo: duplicatas + assinaturas esquecidas + aumentos não percebidos
+- Retornar: total_mensal_perdido, total_anual_perdido, número de itens encontrados
+- Gerar com Claude um parágrafo de "você está perdendo R$X/mês em gastos invisíveis"
+
+Endpoint: POST /agents/invisible-spending
+UI: Card de destaque no dashboard — "💸 R$ X perdidos em gastos invisíveis" que abre modal com breakdown
+```
+
+---
+
+### 11.4 Motor de Projeção Financeira
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em modelagem financeira.
+
+Implemente `agents/projection_engine.py` — o motor que projeta o futuro financeiro
+baseado em dados reais, não em orçamentos manuais.
+
+**ProjectionEngine(BaseAgent)**:
+
+`project_end_of_month(user_id)` → EndOfMonthProjection:
+Projetar quanto vai sobrar/faltar até o fim do mês:
+- Gastos fixos confirmados restantes: parcelas, assinaturas com data conhecida
+- Gastos variáveis projetados: média histórica dos dias restantes × dias restantes
+- Receitas esperadas: detectar salário esperado pela data histórica de entrada
+- Resultado: {saldo_atual, gastos_fixos_restantes, gastos_variaveis_estimados,
+              receitas_esperadas, saldo_projetado_fim_mes, confianca_percent}
+- Confiança baseada em: quão consistente é o padrão histórico
+
+`project_next_3_months(user_id)` → lista de MonthProjection:
+Para cada um dos próximos 3 meses:
+- Parcelas abertas que vencem nesse mês (dados reais do módulo de cartões)
+- Assinaturas confirmadas
+- Sazonalidade: histórico do mesmo mês em anos anteriores (se disponível)
+- Gastos variáveis: média móvel ponderada (meses recentes têm mais peso)
+- Retornar: total_comprometido (fixo), total_estimado (variável), saldo_projetado
+
+`project_large_expense_impact(user_id, amount, date)` → ImpactProjection:
+Simular o impacto de uma compra planejada:
+- "Se eu comprar R$3.000 parcelado em 12x agora, como fica meu cashflow?"
+- Calcular: impacto_mensal, meses_de_impacto, novo_saldo_projetado_por_mes
+- Comparar com padrão histórico: "Você ficaria abaixo do seu saldo mínimo histórico
+  em 3 dos próximos 6 meses"
+
+`detect_financial_risks(user_id)` → lista de FinancialRisk:
+- RISCO ALTO: saldo projetado fim do mês < 0
+- RISCO MÉDIO: saldo projetado < saldo_mínimo_histórico do usuário
+- RISCO BAIXO: comprometimento de renda > 70% em parcelamentos
+- OPORTUNIDADE: sobra projetada > média histórica (sugerir guardar a diferença)
+
+Endpoint Go: GET /reports/projection?months=3
+Componente web: gráfico de barras empilhadas — fixo (roxo escuro) + variável estimado (roxo claro) + receita esperada (teal) por mês, com linha de saldo resultante
+```
+
+---
+
+### 11.5 Feed de Eventos Financeiros (Financial Activity Feed)
+
+```
+PROMPT:
+
+Você é um engenheiro full-stack. Implemente o Financial Activity Feed —
+um timeline estilo feed de notícias mostrando eventos financeiros relevantes,
+não apenas transações brutas.
+
+**backend/internal/service/feed_service.go** — FeedEvent:
+```go
+type FeedEvent struct {
+    ID          string
+    Type        FeedEventType
+    Title       string
+    Description string
+    Amount      *float64
+    Severity    string // info, warning, alert
+    RelatedTx   []string
+    CreatedAt   time.Time
+    ReadAt      *time.Time
+}
+
+type FeedEventType string
+const (
+    EventDuplicateCharge    FeedEventType = "duplicate_charge"
+    EventUnusualSpending    FeedEventType = "unusual_spending"
+    EventSubscriptionChange FeedEventType = "subscription_change"
+    EventNewMerchant        FeedEventType = "new_merchant"
+    EventMilestone          FeedEventType = "milestone"
+    EventInstallmentAlert   FeedEventType = "installment_alert"
+    EventSalaryDetected     FeedEventType = "salary_detected"
+    EventLowBalance         FeedEventType = "low_balance"
+    EventMonthlyClose       FeedEventType = "monthly_close"
+    EventAgentInsight       FeedEventType = "agent_insight"
+)
+```
+
+`GenerateFeedEvents(userID string, transactions []Transaction)` → []FeedEvent:
+Gerar eventos automaticamente a cada sincronização:
+- Para cada transação nova: verificar se é merchant novo (primeira vez), duplicata, gasto incomum
+- Detectar salário: crédito grande no padrão histórico → EventSalaryDetected
+- Saldo abaixo do threshold → EventLowBalance
+- Parcela final de um parcelamento → EventMilestone ("Você quitou o parcelamento da TV 🎉")
+- Parcelamento com 1 mês restante → EventInstallmentAlert
+
+**Endpoints:**
+GET /feed?page=1&unread_only=false — listar feed paginado, mais recentes primeiro
+PATCH /feed/:id/read — marcar como lido
+PATCH /feed/read-all — marcar todos como lidos
+GET /feed/unread-count — contador para badge no app
+
+**web/components/ActivityFeed.tsx:**
+- Lista vertical de cards de evento
+- Cada card: ícone colorido por tipo, título, descrição, timestamp relativo ("há 2 horas")
+- Badge vermelho no ícone de sino no header com contagem de não lidos
+- Filtros: Todos | Alertas | Insights | Transações
+- Animação de entrada (slide + fade) para novos eventos
+
+**Flutter: lib/screens/feed_screen.dart:**
+- Lista com pull-to-refresh
+- Swipe para marcar como lido
+- Notificação push para eventos de severity "alert" (usar flutter_local_notifications)
+```
+
+---
+
+### 11.6 Comparador "Você vs Você Mesmo"
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/comparison_agent.py`
+— comparações do usuário com ele mesmo em diferentes períodos.
+
+**ComparisonAgent(BaseAgent)**:
+
+`compare_period(user_id, period_a_start, period_a_end, period_b_start, period_b_end)` → PeriodComparison:
+Comparar dois períodos quaisquer (semana vs semana, mês vs mês, etc.):
+- Total gasto: diferença absoluta e percentual
+- Por categoria: quais cresceram, quais reduziram, quais são novas
+- Top merchants: novos no período B que não estavam no A, e vice-versa
+- Dias mais caros: comparação dos dias mais pesados de cada período
+- Resumo gerado pelo Claude: "Comparando essa semana com a anterior, você gastou
+  R$234 a mais, principalmente em alimentação (+R$180) e transporte (+R$89)..."
+
+`detect_spending_anomalies(user_id)` → lista de SpendingAnomaly:
+Para cada categoria e merchant, calcular:
+- Média histórica (últimos 3 meses) e desvio padrão
+- Qualquer transação/período > média + 2σ é uma anomalia
+- Anomalia de merchant: "Você gastou R$340 no iFood essa semana, sua média semanal é R$87"
+- Anomalia de categoria: "Gastos com saúde esse mês: R$890 vs média de R$120/mês"
+- Score de anomalia: quantos desvios padrão acima da média
+
+`build_personal_benchmarks(user_id)` → PersonalBenchmarks:
+Construir os benchmarks pessoais do usuário baseados no histórico:
+- gasto_diario_medio: média de gasto por dia (excluindo dias sem transações)
+- gasto_semanal_tipico: percentil 50 dos gastos semanais dos últimos 3 meses
+- gasto_mensal_tipico: percentil 50 dos gastos mensais
+- maior_gasto_historico: maior transação única já registrada
+- categoria_mais_volatil: categoria com maior coeficiente de variação
+- dia_mais_caro_semana: dia com maior média histórica de gastos
+
+`generate_monthly_report_vs_history(user_id, month, year)` → MonthlyComparisonReport:
+- Mês atual vs mesmo mês ano anterior (sazonalidade)
+- Mês atual vs média dos últimos 3 meses
+- Tendência: os gastos estão crescendo, estáveis ou diminuindo?
+- Usar regressão linear simples nas últimas 6 observações mensais para detectar tendência
+- Claude gera o texto: narrativa do mês em português, tom de coach financeiro
+
+Endpoint: GET /reports/comparison?type=monthly&ref_month=2025-04
+```
+
+---
+
+### 11.7 Simulador "E se?" (What-If Scenarios)
+
+```
+PROMPT:
+
+Você é um engenheiro full-stack. Implemente o módulo de simulação financeira
+"E se?" que permite ao usuário simular cenários sem afetar dados reais.
+
+**backend/internal/handler/simulator.go** — endpoints de simulação (nunca salvam no banco):
+
+POST /simulator/purchase
+Body: {amount, installments, monthly_interest_rate?, description}
+Retorna: impacto no cashflow mês a mês, total_de_juros se parcelado,
+custo_real_total, meses_impactados, alerta se vai comprometer > X% da renda
+
+POST /simulator/cut-subscription
+Body: {merchant_name, monthly_amount}
+Retorna: economia_mensal, economia_anual, economia_5_anos,
+equivalente_investido_selic_5_anos, "o que você poderia fazer com esse dinheiro"
+
+POST /simulator/save-goal
+Body: {goal_name, target_amount, target_date?}
+Retorna: quanto_poupar_por_mes para atingir a meta,
+percentual_da_renda_necessario,
+ajuste_sugerido (qual categoria cortar para viabilizar)
+data_estimada_se_poupar_media_historica
+
+POST /simulator/extra-income
+Body: {amount, type: "one_time"|"recurring"}
+Retorna: impacto no cashflow, sugestão de alocação baseada nos padrões do usuário
+(ex: "com base no seu histórico, você provavelmente gastaria X em Y — sugerimos
+guardar Z% e usar W% para quitar o parcelamento do cartão")
+
+**web/components/WhatIfSimulator.tsx:**
+- Interface de calculadora estilo "painel de controle"
+- Tabs: Compra Parcelada | Cortar Assinatura | Meta de Economia | Renda Extra
+- Cada aba tem inputs simples e resultado em cards visuais
+- Gráfico de impacto no cashflow dos próximos 6 meses após a simulação
+- Botão "Salvar simulação" que gera um agent_report do tipo "simulation"
+
+**Flutter: lib/screens/simulator_screen.dart:**
+- Bottom sheet deslizável com os 4 cenários
+- Resultado animado (counter animation nos valores)
+```
+
+---
+
+### 11.8 Score de Saúde Financeira Pessoal
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em modelagem financeira.
+
+Implemente `agents/health_score_agent.py` — um score numérico de saúde
+financeira calculado 100% a partir dos dados reais do usuário.
+
+**HealthScoreAgent(BaseAgent)**:
+
+`calculate_health_score(user_id)` → HealthScore:
+Score de 0 a 100, composto por 6 dimensões (cada uma de 0 a 100, com peso diferente):
+
+1. **Fluxo de Caixa** (peso 25%):
+   - 100 pts: sobra > 30% da renda todo mês consistentemente
+   - 0 pts: saldo negativo ou gastos > receitas
+   - Fórmula: média dos últimos 3 meses de (receita - gasto) / receita × 100
+
+2. **Controle de Parcelamentos** (peso 20%):
+   - 100 pts: zero parcelamentos ativos
+   - 0 pts: > 50% da renda comprometida em parcelas
+   - Fórmula: 100 - (total_parcelas_mensais / receita_mensal × 100)
+
+3. **Consistência de Gastos** (peso 20%):
+   - Mede a volatilidade dos gastos mensais (coeficiente de variação)
+   - Alta consistência = gastos previsíveis = score alto
+   - Fórmula: 100 - (desvio_padrao_gastos / media_gastos × 100), clampado em [0,100]
+
+4. **Assinaturas vs Renda** (peso 15%):
+   - 100 pts: < 5% da renda em assinaturas
+   - 0 pts: > 20% da renda em assinaturas
+   - Linear entre os dois extremos
+
+5. **Diversificação de Gastos** (peso 10%):
+   - Mede concentração: se > 50% dos gastos é em 1 categoria, score baixo
+   - Usar índice HHI (Herfindahl-Hirschman) das categorias
+   - Score = 100 × (1 - HHI_normalizado)
+
+6. **Tendência de Melhora** (peso 10%):
+   - Comparar últimos 2 meses vs 2 meses anteriores
+   - Gastos diminuindo ou renda aumentando = score alto
+   - Regressão linear simples no cashflow dos últimos 4 meses
+
+`get_score_history(user_id, months=6)` → lista de HealthScoreSnapshot:
+Recalcular o score para cada mês anterior e retornar histórico
+Permitir ver a evolução do score ao longo do tempo
+
+`get_score_recommendations(user_id, score: HealthScore)` → lista de Recommendation:
+Usar Claude para gerar 3 recomendações específicas baseadas nas dimensões mais fracas:
+- Ordenar dimensões por score mais baixo
+- Para cada uma das 2 piores: gerar recomendação específica com dado concreto
+- Ex: "Sua dimensão de Parcelamentos está em 34/100. Você tem R$1.240/mês
+  comprometidos (41% da sua renda estimada). Quitar o parcelamento X
+  em fevereiro liberaria R$340/mês e subiria seu score para ~52."
+
+Endpoint: GET /reports/health-score
+UI: Gauge chart circular (0-100) com cor gradiente (vermelho→amarelo→verde)
+Abaixo: 6 barras de progresso para cada dimensão
+Abaixo: 3 cards de recomendação
+No Flutter: widget prominente na home screen abaixo do saldo
+```
+
+---
+
+### 11.9 Detector de Sazonalidade e Gastos Futuros Previsíveis
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/seasonality_agent.py`
+— detecção de gastos sazonais e previsão de despesas futuras que o usuário
+vai ter mas ainda não está pensando.
+
+**SeasonalityAgent(BaseAgent)**:
+
+`detect_annual_patterns(user_id)` → lista de AnnualPattern:
+Se houver dados de mais de 12 meses:
+- Comparar cada mês com o mesmo mês do ano anterior por categoria
+- Identificar: dezembro tem gastos X% maiores (festas), julho Y% maiores (férias)
+- Detectar gastos anuais recorrentes: IPTU, IPVA, renovação de plano anual, etc.
+- Retornar: mês, categoria, gasto_historico_medio, gasto_esperado_proximo_ano
+
+`predict_upcoming_large_expenses(user_id, horizon_days=90)` → lista de UpcomingExpense:
+Combinar múltiplas fontes de previsão:
+- Parcelamentos com vencimento nos próximos horizon_days (dados reais)
+- Assinaturas anuais com renovação detectada nos próximos horizon_days
+- Padrões sazonais: "em julho você historicamente gasta +R$800 em viagens"
+- Contas com padrão anual (IPVA detectado pelo merchant name pattern)
+Retornar ordenado por data, com confidence_level (high/medium/low)
+
+`build_annual_expense_calendar(user_id)` → dict[month] → lista de PlannedExpense:
+Calendário anual de despesas previstas mês a mês:
+- Janeiro: IPTU (detectado), renovações anuais detectadas
+- Julho: padrão de viagens
+- Dezembro: padrão de gastos elevados
+- Cada mês com: total_fixo_previsto, total_sazonal_estimado, total_geral_estimado
+
+Endpoint: GET /reports/upcoming-expenses?days=90
+UI web: calendário visual (grid de 12 meses) com altura proporcional ao gasto esperado
+Flutter: lista de "próximas despesas" na home com chip de data e valor
+```
+
+---
+
+### 11.10 Análise de Merchant Intelligence
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/merchant_intelligence.py`
+— análise profunda de relacionamento do usuário com cada merchant/estabelecimento.
+
+**MerchantIntelligenceAgent(BaseAgent)**:
+
+`get_merchant_profile(user_id, merchant_name)` → MerchantProfile:
+Perfil completo do relacionamento com um merchant:
+- primeira_compra: data e valor
+- total_gasto_historico: soma de todas as transações
+- frequencia_media: quantas vezes por mês/semana
+- ticket_medio: valor médio por transação
+- maior_compra: valor e data
+- ultima_compra: data e valor
+- tendencia: gasto está crescendo, estável ou diminuindo (últimos 3 meses)
+- dias_preferidos: em quais dias da semana compra mais
+- horarios_preferidos: manhã/tarde/noite (se disponível)
+- ranking_na_categoria: "3º maior gasto em Alimentação"
+
+`get_top_merchants(user_id, period_months=3, limit=20)` → lista de MerchantSummary:
+- Top merchants por valor total no período
+- Incluir: rank, merchant_name, total, percentual_do_total_gasto, ticket_medio, frequencia
+
+`detect_merchant_anomalies(user_id)` → lista de MerchantAnomaly:
+- Merchant com gasto > 3x a média histórica no último mês
+- Merchant novo com gasto alto (potencial problema: primeiro gasto > R$200)
+- Merchant com frequência muito acima do normal (possível vício de consumo)
+
+`generate_merchant_insights(user_id)` → lista de MerchantInsight:
+Usar Claude para gerar insights sobre os top 5 merchants:
+Prompt: dado o perfil de cada merchant, identificar padrões interessantes.
+Ex: "Você é cliente do iFood há 18 meses e já gastou R$4.200 lá.
+     Sua frequência aumentou 40% nos últimos 2 meses — isso coincide com
+     um aumento de R$287/mês nos seus gastos totais com alimentação."
+
+Endpoint: GET /merchants?limit=20&period_months=3
+Endpoint: GET /merchants/:merchant_name/profile
+UI web: tabela de merchants com mini sparkline de tendência em cada linha
+Ao clicar: drawer lateral com o MerchantProfile completo em gráficos
+Flutter: tela de "Seus estabelecimentos" com cards deslizáveis
+```
+
+---
+
+### 11.11 Sistema de Metas e Acompanhamento
+
+```
+PROMPT:
+
+Você é um engenheiro full-stack. Implemente o sistema de metas financeiras
+com acompanhamento automático baseado nos dados reais do usuário.
+
+**Schema adicional** em `backend/internal/db/schema.sql`:
+```sql
+CREATE TABLE financial_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    name TEXT NOT NULL,
+    goal_type TEXT NOT NULL, -- savings, debt_payoff, spending_limit, income_target
+    target_amount NUMERIC(12,2),
+    current_amount NUMERIC(12,2) DEFAULT 0,
+    start_date DATE NOT NULL,
+    target_date DATE,
+    category_id UUID REFERENCES categories(id), -- para metas de limite de gasto
+    status TEXT DEFAULT 'active', -- active, completed, failed, paused
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**backend/internal/service/goals_service.go**:
+- `UpdateGoalProgress(userID string)` — chamado após cada sync:
+  - Para metas de spending_limit: somar gastos na categoria no mês atual vs limite
+  - Para metas de savings: calcular saldo economizado desde start_date
+  - Para metas de debt_payoff: verificar parcelas quitadas
+  - Marcar como completed/failed automaticamente quando aplicável
+  - Gerar FeedEvent quando meta é atingida ou está em risco
+
+**Endpoints:**
+GET /goals — listar metas com progresso atual
+POST /goals — criar meta
+PATCH /goals/:id — atualizar meta
+DELETE /goals/:id — remover meta
+GET /goals/:id/history — histórico de progresso da meta
+
+**agents/goals_agent.py** — GoalsAgent:
+`suggest_goals(user_id)` → lista de GoalSuggestion:
+Baseado nos dados reais do usuário, sugerir 3 metas relevantes:
+- Se tem parcelamentos altos: sugerir meta de "quitar parcelamentos até X"
+- Se tem assinaturas esquecidas: sugerir "reduzir assinaturas em R$X"
+- Se cashflow positivo consistente: sugerir meta de poupança com valor calculável
+Usar Claude para formatar as sugestões em linguagem amigável
+
+**UI web/components/GoalsPanel.tsx:**
+- Cards de meta com progress bar animada
+- Cor: verde se no caminho certo, amarelo se atrasada, vermelho se em risco
+- Clicar na meta: modal com histórico de progresso (mini line chart)
+- Botão "Sugerir metas" que chama o agente
+
+**Flutter: lib/screens/goals_screen.dart:**
+- Circular progress indicators para cada meta
+- Notificação quando meta é atingida (animação de confetti com confetti package)
+```
+
+---
+
+### 11.12 Relatório Narrativo Mensal (O "Extrato Inteligente")
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em geração de conteúdo com LLMs.
+
+Implemente `agents/narrative_report_agent.py` — gerador do relatório mensal
+completo em formato narrativo, como se um contador pessoal estivesse explicando
+o mês para você.
+
+**NarrativeReportAgent(BaseAgent)**:
+
+`generate_monthly_narrative(user_id, month, year)` → NarrativeReport:
+
+Coletar TODOS os dados do mês:
+- Resumo financeiro: total_gasto, total_recebido, saldo_gerado
+- Comparativo: vs mês anterior, vs mesmo mês ano anterior (se disponível)
+- Análise por categoria: top 5 categorias com variações
+- Top 5 merchants do mês
+- Parcelamentos pagos e pendentes
+- Assinaturas ativas
+- Anomalias detectadas
+- Score de saúde do mês
+- Eventos notáveis do feed
+
+Prompt MONTHLY_NARRATIVE_PROMPT:
+```
+Você é o assistente financeiro pessoal de {user_name}.
+Escreva o relatório financeiro do mês de {month_name} de {year} em português.
+
+Dados completos do mês:
+{full_month_data_json}
+
+Diretrizes de escrita:
+- Tom: direto, honesto, sem julgamentos morais, como um contador de confiança
+- Estrutura: introdução (1 parágrafo) → análise de gastos → destaques positivos →
+  pontos de atenção → parcelamentos e compromissos → perspectiva para o próximo mês
+- Use os números reais. Seja específico.
+- Não use bullets ou headers — escreva em parágrafos corridos como uma carta
+- Máximo 400 palavras
+- Termine com 1 ação concreta recomendada para o próximo mês
+
+Não invente dados. Use apenas o que está nos dados fornecidos.
+```
+
+Salvar o relatório em agent_reports com agent_type='monthly_narrative'
+Gerar automaticamente no dia 1 de cada mês para o mês anterior
+
+**Endpoint:** GET /reports/narrative?month=2025-01
+**UI web:** Página de relatório com o texto em tipografia elegante, sem boxes ou cards —
+apenas texto bem formatado com os números em destaque (bold + cor accent)
+**Flutter:** Tela de leitura com scroll suave, fonte maior, fundo #0D0D14
+```
+
+---
+
+### Schema adicional para a Fase 11
+
+```
+PROMPT:
+
+Adicione ao arquivo `backend/internal/db/schema.sql` as tabelas necessárias
+para os módulos da Fase 11:
+
+```sql
+-- Feed de eventos financeiros
+CREATE TABLE feed_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    amount NUMERIC(12,2),
+    severity TEXT DEFAULT 'info',
+    related_tx_ids UUID[],
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX ON feed_events(user_id, created_at DESC);
+CREATE INDEX ON feed_events(user_id, read_at) WHERE read_at IS NULL;
+
+-- Score de saúde financeira (histórico)
+CREATE TABLE health_score_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    score NUMERIC(5,2),
+    cashflow_score NUMERIC(5,2),
+    installments_score NUMERIC(5,2),
+    consistency_score NUMERIC(5,2),
+    subscriptions_score NUMERIC(5,2),
+    diversification_score NUMERIC(5,2),
+    trend_score NUMERIC(5,2),
+    period_month DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, period_month)
+);
+
+-- Metas financeiras
+CREATE TABLE financial_goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    name TEXT NOT NULL,
+    goal_type TEXT NOT NULL,
+    target_amount NUMERIC(12,2),
+    current_amount NUMERIC(12,2) DEFAULT 0,
+    start_date DATE NOT NULL,
+    target_date DATE,
+    category_id UUID REFERENCES categories(id),
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Simulações salvas
+CREATE TABLE saved_simulations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    simulation_type TEXT NOT NULL,
+    input_params JSONB,
+    result_json JSONB,
+    name TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+```
+
+---
+
+## Ordem de execução recomendada no Antigravity
+
+```
+Agentes paralelos (Antigravity Manager):
+
+Semana 1:
+├── Agente A: Fase 1.1 + 1.2 (Docker + Schema)
+└── Agente B: Fase 1.3 (Skeleton Go)
+
+Semana 2:
+├── Agente A: Fase 2 (Auth JWT)
+└── Agente B: Fase 6 (início do serviço Python — classify endpoint)
+
+Semana 3:
+├── Agente A: Fase 3 (Pluggy integration)
+└── Agente B: Fase 7 (Next.js dashboard — auth + layout)
+
+Semana 4:
+├── Agente A: Fase 4 (Transações + classificação)
+└── Agente B: Fase 7 cont. (páginas dashboard + transações)
+
+Semana 5:
+├── Agente A: Fase 5 (Cartões + parcelamentos)
+└── Agente B: Fase 6 cont. (agentes daily/weekly/monthly)
+
+Semana 6:
+├── Agente A: Fase 8 (Flutter)
+└── Agente B: Fase 10 (Deploy + CI/CD)
+
+Semana 7 — Fase 11 (Intelligence Layer):
+├── Agente A: 11.1 Cashflow Timeline + 11.4 Motor de Projeção
+├── Agente B: 11.2 Behavioral Agent + 11.6 Comparador Você vs Você
+├── Agente C: 11.3 Gastos Invisíveis + 11.10 Merchant Intelligence
+└── Agente D: 11.5 Activity Feed + 11.8 Health Score
+
+Semana 8 — Fase 11 cont.:
+├── Agente A: 11.7 Simulador What-If + UI web
+├── Agente B: 11.9 Sazonalidade + 11.12 Relatório Narrativo
+└── Agente C: 11.11 Metas + UI Flutter da Fase 11
+```
+
+---

@@ -11,6 +11,8 @@ INSERT INTO categories (name, color, icon) VALUES
 ('Educação', '#A084E8', 'school'),
 ('Investimentos', '#4ECDC4', 'trending_up'),
 ('Renda', '#19A7CE', 'payments'),
+('Pet', '#FF85B3', 'pets'),
+('Emergências', '#FF4949', 'report_problem'),
 ('Outros', '#8888A0', 'more_horiz')
 ON CONFLICT DO NOTHING;
 

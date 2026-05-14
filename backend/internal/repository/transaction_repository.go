@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,6 +27,11 @@ type TransactionSummary struct {
 	TotalReceived   float64           `json:"total_received"`
 	CheckingBalance float64           `json:"checking_balance"`
 	CreditBalance   float64           `json:"credit_balance"`
+	CurrentInvoice  float64           `json:"current_invoice"`  // Fatura acumulando (em aberto)
+	ClosedInvoice   float64           `json:"closed_invoice"`   // Fatura já fechada (vencimento próximo)
+	MonthInstallments float64         `json:"month_installments"` // Soma das parcelas que vencem este mês
+	TodaySpent      float64           `json:"today_spent"`
+	WeeklySpent     float64           `json:"weekly_spent"`
 	ByCategory      []CategorySummary `json:"by_category"`
 	ByDay           []DaySummary      `json:"by_day"`
 	TopMerchants    []MerchantSummary `json:"top_merchants"`
@@ -127,7 +133,7 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	}
 	defer rows.Close()
 
-	var transactions []map[string]interface{}
+	transactions := []map[string]interface{}{}
 	for rows.Next() {
 		var tx struct {
 			ID            string
@@ -223,11 +229,24 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 		summary.ByCategory = append(summary.ByCategory, cat)
 	}
 
-	// 2. Totais Gerais
+	// 2. Totais Gerais (Excluindo transferências internas e ajustando por tipo de conta)
+	// 'spent' = Débitos em qualquer conta (exceto pagamentos de fatura/transferências)
+	// 'received' = Créditos APENAS em contas bancárias (ignora créditos em cartão como pagamento de fatura)
 	totalsQuery := `
 		SELECT 
-			COALESCE(SUM(CASE WHEN direction = 'debit' THEN amount ELSE 0 END), 0) as spent,
-			COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount ELSE 0 END), 0) as received
+			COALESCE(SUM(CASE 
+				WHEN t.direction = 'debit' 
+				AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' 
+				AND t.description NOT ILIKE '%TRANSFERENCIA%ENVIADA%' 
+				AND t.description NOT ILIKE '%APLICAÇÃO%' 
+				THEN t.amount ELSE 0 END), 0) as spent,
+			COALESCE(SUM(CASE 
+				WHEN t.direction = 'credit' 
+				AND acc.account_type IN ('CHECKING', 'SAVINGS', 'BANK', 'checking', 'savings')
+				AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' 
+				AND t.description NOT ILIKE '%TRANSFERENCIA%RECEBIDA%' 
+				AND t.description NOT ILIKE '%RESGATE%' 
+				THEN t.amount ELSE 0 END), 0) as received
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		WHERE acc.user_id = $1 AND t.date BETWEEN $2 AND $3
@@ -237,17 +256,28 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 		return nil, err
 	}
 
-	// 3. Por Dia
+	// 3. Por Dia (Seguindo a mesma lógica de filtro)
 	dayQuery := `
 		SELECT 
-			date,
-			SUM(CASE WHEN direction = 'debit' THEN amount ELSE 0 END) as spent,
-			SUM(CASE WHEN direction = 'credit' THEN amount ELSE 0 END) as received
+			t.date,
+			SUM(CASE 
+				WHEN t.direction = 'debit' 
+				AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' 
+				AND t.description NOT ILIKE '%TRANSFERENCIA%ENVIADA%' 
+				AND t.description NOT ILIKE '%APLICAÇÃO%' 
+				THEN t.amount ELSE 0 END) as spent,
+			SUM(CASE 
+				WHEN t.direction = 'credit' 
+				AND acc.account_type IN ('CHECKING', 'SAVINGS', 'BANK', 'checking', 'savings')
+				AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' 
+				AND t.description NOT ILIKE '%TRANSFERENCIA%RECEBIDA%' 
+				AND t.description NOT ILIKE '%RESGATE%' 
+				THEN t.amount ELSE 0 END) as received
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		WHERE acc.user_id = $1 AND t.date BETWEEN $2 AND $3
-		GROUP BY date
-		ORDER BY date ASC
+		GROUP BY t.date
+		ORDER BY t.date ASC
 	`
 	rows, err = r.db.Query(ctx, dayQuery, userID, from, to)
 	if err != nil {
@@ -272,6 +302,7 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		WHERE acc.user_id = $1 AND t.direction = 'debit' AND t.date BETWEEN $2 AND $3
+		AND description NOT ILIKE '%PAGAMENTO%FATURA%' AND description NOT ILIKE '%TRANSFERENCIA%ENVIADA%' AND description NOT ILIKE '%APLICAÇÃO%'
 		GROUP BY merchant
 		ORDER BY total DESC
 		LIMIT 5
@@ -291,16 +322,86 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 	}
 
 	// 5. Saldos por Tipo de Conta
+	// Importante: Crédito deve ser exibido como valor positivo na UI (dívida),
+	// mas no saldo total do patrimônio líquido ele deve ser subtraído.
 	balanceQuery := `
 		SELECT 
-			COALESCE(SUM(CASE WHEN account_type IN ('checking', 'savings') THEN balance ELSE 0 END), 0) as checking,
-			COALESCE(SUM(CASE WHEN account_type = 'credit' THEN balance ELSE 0 END), 0) as credit
+			COALESCE(SUM(CASE WHEN account_type IN ('CHECKING', 'SAVINGS', 'BANK', 'checking', 'savings') THEN balance ELSE 0 END), 0) as checking,
+			COALESCE(SUM(CASE WHEN account_type IN ('CREDIT', 'credit') THEN balance ELSE 0 END), 0) as credit
 		FROM connected_accounts
 		WHERE user_id = $1
 	`
 	err = r.db.QueryRow(ctx, balanceQuery, userID).Scan(&summary.CheckingBalance, &summary.CreditBalance)
 	if err != nil {
 		return nil, err
+	}
+
+	// 6. Cálculo de Fatura Atual (Em Aberto) e Fatura Fechada
+	// Fatura em Aberto = Gastos após o último fechamento até hoje
+	invoiceQuery := `
+		SELECT 
+			COALESCE(SUM(CASE 
+				WHEN t.date > (
+					CASE 
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
+						THEN DATE_TRUNC('month', CURRENT_DATE) + (acc.close_day - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
+					END
+				) THEN t.amount ELSE 0 END), 0) as open_invoice,
+			COALESCE(SUM(CASE 
+				WHEN t.date <= (
+					CASE 
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
+						THEN DATE_TRUNC('month', CURRENT_DATE) + (acc.close_day - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
+					END
+				) 
+				AND t.date > (
+					CASE 
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
+						THEN DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 month') + (acc.close_day - 1) * INTERVAL '1 day'
+					END
+				) THEN t.amount ELSE 0 END), 0) as closed_invoice
+		FROM transactions t
+		JOIN connected_accounts acc ON t.account_id = acc.id
+		WHERE acc.user_id = $1 
+		AND acc.account_type IN ('CREDIT', 'credit')
+		AND t.direction = 'debit'
+		AND t.description NOT ILIKE '%PAGAMENTO%FATURA%'
+	`
+	err = r.db.QueryRow(ctx, invoiceQuery, userID).Scan(&summary.CurrentInvoice, &summary.ClosedInvoice)
+	if err != nil {
+		return nil, err
+	}
+
+	// 7. Soma das Parcelas do Mês Atual
+	installmentsQuery := `
+		SELECT COALESCE(SUM(total_amount / installments_total), 0)
+		FROM installments
+		WHERE account_id IN (SELECT id FROM connected_accounts WHERE user_id = $1)
+		AND next_due_date BETWEEN DATE_TRUNC('month', CURRENT_DATE) AND (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day')
+	`
+	err = r.db.QueryRow(ctx, installmentsQuery, userID).Scan(&summary.MonthInstallments)
+	if err != nil {
+		// Se a tabela não existir ou outro erro, apenas ignoramos para não quebrar o dashboard
+		log.Printf("Aviso: erro ao buscar parcelas: %v", err)
+	}
+
+	// 8. Gastos de Hoje e da Semana
+	dailyWeeklyQuery := `
+		SELECT 
+			COALESCE(SUM(CASE WHEN t.date = $2 AND t.direction = 'debit' AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' AND t.description NOT ILIKE '%APLICAÇÃO%' THEN t.amount ELSE 0 END), 0) as today,
+			COALESCE(SUM(CASE WHEN t.date > $2 - INTERVAL '7 days' AND t.direction = 'debit' AND t.description NOT ILIKE '%PAGAMENTO%FATURA%' AND t.description NOT ILIKE '%APLICAÇÃO%' THEN t.amount ELSE 0 END), 0) as weekly
+		FROM transactions t
+		JOIN connected_accounts acc ON t.account_id = acc.id
+		WHERE acc.user_id = $1
+	`
+	// Usamos o dia atual do servidor Go para garantir consistência de timezone
+	today := time.Now().Format("2006-01-02")
+	err = r.db.QueryRow(ctx, dailyWeeklyQuery, userID, today).Scan(&summary.TodaySpent, &summary.WeeklySpent)
+	if err != nil {
+		log.Printf("Aviso: erro ao buscar gastos diários/semanais: %v", err)
 	}
 
 	return summary, nil

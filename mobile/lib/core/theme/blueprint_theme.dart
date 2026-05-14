@@ -30,11 +30,11 @@ class BlueprintTheme {
         shape: Border(bottom: BorderSide(color: border, width: 2)),
         titleTextStyle: TextStyle(color: border, fontWeight: FontWeight.bold, fontSize: 18),
       ),
-      cardTheme: CardTheme(
+      cardTheme: const CardThemeData(
         color: background,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: border, width: 2),
+          side: BorderSide(color: border, width: 2),
           borderRadius: BorderRadius.zero,
         ),
       ),

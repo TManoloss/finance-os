@@ -2,10 +2,11 @@
 .DS_Store
 
 # Environment variables
+.superpowers/
 .env
 
 # Database data
-data/
+/data/
 
 # Binaries and build artifacts
 bin/

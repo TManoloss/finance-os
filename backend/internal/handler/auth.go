@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/response"
 	"github.com/finance-os/backend/internal/service"
 	"github.com/labstack/echo/v4"
@@ -10,11 +11,13 @@ import (
 
 type AuthHandler struct {
 	authService *service.AuthService
+	cfg         *config.Config
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, cfg *config.Config) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		cfg:         cfg,
 	}
 }
 
@@ -29,6 +32,11 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+}
+
+// RefreshRequest representa o corpo da requisição de refresh.
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 // Register trata o registro de novos usuários.
@@ -52,6 +60,11 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		default:
 			return response.Error(c, http.StatusInternalServerError, "erro ao registrar usuário")
 		}
+	}
+
+	// Fallback para chaves globais
+	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
+		res.User.PluggyClientID = h.cfg.PluggyClientID
 	}
 
 	return response.Success(c, http.StatusCreated, res)
@@ -78,15 +91,61 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		}
 	}
 
+	// Fallback para chaves globais
+	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
+		res.User.PluggyClientID = h.cfg.PluggyClientID
+	}
+
 	return response.Success(c, http.StatusOK, res)
 }
 
 // Refresh trata a renovação de tokens JWT.
 func (h *AuthHandler) Refresh(c echo.Context) error {
-	return response.Error(c, http.StatusNotImplemented, "not implemented yet: refresh")
+	var req RefreshRequest
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "formato de requisição inválido")
+	}
+
+	if req.RefreshToken == "" {
+		return response.Error(c, http.StatusBadRequest, "o refresh_token é obrigatório")
+	}
+
+	res, err := h.authService.RefreshToken(c.Request().Context(), req.RefreshToken)
+	if err != nil {
+		switch err {
+		case service.ErrInvalidCredentials:
+			return response.Error(c, http.StatusUnauthorized, "token de renovação inválido ou expirado")
+		case service.ErrUserNotFound:
+			return response.Error(c, http.StatusNotFound, err.Error())
+		default:
+			return response.Error(c, http.StatusInternalServerError, "erro ao renovar token")
+		}
+	}
+
+	// Fallback para chaves globais
+	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
+		res.User.PluggyClientID = h.cfg.PluggyClientID
+	}
+
+	return response.Success(c, http.StatusOK, res)
 }
 
 // Me retorna os dados do usuário logado.
 func (h *AuthHandler) Me(c echo.Context) error {
-	return response.Error(c, http.StatusNotImplemented, "not implemented yet: me")
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return response.Error(c, http.StatusUnauthorized, "usuário não autenticado")
+	}
+
+	user, err := h.authService.GetUserByID(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "usuário não encontrado")
+	}
+
+	// Fallback para chaves globais se o usuário não tiver as suas
+	if user.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
+		user.PluggyClientID = h.cfg.PluggyClientID
+	}
+
+	return response.Success(c, http.StatusOK, user)
 }

@@ -19,9 +19,9 @@ class MainLayout extends StatelessWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: const Border(top: BorderSide(color: Colors.black, width: 2)),
-          color: const Color(0xFFE8E5DE),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Colors.black, width: 2)),
+          color: Color(0xFFE8E5DE),
         ),
         child: BottomNavigationBar(
           currentIndex: navigationShell.currentIndex,

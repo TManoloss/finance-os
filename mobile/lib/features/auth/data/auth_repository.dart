@@ -1,5 +1,3 @@
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/api/api_client.dart';
 
 class AuthRepository {
@@ -18,7 +16,7 @@ class AuthRepository {
       );
 
       if (response.statusCode == 200) {
-        final accessToken = response.data['access_token'];
+        final accessToken = response.data['data']['access_token'];
         if (accessToken != null) {
           await apiClient.storage.write(key: 'access_token', value: accessToken);
           return true;

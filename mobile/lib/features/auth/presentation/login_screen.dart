@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:finance_os/features/auth/data/auth_repository.dart';
+import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -12,12 +14,43 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final api = ref.read(apiClientProvider);
+    final authRepo = AuthRepository(apiClient: api);
+
+    final success = await authRepo.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (success) {
+        context.go('/dashboard');
+      } else {
+        setState(() {
+          _errorMessage = 'CREDENTIALS_INVALID_OR_SERVER_OFFLINE';
+        });
+      }
+    }
   }
 
   @override
@@ -65,21 +98,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 obscureText: true,
               ),
               const SizedBox(height: 48),
-              ElevatedButton(
-                onPressed: () {
-                  // ignore: avoid_print
-                  print('EXECUTE_LOGIN: ${_emailController.text}');
-                  context.go('/dashboard');
-                },
-                child: const Text('EXECUTE_LOGIN'),
-              ),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Colors.black))
+                  : ElevatedButton(
+                      onPressed: _handleLogin,
+                      child: const Text('EXECUTE_LOGIN'),
+                    ),
               const SizedBox(height: 16),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'ERROR_AUTH: $_errorMessage',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10),
+                  ),
+                ),
               Text(
-                'SYSTEM_STATUS: IDLE // READY_FOR_AUTH',
+                'SYSTEM_STATUS: ${_isLoading ? "PROCESSING_AUTH" : "IDLE"} // READY_FOR_AUTH',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -113,9 +153,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           cursorColor: Colors.black,
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(color: Colors.black.withOpacity(0.2)),
+            hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.2)),
             filled: true,
-            fillColor: Colors.black.withOpacity(0.05),
+            fillColor: Colors.black.withValues(alpha: 0.05),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             enabledBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: Colors.black, width: 2),

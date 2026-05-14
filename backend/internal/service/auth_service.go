@@ -21,12 +21,12 @@ var (
 
 // AuthService lida com a lógica de negócio de autenticação.
 type AuthService struct {
-	repo       *repository.UserRepository
+	repo       repository.UserRepository
 	jwtService *JWTService
 }
 
 // NewAuthService cria uma nova instância de AuthService.
-func NewAuthService(repo *repository.UserRepository, jwtService *JWTService) *AuthService {
+func NewAuthService(repo repository.UserRepository, jwtService *JWTService) *AuthService {
 	return &AuthService{
 		repo:       repo,
 		jwtService: jwtService,
@@ -129,6 +129,58 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthR
 		User:         user,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+	}, nil
+}
+
+// GetUserByID busca os dados de um usuário pelo ID.
+func (s *AuthService) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	user, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+	return user, nil
+}
+
+// RefreshToken valida um refresh token e gera um novo par de tokens (rotação).
+func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*AuthResponse, error) {
+	// 1. Validar refresh token no banco
+	userID, err := s.repo.ValidateRefreshToken(ctx, refreshToken)
+	if err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	// 2. Buscar dados do usuário
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	// 3. Deletar o token usado (rotação)
+	if err := s.repo.DeleteRefreshToken(ctx, refreshToken); err != nil {
+		return nil, err
+	}
+
+	// 4. Gerar novo par de tokens
+	accessToken, err := s.jwtService.GenerateAccessToken(user.ID, user.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	newRefreshToken, err := s.jwtService.GenerateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Salvar o novo Refresh Token
+	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 dias
+	if err := s.repo.SaveRefreshToken(ctx, user.ID, newRefreshToken, expiresAt); err != nil {
+		return nil, err
+	}
+
+	return &AuthResponse{
+		User:         user,
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
 	}, nil
 }
 

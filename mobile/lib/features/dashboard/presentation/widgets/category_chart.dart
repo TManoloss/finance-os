@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
-import 'package:finance_os/features/dashboard/data/summary_model.dart';
 
 class CategoryChart extends StatelessWidget {
   final List<dynamic> categories;

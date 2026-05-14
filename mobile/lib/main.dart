@@ -11,16 +11,18 @@ void main() {
   );
 }
 
-class FinanceOSApp extends StatelessWidget {
+class FinanceOSApp extends ConsumerWidget {
   const FinanceOSApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
     return MaterialApp.router(
       title: 'FINANCE_OS',
       debugShowCheckedModeBanner: false,
       theme: BlueprintTheme.light,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }
