@@ -86,7 +86,7 @@ Serviços:
 - adminer: imagem adminer, porta 8080, depende do postgres (para visualização do banco em dev)
 
 Requisitos:
-- Usar .env para as variáveis sensíveis. Criar também o arquivo .env.example com as chaves sem valores
+- Usar um único arquivo `.env` na raiz do projeto para centralizar as configurações do Backend (Go) e Agentes (Python).
 - Criar o arquivo .gitignore incluindo .env, data/, binários Go e __pycache__
 - Criar README.md com instruções de como iniciar o ambiente local com `docker compose up -d`
 

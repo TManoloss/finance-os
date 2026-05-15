@@ -34,8 +34,8 @@ RUN pip install --no-cache-dir -r /app/agents/requirements.txt
 
 # Cria o script de inicialização unificado
 RUN echo '#!/bin/bash\n\
-echo "Iniciando Serviço de Agentes Python na porta 8000..."\n\
-cd /app/agents && uvicorn main:app --host 127.0.0.1 --port 8000 &\n\
+echo "Iniciando Serviço de Agentes Python na porta ${AGENTS_PORT:-8000}..."\n\
+cd /app/agents && uvicorn main:app --host 127.0.0.1 --port ${AGENTS_PORT:-8000} &\n\
 \n\
 echo "Iniciando Backend Go na porta $PORT..."\n\
 cd /app/backend && ./server' > /app/start.sh
