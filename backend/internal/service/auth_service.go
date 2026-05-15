@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
 	"regexp"
 	"time"
 	"unicode"
@@ -56,8 +57,10 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 	// 3. Gerar hash da senha
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
+		log.Printf("[AuthService] Erro ao gerar hash: %v", err)
 		return nil, err
 	}
+	log.Printf("[AuthService] Hash gerado para %s: %s", email, string(hashedPassword))
 
 	// 4. Criar usuário no banco
 	user := &models.User{
@@ -99,12 +102,15 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthR
 	// 1. Buscar usuário por email
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
+		log.Printf("[AuthService] Usuário não encontrado no login: %s", email)
 		return nil, ErrInvalidCredentials
 	}
 
 	// 2. Verificar senha
+	log.Printf("[AuthService] Comparando senha para %s. Hash no banco: %s", email, user.PasswordHash)
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
+		log.Printf("[AuthService] Falha na comparação de senha para %s: %v", email, err)
 		return nil, ErrInvalidCredentials
 	}
 
