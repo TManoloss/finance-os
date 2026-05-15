@@ -29,12 +29,28 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [pluggyKeys, setPluggyKeys] = useState({ client_id: "", client_secret: "" });
   const [savingKeys, setSavingKeys] = useState(false);
+  const [hasKeys, setHasKeys] = useState(false);
 
   useEffect(() => {
     if (token) {
       fetchAccounts();
+      checkKeys();
     }
   }, [token]);
+
+  const checkKeys = async () => {
+    try {
+      const resp = await api.get("/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resp.data.data.pluggy_client_id) {
+        setHasKeys(true);
+        setPluggyKeys(prev => ({ ...prev, client_id: resp.data.data.pluggy_client_id }));
+      }
+    } catch (err) {
+      console.error("Erro ao verificar chaves", err);
+    }
+  };
 
   const handleSaveKeys = async () => {
     if (!token) return;
@@ -172,19 +188,24 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          <div className="flex justify-end">
+          <div className="flex justify-end items-center gap-4">
+            {hasKeys && (
+              <span className="text-[10px] font-black text-success uppercase">
+                [STATUS: CREDENCIAIS_ATIVAS]
+              </span>
+            )}
             <button 
               onClick={handleSaveKeys}
               disabled={savingKeys}
               className="flex items-center gap-2 bg-accent-purple text-white px-8 py-3 text-xs font-black uppercase hover:bg-opacity-80 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-50"
             >
-              {savingKeys ? "SALVANDO..." : "SALVAR_CREDENCIAIS"}
+              {savingKeys ? "SALVANDO..." : hasKeys ? "ATUALIZAR_CREDENCIAIS" : "SALVAR_CREDENCIAIS"}
             </button>
           </div>
           
           <p className="text-[10px] font-bold uppercase text-text-secondary leading-relaxed max-w-2xl">
-            NOTA: Se deixado em branco, o sistema utilizará as credenciais globais configuradas no servidor. 
-            Suas chaves são armazenadas com criptografia AES-256 de grau bancário.
+            IMPORTANTE: O preenchimento destas chaves é OBRIGATÓRIO para a conexão com o Open Finance. 
+            Suas chaves são individuais e armazenadas com criptografia AES-256.
           </p>
         </div>
       </section>

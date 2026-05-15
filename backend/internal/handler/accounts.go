@@ -249,17 +249,8 @@ func (h *AccountsHandler) getPluggyClientForUser(ctx context.Context, userID str
 		}
 	}
 
-	// Se ainda não temos chaves (ou falhou a descriptografia), tenta o fallback global
 	if clientID == "" || clientSecret == "" {
-		if h.cfg.PluggyClientID != "" && h.cfg.PluggyClientSecret != "" {
-			clientID = h.cfg.PluggyClientID
-			clientSecret = h.cfg.PluggyClientSecret
-			log.Printf("[Accounts] Usando chaves globais de fallback para user %s", userID)
-		}
-	}
-
-	if clientID == "" || clientSecret == "" {
-		return nil, fmt.Errorf("credenciais da Pluggy não configuradas")
+		return nil, fmt.Errorf("credenciais da Pluggy não configuradas. Por favor, configure suas chaves nas configurações")
 	}
 
 	return pluggy.NewClient(clientID, clientSecret), nil

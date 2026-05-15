@@ -181,16 +181,8 @@ func (s *Scheduler) getPluggyClientForUser(ctx context.Context, userID string) (
 		}
 	}
 
-	// Se ainda não temos chaves (ou falhou a descriptografia), tenta o fallback global
 	if clientID == "" || clientSecret == "" {
-		if s.cfg.PluggyClientID != "" && s.cfg.PluggyClientSecret != "" {
-			clientID = s.cfg.PluggyClientID
-			clientSecret = s.cfg.PluggyClientSecret
-		}
-	}
-
-	if clientID == "" || clientSecret == "" {
-		return nil, fmt.Errorf("credenciais da Pluggy não configuradas")
+		return nil, fmt.Errorf("credenciais da Pluggy não configuradas para o usuário %s", userID)
 	}
 
 	return pluggy.NewClient(clientID, clientSecret), nil
