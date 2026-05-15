@@ -10,9 +10,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Se for 401, verifica se é erro de autenticação real ou apenas configuração faltante
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const errorMsg = error.response.data?.error || "";
+      
+      // Se a mensagem contém "Pluggy" ou "configurações", não desloga, pois é erro de negócio
+      if (errorMsg.toLowerCase().includes("pluggy") || errorMsg.toLowerCase().includes("configurações")) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
-      // No servidor não podemos dar signOut direto assim
       if (typeof window !== 'undefined') {
         signOut();
       }

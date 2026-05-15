@@ -31,7 +31,7 @@ export default function AreaChartComponent({ data }: AreaChartProps) {
 
   return (
     <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="0" vertical={true} stroke={gridColor} strokeWidth={1} />
           <XAxis 

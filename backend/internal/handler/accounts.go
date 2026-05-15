@@ -81,7 +81,7 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 
 	query := `
 		SELECT 
-			id, 
+			COALESCE(id, gen_random_uuid()::text), 
 			COALESCE(institution_name, 'Desconhecida'), 
 			institution_logo, 
 			institution_color, 
@@ -98,8 +98,8 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 	
 	rows, err := h.db.Query(c.Request().Context(), query, userID)
 	if err != nil {
-		log.Printf("[Accounts] Erro ao executar query: %v", err)
-		return response.Error(c, http.StatusInternalServerError, "erro ao buscar contas")
+		log.Printf("[Accounts] Erro ao executar query para user %s: %v", userID, err)
+		return response.Error(c, http.StatusInternalServerError, "erro interno ao buscar contas")
 	}
 	defer rows.Close()
 
@@ -138,7 +138,6 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 		})
 	}
 
-	log.Printf("[Accounts] Total de contas encontradas: %d", len(accounts))
 	return response.Success(c, http.StatusOK, accounts)
 }
 
@@ -175,7 +174,7 @@ func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
 	if err != nil {
-		return response.Error(c, http.StatusUnauthorized, err.Error())
+		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
 	token, err := pluggyClient.CreateConnectToken(&req.ItemID)
@@ -205,7 +204,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
 	if err != nil {
-		return response.Error(c, http.StatusUnauthorized, err.Error())
+		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
 	// Executa em background para não travar a request

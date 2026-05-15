@@ -35,8 +35,9 @@ export default function CashflowChart({ data }: CashflowChartProps) {
   const criticalPoints = chartData.filter(d => d.isCritical);
 
   return (
-    <div className="h-[350px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+
         <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
           <defs>
             <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
