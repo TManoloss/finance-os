@@ -77,58 +77,68 @@ func (h *AccountsHandler) SavePluggyKeys(c echo.Context) error {
 // ListAccounts lista as contas conectadas do usuário.
 func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 	userID := c.Get("user_id").(string)
+	log.Printf("[Accounts] Listando contas para o usuário: %s", userID)
+
 	query := `
-		SELECT id, institution_name, institution_logo, institution_color, account_type, balance, currency, last_synced_at, pluggy_item_id, close_day, due_day 
+		SELECT 
+			id, 
+			COALESCE(institution_name, 'Desconhecida'), 
+			institution_logo, 
+			institution_color, 
+			COALESCE(account_type, 'CHECKING'), 
+			COALESCE(balance, 0), 
+			COALESCE(currency, 'BRL'), 
+			last_synced_at, 
+			pluggy_item_id, 
+			close_day, 
+			due_day 
 		FROM connected_accounts 
 		WHERE user_id = $1 
 		ORDER BY institution_name ASC`
+	
 	rows, err := h.db.Query(c.Request().Context(), query, userID)
 	if err != nil {
+		log.Printf("[Accounts] Erro ao executar query: %v", err)
 		return response.Error(c, http.StatusInternalServerError, "erro ao buscar contas")
 	}
 	defer rows.Close()
 
 	var accounts []map[string]interface{}
 	for rows.Next() {
-		var acc struct {
-			ID               string
-			InstitutionName  string
-			InstitutionLogo  *string
-			InstitutionColor *string
-			AccountType      string
-			Balance          float64
-			Currency         string
-			LastSyncedAt     *time.Time
-			PluggyItemID     *string
-			CloseDay         *int
-			DueDay           *int
-		}
+		var (
+			id, instName, accType, currency string
+			instLogo, instColor, pluggyID *string
+			balance float64
+			lastSynced *time.Time
+			closeDay, dueDay *int
+		)
+
 		err := rows.Scan(
-			&acc.ID, &acc.InstitutionName, &acc.InstitutionLogo, &acc.InstitutionColor, 
-			&acc.AccountType, &acc.Balance, &acc.Currency, &acc.LastSyncedAt, 
-			&acc.PluggyItemID, &acc.CloseDay, &acc.DueDay,
+			&id, &instName, &instLogo, &instColor, 
+			&accType, &balance, &currency, &lastSynced, 
+			&pluggyID, &closeDay, &dueDay,
 		)
 		if err != nil {
-			log.Printf("Erro ao escanear conta: %v", err)
+			log.Printf("[Accounts] Erro ao escanear linha para user %s: %v", userID, err)
 			continue
 		}
 
 		accounts = append(accounts, map[string]interface{}{
-			"id":                acc.ID,
-			"institution_name":  acc.InstitutionName,
-			"institution_logo":  acc.InstitutionLogo,
-			"institution_color": acc.InstitutionColor,
-			"account_type":      acc.AccountType,
-			"balance":           acc.Balance,
-			"currency":          acc.Currency,
-			"last_synced_at":    acc.LastSyncedAt,
-			"pluggy_item_id":    acc.PluggyItemID,
-			"close_day":         acc.CloseDay,
-			"due_day":           acc.DueDay,
+			"id":                id,
+			"institution_name":  instName,
+			"institution_logo":  instLogo,
+			"institution_color": instColor,
+			"account_type":      accType,
+			"balance":           balance,
+			"currency":          currency,
+			"last_synced_at":    lastSynced,
+			"pluggy_item_id":    pluggyID,
+			"close_day":         closeDay,
+			"due_day":           dueDay,
 		})
-		}
+	}
 
-
+	log.Printf("[Accounts] Total de contas encontradas: %d", len(accounts))
 	return response.Success(c, http.StatusOK, accounts)
 }
 
@@ -245,6 +255,8 @@ func (h *AccountsHandler) getPluggyClientForUser(ctx context.Context, userID str
 
 	clientID := user.PluggyClientID
 	var clientSecret string
+
+	log.Printf("[DEBUG] Verificando chaves para user %s: has_id=%v", userID, clientID != "")
 
 	// Se o usuário tem chaves próprias
 	if user.PluggyClientID != "" && user.PluggyClientSecretEncrypted != "" {

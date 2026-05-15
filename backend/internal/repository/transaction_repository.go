@@ -189,6 +189,7 @@ func (r *pgTransactionRepository) UpdateCategory(ctx context.Context, txID, cate
 }
 
 func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string, from, to time.Time) (*TransactionSummary, error) {
+	log.Printf("[Repository] Gerando resumo para user %s (%s a %s)", userID, from.Format("2006-01-02"), to.Format("2006-01-02"))
 	summary := &TransactionSummary{
 		ByCategory:   []CategorySummary{},
 		ByDay:        []DaySummary{},
