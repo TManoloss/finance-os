@@ -15,6 +15,7 @@ type Config struct {
 	PluggyClientID      string
 	PluggyClientSecret  string
 	AgentsServiceURL    string
+	SelfURL             string
 	Port                string
 	CORSOrigins         string
 }
@@ -34,6 +35,7 @@ func Load() (*Config, error) {
 		PluggyClientID:     getEnv("PLUGGY_CLIENT_ID", ""),
 		PluggyClientSecret: getEnv("PLUGGY_CLIENT_SECRET", ""),
 		AgentsServiceURL:   getEnv("AGENTS_SERVICE_URL", "http://localhost:8000"),
+		SelfURL:            getEnv("SELF_URL", ""),
 		Port:               getEnv("PORT", "8080"),
 		CORSOrigins:        getEnv("CORS_ORIGINS", "*"),
 	}, nil

@@ -35,8 +35,10 @@ async function getAccounts(token: string) {
 export default async function CardsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
-  const installments = await getInstallments(token);
-  const accounts = await getAccounts(token);
+  const [installments, accounts] = await Promise.all([
+    getInstallments(token),
+    getAccounts(token)
+  ]);
   const creditAccounts = accounts.filter((acc: any) => acc.account_type === 'CREDIT' || acc.account_type === 'credit');
 
   return (

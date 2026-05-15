@@ -47,3 +47,7 @@ ERROR:__main__:Erro ao gerar timeline de cashflow: name 'results' is not defined
 INFO:     127.0.0.1:43868 - "GET /reports/cashflow/eb59b2b0-8325-4de2-87f6-fcaac68a2b33?from_date=2026-05-01&to_date=2026-05-31 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:43868 - "GET /reports/projection/eb59b2b0-8325-4de2-87f6-fcaac68a2b33 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:43868 - "GET /reports/upcoming-expenses/eb59b2b0-8325-4de2-87f6-fcaac68a2b33 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [34025]

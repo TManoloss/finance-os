@@ -135,13 +135,24 @@ export default async function DashboardPage({
     toDate = format(endOfYear(now), "yyyy-MM-dd");
   }
 
-  const summary = await getSummary(token, fromDate, toDate);
-  const reports = await getReports(token);
-  const latestTransactions = await getLatestTransactions(token);
-  const cashflowData = fromDate && toDate ? await getCashflow(token, fromDate, toDate) : [];
-  const feedEvents = await getFeed(token);
-  const projectionData = await getProjections(token);
-  const upcomingExpensesRaw = await getUpcomingExpenses(token);
+  const [
+    summary,
+    reports,
+    latestTransactions,
+    cashflowData,
+    feedEvents,
+    projectionData,
+    upcomingExpensesRaw
+  ] = await Promise.all([
+    getSummary(token, fromDate, toDate),
+    getReports(token),
+    getLatestTransactions(token),
+    fromDate && toDate ? getCashflow(token, fromDate, toDate) : Promise.resolve([]),
+    getFeed(token),
+    getProjections(token),
+    getUpcomingExpenses(token)
+  ]);
+
   const upcomingExpenses = Array.isArray(upcomingExpensesRaw) ? upcomingExpensesRaw : [];
 
   const totalSpent = summary?.total_spent || 0;

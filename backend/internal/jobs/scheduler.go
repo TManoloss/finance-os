@@ -58,8 +58,42 @@ func (s *Scheduler) Start() {
 		log.Fatalf("Erro ao agendar job de sincronização: %v", err)
 	}
 
+	// Agenda self-ping a cada 10 minutos para evitar sleep do Render
+	_, err = s.cron.AddFunc("*/10 * * * *", func() {
+		s.KeepAlive()
+	})
+
+	if err != nil {
+		log.Printf("Aviso: erro ao agendar job de keepalive: %v", err)
+	}
+
 	s.cron.Start()
 	log.Println("Scheduler iniciado com sucesso!")
+}
+
+// KeepAlive faz pings no próprio servidor e no serviço de agentes para evitar cold start.
+func (s *Scheduler) KeepAlive() {
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	// 1. Ping em si mesmo
+	if s.cfg.SelfURL != "" {
+		resp, err := client.Get(fmt.Sprintf("%s/health", s.cfg.SelfURL))
+		if err != nil {
+			log.Printf("[KeepAlive] Erro ao pingar self: %v", err)
+		} else {
+			resp.Body.Close()
+		}
+	}
+
+	// 2. Ping no serviço de agentes
+	if s.cfg.AgentsServiceURL != "" {
+		resp, err := client.Get(fmt.Sprintf("%s/health", s.cfg.AgentsServiceURL))
+		if err != nil {
+			log.Printf("[KeepAlive] Erro ao pingar agentes: %v", err)
+		} else {
+			resp.Body.Close()
+		}
+	}
 }
 
 // TriggerAgents dispara os agentes de IA para todos os usuários ativos.
