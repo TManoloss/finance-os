@@ -77,6 +77,8 @@ export default function SettingsPage() {
       });
       alert("CREDENTIALS_SAVED: Chaves da Pluggy atualizadas com sucesso para este usuário.");
       setHasKeys(true);
+      // Limpa o segredo da memória após salvar por segurança
+      setPluggyKeys(prev => ({ ...prev, client_secret: "" }));
     } catch (err) {
       console.error("Erro ao salvar chaves", err);
       alert("SAVE_ERROR: Falha ao persistir credenciais.");

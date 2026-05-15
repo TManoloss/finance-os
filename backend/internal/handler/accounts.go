@@ -81,13 +81,13 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 
 	query := `
 		SELECT 
-			COALESCE(id, gen_random_uuid()::text), 
-			COALESCE(institution_name, 'Desconhecida'), 
+			id, 
+			institution_name, 
 			institution_logo, 
 			institution_color, 
-			COALESCE(account_type, 'CHECKING'), 
-			COALESCE(balance, 0), 
-			COALESCE(currency, 'BRL'), 
+			account_type, 
+			balance, 
+			currency, 
 			last_synced_at, 
 			pluggy_item_id, 
 			close_day, 
@@ -122,6 +122,11 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 			log.Printf("[Accounts] Erro ao escanear linha para user %s: %v", userID, err)
 			continue
 		}
+
+		// Garante valores padrão para campos obrigatórios na UI
+		if instName == "" { instName = "Instituição Desconhecida" }
+		if accType == "" { accType = "CHECKING" }
+		if currency == "" { currency = "BRL" }
 
 		accounts = append(accounts, map[string]interface{}{
 			"id":                id,
@@ -262,7 +267,11 @@ func (h *AccountsHandler) getPluggyClientForUser(ctx context.Context, userID str
 		decrypted, err := h.encryptionService.Decrypt(user.PluggyClientSecretEncrypted)
 		if err == nil {
 			clientSecret = decrypted
+		} else {
+			log.Printf("[DEBUG] Falha ao descriptografar secret para user %s: %v", userID, err)
 		}
+	} else if user.PluggyClientID != "" {
+		log.Printf("[DEBUG] User %s tem ClientID mas SecretEncrypted está vazio", userID)
 	}
 
 	if clientID == "" || clientSecret == "" {
