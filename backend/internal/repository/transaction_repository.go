@@ -377,15 +377,15 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 
 	// 7. Soma das Parcelas do Mês Atual
 	installmentsQuery := `
-		SELECT COALESCE(SUM(total_amount / installments_total), 0)
+		SELECT COALESCE(SUM(total_amount / NULLIF(installments_total, 0)), 0)
 		FROM installments
 		WHERE account_id IN (SELECT id FROM connected_accounts WHERE user_id = $1)
 		AND next_due_date BETWEEN DATE_TRUNC('month', CURRENT_DATE) AND (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day')
 	`
 	err = r.db.QueryRow(ctx, installmentsQuery, userID).Scan(&summary.MonthInstallments)
 	if err != nil {
-		// Se a tabela não existir ou outro erro, apenas ignoramos para não quebrar o dashboard
-		log.Printf("Aviso: erro ao buscar parcelas: %v", err)
+		log.Printf("[Repository] Erro ao buscar parcelas para user %s: %v", userID, err)
+		// Não retornamos erro aqui para não quebrar o dashboard todo
 	}
 
 	// 8. Gastos de Hoje e da Semana

@@ -57,6 +57,7 @@ class CashflowAgent(BaseAgent):
             from_date_obj = from_date.date() if isinstance(from_date, datetime) else from_date
             to_date_obj = to_date.date() if isinstance(to_date, datetime) else to_date
 
+            results = []
             # We go back in time
             while curr_date >= from_date_obj:
                 day_txs = tx_by_date.get(curr_date, [])

@@ -100,15 +100,19 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 			Currency         string
 			LastSyncedAt     *time.Time
 			PluggyItemID     *string
-			CloseDay         int
-			DueDay           int
+			CloseDay         *int
+			DueDay           *int
 		}
-		err := rows.Scan(&acc.ID, &acc.InstitutionName, &acc.InstitutionLogo, &acc.InstitutionColor, &acc.AccountType, &acc.Balance, &acc.Currency, &acc.LastSyncedAt, &acc.PluggyItemID, &acc.CloseDay, &acc.DueDay)
+		err := rows.Scan(
+			&acc.ID, &acc.InstitutionName, &acc.InstitutionLogo, &acc.InstitutionColor, 
+			&acc.AccountType, &acc.Balance, &acc.Currency, &acc.LastSyncedAt, 
+			&acc.PluggyItemID, &acc.CloseDay, &acc.DueDay,
+		)
 		if err != nil {
 			log.Printf("Erro ao escanear conta: %v", err)
 			continue
 		}
-		
+
 		accounts = append(accounts, map[string]interface{}{
 			"id":                acc.ID,
 			"institution_name":  acc.InstitutionName,
@@ -122,7 +126,8 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 			"close_day":         acc.CloseDay,
 			"due_day":           acc.DueDay,
 		})
-	}
+		}
+
 
 	return response.Success(c, http.StatusOK, accounts)
 }
