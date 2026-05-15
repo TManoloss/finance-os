@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 	"unicode"
 
@@ -43,6 +44,9 @@ type AuthResponse struct {
 
 // Register realiza o cadastro de um novo usuário.
 func (s *AuthService) Register(ctx context.Context, name, email, password string) (*AuthResponse, error) {
+	// Normalizar email
+	email = strings.ToLower(strings.TrimSpace(email))
+
 	// 1. Validar política de senha
 	if err := s.validatePassword(password); err != nil {
 		return nil, err
@@ -99,10 +103,13 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
 
 // Login realiza a autenticação de um usuário.
 func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthResponse, error) {
+	// Normalizar email
+	email = strings.ToLower(strings.TrimSpace(email))
+
 	// 1. Buscar usuário por email
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
-		log.Printf("[AuthService] Usuário não encontrado no login: %s", email)
+		log.Printf("[AuthService] Erro ao buscar usuário %s: %v", email, err)
 		return nil, ErrInvalidCredentials
 	}
 

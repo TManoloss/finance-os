@@ -20,4 +20,4 @@ ON CONFLICT DO NOTHING;
 -- Password: admin123
 INSERT INTO users (id, name, email, password_hash)
 VALUES ('00000000-0000-4000-a000-000000000001', 'Admin Teste', 'admin@example.com', '$2a$12$IQKiXSr1ncPI9ZDiJ6jMHuNbzISlfxo29kiyj3s9OsB5DTzsbEZGC')
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
