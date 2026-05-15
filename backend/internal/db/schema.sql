@@ -17,10 +17,14 @@ CREATE TABLE IF NOT EXISTS connected_accounts (
     pluggy_item_id TEXT, -- ID da conexão (um item pode ter várias contas)
     pluggy_account_id TEXT UNIQUE, -- ID único da conta na Pluggy
     institution_name TEXT NOT NULL,
+    institution_logo TEXT,
+    institution_color TEXT,
     account_type TEXT NOT NULL, -- CHECKING, SAVINGS, CREDIT
     subtype TEXT, -- CHECKING_ACCOUNT, SAVINGS_ACCOUNT, CREDIT_CARD
     balance NUMERIC(12,2) NOT NULL DEFAULT 0,
     currency TEXT NOT NULL DEFAULT 'BRL',
+    close_day INT DEFAULT 1,
+    due_day INT DEFAULT 10,
     last_synced_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -207,7 +207,7 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 			c.id, c.name, c.color, 
 			SUM(t.amount) as total,
 			COUNT(t.id) as count,
-			(SUM(t.amount) / (SELECT total_spent FROM totals)) * 100 as percentage
+			(SUM(t.amount) / NULLIF((SELECT total_spent FROM totals), 0)) * 100 as percentage
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		JOIN categories c ON t.category_id = c.id
@@ -343,24 +343,24 @@ func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string,
 			COALESCE(SUM(CASE 
 				WHEN t.date > (
 					CASE 
-						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
-						THEN DATE_TRUNC('month', CURRENT_DATE) + (acc.close_day - 1) * INTERVAL '1 day'
-						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= COALESCE(acc.close_day, 1) 
+						THEN DATE_TRUNC('month', CURRENT_DATE) + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
 					END
 				) THEN t.amount ELSE 0 END), 0) as open_invoice,
 			COALESCE(SUM(CASE 
 				WHEN t.date <= (
 					CASE 
-						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
-						THEN DATE_TRUNC('month', CURRENT_DATE) + (acc.close_day - 1) * INTERVAL '1 day'
-						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= COALESCE(acc.close_day, 1) 
+						THEN DATE_TRUNC('month', CURRENT_DATE) + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
 					END
 				) 
 				AND t.date > (
 					CASE 
-						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= acc.close_day 
-						THEN DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (acc.close_day - 1) * INTERVAL '1 day'
-						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 month') + (acc.close_day - 1) * INTERVAL '1 day'
+						WHEN EXTRACT(DAY FROM CURRENT_DATE) >= COALESCE(acc.close_day, 1) 
+						THEN DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
+						ELSE DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 month') + (COALESCE(acc.close_day, 1) - 1) * INTERVAL '1 day'
 					END
 				) THEN t.amount ELSE 0 END), 0) as closed_invoice
 		FROM transactions t

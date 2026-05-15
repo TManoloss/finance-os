@@ -8,7 +8,7 @@ class BaseAgent(ABC):
         self.llm = get_llm_provider()
 
     async def get_db_connection(self):
-        return await asyncpg.connect(config.DATABASE_URL)
+        return await asyncpg.connect(config.DATABASE_URL, statement_cache_size=0)
 
     @abstractmethod
     async def run(self, user_id: str, period: str):
