@@ -111,15 +111,24 @@ func (c *Client) doRequest(method, path string, body []byte) (*http.Response, er
 }
 
 // CreateConnectToken gera um token de acesso para o widget Pluggy Connect.
-func (c *Client) CreateConnectToken() (string, error) {
-	resp, err := c.doRequest(http.MethodPost, "/connect_token", nil)
+// Se itemID não for nulo, o token será para atualizar uma conexão existente.
+func (c *Client) CreateConnectToken(itemID *string) (string, error) {
+	payload := make(map[string]interface{})
+	if itemID != nil && *itemID != "" {
+		payload["itemId"] = *itemID
+	}
+
+	body, _ := json.Marshal(payload)
+	resp, err := c.doRequest(http.MethodPost, "/connect_token", body)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("erro ao gerar connect token: status %d", resp.StatusCode)
+		var errRes map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&errRes)
+		return "", fmt.Errorf("erro ao gerar connect token: status %d, %v", resp.StatusCode, errRes)
 	}
 
 	var res ConnectTokenResponse

@@ -27,12 +27,35 @@ export default function SettingsPage() {
   const [showWidget, setShowWidget] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pluggyKeys, setPluggyKeys] = useState({ client_id: "", client_secret: "" });
+  const [savingKeys, setSavingKeys] = useState(false);
 
   useEffect(() => {
     if (token) {
       fetchAccounts();
     }
   }, [token]);
+
+  const handleSaveKeys = async () => {
+    if (!token) return;
+    if (!pluggyKeys.client_id || !pluggyKeys.client_secret) {
+      alert("INPUT_ERROR: Preencha ambos os campos para salvar.");
+      return;
+    }
+
+    setSavingKeys(true);
+    try {
+      await api.post("/accounts/keys", pluggyKeys, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("CREDENTIALS_SAVED: Chaves da Pluggy atualizadas com sucesso para este usuário.");
+    } catch (err) {
+      console.error("Erro ao salvar chaves", err);
+      alert("SAVE_ERROR: Falha ao persistir credenciais.");
+    } finally {
+      setSavingKeys(false);
+    }
+  };
 
   const fetchAccounts = async () => {
     if (!token) return;
@@ -117,6 +140,54 @@ export default function SettingsPage() {
           <p className="text-sm font-bold text-text-secondary uppercase">IDENTIFICADOR_USUARIO: {session?.user?.id || "NULL"}</p>
         </div>
       </header>
+
+      {/* Seção de Credenciais Pluggy */}
+      <section className="bg-background border-b-2 border-black">
+        <div className="p-8 bg-elevated/30 flex flex-col gap-6">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-accent-purple" />
+            <h2 className="text-xl font-black uppercase tracking-tighter">CREDENCIAIS_PLUGGY_PERSONALIZADAS</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black uppercase text-text-secondary">PLUGGY_CLIENT_ID</label>
+              <input 
+                type="text"
+                placeholder="00000000-0000-0000-0000-000000000000"
+                value={pluggyKeys.client_id}
+                onChange={(e) => setPluggyKeys(prev => ({ ...prev, client_id: e.target.value }))}
+                className="w-full bg-elevated border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black uppercase text-text-secondary">PLUGGY_CLIENT_SECRET</label>
+              <input 
+                type="password"
+                placeholder="••••••••••••••••••••••••••••••••"
+                value={pluggyKeys.client_secret}
+                onChange={(e) => setPluggyKeys(prev => ({ ...prev, client_secret: e.target.value }))}
+                className="w-full bg-elevated border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end">
+            <button 
+              onClick={handleSaveKeys}
+              disabled={savingKeys}
+              className="flex items-center gap-2 bg-accent-purple text-white px-8 py-3 text-xs font-black uppercase hover:bg-opacity-80 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-50"
+            >
+              {savingKeys ? "SALVANDO..." : "SALVAR_CREDENCIAIS"}
+            </button>
+          </div>
+          
+          <p className="text-[10px] font-bold uppercase text-text-secondary leading-relaxed max-w-2xl">
+            NOTA: Se deixado em branco, o sistema utilizará as credenciais globais configuradas no servidor. 
+            Suas chaves são armazenadas com criptografia AES-256 de grau bancário.
+          </p>
+        </div>
+      </section>
 
       {/* Seção Open Finance */}
       <section className="bg-background">

@@ -181,12 +181,12 @@ func (s *Scheduler) getPluggyClientForUser(ctx context.Context, userID string) (
 		}
 	}
 
-	// Se ainda não temos chaves (ou falhou a descriptografia), tenta o fallback global (usando s.agentsURL que na verdade deve ser o config completo ou s.cfg)
-	// Como o struct Scheduler não tem o config todo, vamos adicionar.
+	// Se ainda não temos chaves (ou falhou a descriptografia), tenta o fallback global
 	if clientID == "" || clientSecret == "" {
-		// Fallback para chaves injetadas no scheduler ou do ambiente
-		// Nota: No NewScheduler precisamos passar o config todo ou as chaves.
-		// Vou assumir que por enquanto usamos as do ambiente se estiverem vazias, mas o ideal é via config.
+		if s.cfg.PluggyClientID != "" && s.cfg.PluggyClientSecret != "" {
+			clientID = s.cfg.PluggyClientID
+			clientSecret = s.cfg.PluggyClientSecret
+		}
 	}
 
 	if clientID == "" || clientSecret == "" {

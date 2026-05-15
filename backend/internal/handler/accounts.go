@@ -153,12 +153,17 @@ func (h *AccountsHandler) UpdateAccountSettings(c echo.Context) error {
 func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
+	var req struct {
+		ItemID string `json:"item_id"`
+	}
+	_ = c.Bind(&req) // Opcional
+
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
 	if err != nil {
 		return response.Error(c, http.StatusUnauthorized, err.Error())
 	}
 
-	token, err := pluggyClient.CreateConnectToken()
+	token, err := pluggyClient.CreateConnectToken(&req.ItemID)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao gerar connect token")
 	}
