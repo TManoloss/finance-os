@@ -8,6 +8,7 @@ import (
 
 	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/service"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,7 +19,13 @@ func main() {
 	}
 
 	ctx := context.Background()
-	db, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	dbConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	dbConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeCacheDescribe
+
+	db, err := pgxpool.NewWithConfig(ctx, dbConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

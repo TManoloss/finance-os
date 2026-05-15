@@ -13,6 +13,7 @@ import (
 	"github.com/finance-os/backend/internal/repository"
 	"github.com/finance-os/backend/internal/router"
 	"github.com/finance-os/backend/internal/service"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -26,7 +27,16 @@ func main() {
 	}
 
 	// 2. Conectar ao PostgreSQL
-	dbPool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	dbConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Erro ao analisar string de conexão: %v", err)
+	}
+
+	// Configuração para compatibilidade com PGBouncer (Supabase)
+	// QueryExecModeCacheDescribe evita o erro "prepared statement already exists"
+	dbConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeCacheDescribe
+
+	dbPool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
 	if err != nil {
 		log.Fatalf("Erro ao conectar ao banco de dados: %v", err)
 	}
