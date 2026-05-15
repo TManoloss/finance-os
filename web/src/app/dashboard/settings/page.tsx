@@ -182,6 +182,11 @@ export default function SettingsPage() {
                 <h2 className="text-2xl font-black uppercase tracking-tighter">1. CREDENCIAIS_OPEN_FINANCE</h2>
                 <p className={cn("text-xs font-black uppercase", !hasKeys ? "text-danger animate-pulse" : "text-text-secondary")}>
                   Status: {hasKeys ? "✓ CONFIGURADO" : "⚠ NENHUMA_CHAVE_DETECTADA"}
+                  {hasKeys && pluggyKeys.client_id && (
+                    <span className="ml-2 text-[10px] text-accent-purple font-mono">
+                      (RAW_ID: {pluggyKeys.client_id.substring(0, 8)}...)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
