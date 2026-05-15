@@ -62,11 +62,6 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		}
 	}
 
-	// Fallback para chaves globais
-	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
-		res.User.PluggyClientID = h.cfg.PluggyClientID
-	}
-
 	return response.Success(c, http.StatusCreated, res)
 }
 
@@ -89,11 +84,6 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		default:
 			return response.Error(c, http.StatusInternalServerError, "erro ao realizar login")
 		}
-	}
-
-	// Fallback para chaves globais
-	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
-		res.User.PluggyClientID = h.cfg.PluggyClientID
 	}
 
 	return response.Success(c, http.StatusOK, res)
@@ -122,11 +112,6 @@ func (h *AuthHandler) Refresh(c echo.Context) error {
 		}
 	}
 
-	// Fallback para chaves globais
-	if res.User != nil && res.User.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
-		res.User.PluggyClientID = h.cfg.PluggyClientID
-	}
-
 	return response.Success(c, http.StatusOK, res)
 }
 
@@ -140,11 +125,6 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	user, err := h.authService.GetUserByID(c.Request().Context(), userID)
 	if err != nil {
 		return response.Error(c, http.StatusNotFound, "usuário não encontrado")
-	}
-
-	// Fallback para chaves globais se o usuário não tiver as suas
-	if user.PluggyClientID == "" && h.cfg.PluggyClientID != "" {
-		user.PluggyClientID = h.cfg.PluggyClientID
 	}
 
 	return response.Success(c, http.StatusOK, user)

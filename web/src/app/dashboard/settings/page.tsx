@@ -65,6 +65,7 @@ export default function SettingsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("CREDENTIALS_SAVED: Chaves da Pluggy atualizadas com sucesso para este usuário.");
+      setHasKeys(true);
     } catch (err) {
       console.error("Erro ao salvar chaves", err);
       alert("SAVE_ERROR: Falha ao persistir credenciais.");
@@ -150,75 +151,87 @@ export default function SettingsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Terminal className="w-4 h-4" />
-            <span className="text-[10px] font-bold tracking-widest uppercase">CONFIG_ENVIRONMENT_V1.0</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase">CONFIG_ENVIRONMENT_V1.1</span>
           </div>
           <h1 className="text-4xl font-black text-text-primary uppercase tracking-tighter">CONFIGURACOES_DO_SISTEMA</h1>
           <p className="text-sm font-bold text-text-secondary uppercase">IDENTIFICADOR_USUARIO: {session?.user?.id || "NULL"}</p>
         </div>
       </header>
 
-      {/* Seção de Credenciais Pluggy */}
-      <section className="bg-background border-b-2 border-black">
-        <div className="p-8 bg-elevated/30 flex flex-col gap-6">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-accent-purple" />
-            <h2 className="text-xl font-black uppercase tracking-tighter">CREDENCIAIS_PLUGGY_PERSONALIZADAS</h2>
+      {/* Seção de Credenciais Pluggy - DESTAQUE ABSOLUTO */}
+      <section className={cn(
+        "p-8 border-b-2 border-black transition-all",
+        !hasKeys ? "bg-accent-purple/10" : "bg-background"
+      )}>
+        <div className="max-w-4xl mx-auto flex flex-col gap-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className={cn("w-8 h-8", !hasKeys ? "text-accent-purple animate-pulse" : "text-success")} />
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">1. CREDENCIAIS_OPEN_FINANCE</h2>
+                <p className="text-xs font-bold text-text-secondary uppercase">Status: {hasKeys ? "✓ CONFIGURADO" : "⚠ PENDENTE_DE_CADASTRO"}</p>
+              </div>
+            </div>
+            {!hasKeys && (
+              <div className="px-4 py-2 bg-accent-purple text-white text-[10px] font-black uppercase tracking-widest animate-bounce">
+                AÇÃO_OBRIGATÓRIA_REQUERIDA
+              </div>
+            )}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase text-text-secondary">PLUGGY_CLIENT_ID</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 border-2 border-black bg-elevated shadow-[8px_8px_0px_0px_rgba(124,111,255,0.2)]">
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black uppercase text-text-secondary flex items-center gap-2">
+                PLUGGY_CLIENT_ID <span className="text-accent-purple">*</span>
+              </label>
               <input 
                 type="text"
                 placeholder="00000000-0000-0000-0000-000000000000"
                 value={pluggyKeys.client_id}
                 onChange={(e) => setPluggyKeys(prev => ({ ...prev, client_id: e.target.value }))}
-                className="w-full bg-elevated border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+                className="w-full bg-background border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase text-text-secondary">PLUGGY_CLIENT_SECRET</label>
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black uppercase text-text-secondary flex items-center gap-2">
+                PLUGGY_CLIENT_SECRET <span className="text-accent-purple">*</span>
+              </label>
               <input 
                 type="password"
                 placeholder="••••••••••••••••••••••••••••••••"
                 value={pluggyKeys.client_secret}
                 onChange={(e) => setPluggyKeys(prev => ({ ...prev, client_secret: e.target.value }))}
-                className="w-full bg-elevated border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+                className="w-full bg-background border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
               />
             </div>
+            
+            <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-6 pt-4 border-t-2 border-dashed border-black/10">
+               <p className="text-[10px] font-bold uppercase text-text-secondary leading-relaxed max-w-md">
+                Suas chaves são individuais e protegidas por criptografia AES-256. 
+                Elas são necessárias para que o sistema possa se comunicar com seus bancos.
+              </p>
+              <button 
+                onClick={handleSaveKeys}
+                disabled={savingKeys}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 bg-accent-purple text-white px-10 py-4 text-xs font-black uppercase hover:bg-opacity-80 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] disabled:opacity-50"
+              >
+                {savingKeys ? "PERSISTINDO..." : hasKeys ? "ATUALIZAR_CHAVES" : "ATIVAR_OPEN_FINANCE"}
+              </button>
+            </div>
           </div>
-          
-          <div className="flex justify-end items-center gap-4">
-            {hasKeys && (
-              <span className="text-[10px] font-black text-success uppercase">
-                [STATUS: CREDENCIAIS_ATIVAS]
-              </span>
-            )}
-            <button 
-              onClick={handleSaveKeys}
-              disabled={savingKeys}
-              className="flex items-center gap-2 bg-accent-purple text-white px-8 py-3 text-xs font-black uppercase hover:bg-opacity-80 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-50"
-            >
-              {savingKeys ? "SALVANDO..." : hasKeys ? "ATUALIZAR_CREDENCIAIS" : "SALVAR_CREDENCIAIS"}
-            </button>
-          </div>
-          
-          <p className="text-[10px] font-bold uppercase text-text-secondary leading-relaxed max-w-2xl">
-            IMPORTANTE: O preenchimento destas chaves é OBRIGATÓRIO para a conexão com o Open Finance. 
-            Suas chaves são individuais e armazenadas com criptografia AES-256.
-          </p>
         </div>
       </section>
 
-      {/* Seção Open Finance */}
-      <section className="bg-background">
+      {/* Seção Fontes de Dados */}
+      <section className={cn("bg-background", !hasKeys && "opacity-40 pointer-events-none")}>
         <div className="p-8 border-b-2 border-black flex flex-col md:flex-row md:items-center justify-between gap-4 bg-elevated/50">
           <h2 className="text-xl font-black flex items-center gap-2 uppercase tracking-tighter">
-            <Building2 className="w-5 h-5" /> FONTES_DE_DADOS_CONECTADAS
+            <Building2 className="w-5 h-5" /> 2. FONTES_DE_DADOS_CONECTADAS
           </h2>
           <button 
             onClick={handleOpenWidget}
-            className="flex items-center gap-2 bg-black text-white px-6 py-3 text-xs font-black uppercase hover:bg-text-secondary transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+            disabled={!hasKeys}
+            className="flex items-center gap-2 bg-black text-white px-6 py-3 text-xs font-black uppercase hover:bg-text-secondary transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] disabled:grayscale"
           >
             <Plus className="w-4 h-4" /> ADICIONAR_NOVA_FONTE
           </button>
