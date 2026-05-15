@@ -128,10 +128,3 @@ export default async function ReportsPage() {
     </div>
   );
 }
-x justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
-         <span>CORE_ANALYTICS // STATUS_STABLE</span>
-         <span>END_OF_TRANSMISSION</span>
-      </footer>
-    </div>
-  );
-}
