@@ -1,5 +1,5 @@
 # --- Build Go Backend ---
-FROM golang:1.24-alpine AS go-builder
+FROM golang:1.26-alpine AS go-builder
 
 WORKDIR /app
 
