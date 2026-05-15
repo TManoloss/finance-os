@@ -43,12 +43,17 @@ export default function SettingsPage() {
       const resp = await api.get("/me", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (resp.data.data.pluggy_client_id) {
+      const userData = resp.data.data;
+      if (userData.pluggy_client_id && userData.pluggy_client_id.trim() !== "") {
         setHasKeys(true);
-        setPluggyKeys(prev => ({ ...prev, client_id: resp.data.data.pluggy_client_id }));
+        setPluggyKeys({ client_id: userData.pluggy_client_id, client_secret: "" });
+      } else {
+        setHasKeys(false);
+        setPluggyKeys({ client_id: "", client_secret: "" });
       }
     } catch (err) {
       console.error("Erro ao verificar chaves", err);
+      setHasKeys(false);
     }
   };
 
