@@ -44,7 +44,13 @@ export default function SettingsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = resp.data.data;
-      if (userData.pluggy_client_id && userData.pluggy_client_id.trim() !== "") {
+      console.log("[DEBUG] Dados do usuário carregados:", { 
+        id: userData.id, 
+        has_pluggy_id: !!userData.pluggy_client_id,
+        pluggy_id_value: userData.pluggy_client_id 
+      });
+
+      if (userData.pluggy_client_id && userData.pluggy_client_id.trim() !== "" && userData.pluggy_client_id !== "NULL") {
         setHasKeys(true);
         setPluggyKeys({ client_id: userData.pluggy_client_id, client_secret: "" });
       } else {
@@ -174,17 +180,22 @@ export default function SettingsPage() {
               <ShieldCheck className={cn("w-8 h-8", !hasKeys ? "text-accent-purple animate-pulse" : "text-success")} />
               <div>
                 <h2 className="text-2xl font-black uppercase tracking-tighter">1. CREDENCIAIS_OPEN_FINANCE</h2>
-                <p className="text-xs font-bold text-text-secondary uppercase">Status: {hasKeys ? "✓ CONFIGURADO" : "⚠ PENDENTE_DE_CADASTRO"}</p>
+                <p className={cn("text-xs font-black uppercase", !hasKeys ? "text-danger animate-pulse" : "text-text-secondary")}>
+                  Status: {hasKeys ? "✓ CONFIGURADO" : "⚠ NENHUMA_CHAVE_DETECTADA"}
+                </p>
               </div>
             </div>
             {!hasKeys && (
-              <div className="px-4 py-2 bg-accent-purple text-white text-[10px] font-black uppercase tracking-widest animate-bounce">
-                AÇÃO_OBRIGATÓRIA_REQUERIDA
+              <div className="px-4 py-2 bg-danger text-white text-[10px] font-black uppercase tracking-widest animate-bounce border-2 border-black">
+                CONFIGURAÇÃO_OBRIGATÓRIA
               </div>
             )}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 border-2 border-black bg-elevated shadow-[8px_8px_0px_0px_rgba(124,111,255,0.2)]">
+          <div className={cn(
+            "grid grid-cols-1 md:grid-cols-2 gap-8 p-8 border-4 border-black bg-elevated shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]",
+            !hasKeys && "border-accent-purple/50"
+          )}>
             <div className="flex flex-col gap-3">
               <label className="text-[10px] font-black uppercase text-text-secondary flex items-center gap-2">
                 PLUGGY_CLIENT_ID <span className="text-accent-purple">*</span>
@@ -340,11 +351,11 @@ export default function SettingsPage() {
             </div>
             <p className="text-xs font-bold uppercase leading-relaxed text-text-secondary">Seus dados são criptografados via AES-256 e acessados apenas através de tokens efêmeros da Pluggy API (Open Finance Brasil).</p>
          </div>
-         <div className="p-6 border-2 border-black bg-elevated w-full md:w-80">
-            <div className="text-[10px] font-black uppercase text-text-secondary mb-2">SYSTEM_AUTH_STATUS</div>
+         <div className="p-6 border-2 border-black bg-elevated w-full md:w-80 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="text-[10px] font-black uppercase text-text-secondary mb-2">ESTADO_DA_SESSÃO_JWT</div>
             <div className="flex items-center gap-2">
                <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-               <span className="text-xs font-black uppercase">TOKEN_ATUAL_VALIDO</span>
+               <span className="text-xs font-black uppercase">LOGIN_ATIVO_E_SEGURO</span>
             </div>
          </div>
       </section>
