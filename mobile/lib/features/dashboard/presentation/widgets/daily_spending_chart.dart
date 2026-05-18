@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../core/theme/blueprint_theme.dart';
+import '../../data/dashboard_models.dart';
 
 class DailySpendingChart extends StatelessWidget {
-  final List<dynamic> byDay;
+  final List<DailyBalance> byDay;
 
   const DailySpendingChart({super.key, required this.byDay});
 
@@ -11,56 +13,89 @@ class DailySpendingChart extends StatelessWidget {
     if (byDay.isEmpty) {
       return const Center(
         child: Text(
-          'SEM_DADOS_DIARIOS',
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+          'SEM_DADOS_TELEMETRIA',
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary),
         ),
       );
     }
 
+    final spots = byDay.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value.totalSpent);
+    }).toList();
+
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(
+        gridData: FlGridData(
           show: true,
-          drawVerticalLine: true,
-          horizontalInterval: 100,
-          verticalInterval: 1,
+          drawVerticalLine: false,
+          getHorizontalLineData: (value) => FlLine(
+            color: BlueprintTheme.border.withOpacity(0.1),
+            strokeWidth: 1,
+          ),
         ),
         titlesData: FlTitlesData(
           show: true,
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              getTitlesWidget: (value, meta) => Text(
-                value.toInt().toString(),
-                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 20,
+              reservedSize: 22,
+              interval: (byDay.length / 5).clamp(1, 31).toDouble(),
               getTitlesWidget: (value, meta) {
-                final int index = value.toInt();
-                if (index >= 0 && index < byDay.length) {
-                  if (index % 5 == 0 || index == byDay.length - 1) {
-                    return Text(
-                      (index + 1).toString(),
-                      style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
-                    );
-                  }
+                if (value.toInt() >= 0 && value.toInt() < byDay.length) {
+                  final date = byDay[value.toInt()].date;
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      '${date.day}/${date.month}',
+                      style: const TextStyle(color: BlueprintTheme.textSecondary, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  );
                 }
-                return const SizedBox.shrink();
+                return const Text('');
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(color: BlueprintTheme.textSecondary, fontSize: 8, fontWeight: FontWeight.bold),
+                );
               },
             ),
           ),
         ),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: BlueprintTheme.accentPurple,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowArea: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  BlueprintTheme.accentPurple.withOpacity(0.3),
+                  BlueprintTheme.accentPurple.withOpacity(0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            tooltipBgColor: Colors.black, // fl_chart v0.66 usa tooltipBgColor
+            getTooltipColor: (_) => BlueprintTheme.elevated,
+            tooltipBorder: const BorderSide(color: BlueprintTheme.border, width: 1),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 return LineTooltipItem(
@@ -71,45 +106,6 @@ class DailySpendingChart extends StatelessWidget {
             },
           ),
         ),
-        borderData: FlBorderData(
-          show: true,
-          border: const Border(
-            bottom: BorderSide(color: Colors.black, width: 2),
-            left: BorderSide(color: Colors.black, width: 2),
-          ),
-        ),
-        lineBarsData: [
-          // Recebidos (Crédito)
-          LineChartBarData(
-            spots: byDay.asMap().entries.map((e) {
-              final received = (e.value['total_received'] ?? e.value['received'] ?? 0) as num;
-              return FlSpot(e.key.toDouble(), received.toDouble());
-            }).toList(),
-            isCurved: false,
-            color: const Color(0xFF4ECDC4),
-            barWidth: 2,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: const Color(0xFF4ECDC4).withOpacity(0.2),
-            ),
-          ),
-          // Gastos (Débito)
-          LineChartBarData(
-            spots: byDay.asMap().entries.map((e) {
-              final spent = (e.value['total_spent'] ?? e.value['spent'] ?? 0) as num;
-              return FlSpot(e.key.toDouble(), spent.toDouble());
-            }).toList(),
-            isCurved: false,
-            color: const Color(0xFFFF6B6B),
-            barWidth: 2,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: const Color(0xFFFF6B6B).withOpacity(0.2),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:finance_os/features/auth/data/auth_repository.dart';
-import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
+import 'auth_provider.dart';
+import '../../theme/blueprint_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,111 +14,133 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
 
   Future<void> _handleLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    final api = ref.read(apiClientProvider);
-    final authRepo = AuthRepository(apiClient: api);
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PREENCHA TODOS OS CAMPOS')),
+      );
+      return;
+    }
 
-    final success = await authRepo.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+    setState(() => _isLoading = true);
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (success) {
-        context.go('/dashboard');
-      } else {
-        setState(() {
-          _errorMessage = 'CREDENTIALS_INVALID_OR_SERVER_OFFLINE';
-        });
+    try {
+      final success = await ref.read(authProvider.notifier).login(email, password);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ERRO: CREDENCIAIS INVÁLIDAS')),
+        );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ERRO_SISTEMA: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Logo Placeholder
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: BlueprintTheme.accentPurple,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Center(
+                  child: Text(
+                    'F', 
+                    style: TextStyle(
+                      fontSize: 32, 
+                      fontWeight: FontWeight.black, 
+                      color: Colors.white
+                    )
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'FINANCE_OS',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
+                  fontSize: 24, 
+                  fontWeight: FontWeight.black, 
+                  letterSpacing: -1
                 ),
               ),
-              const SizedBox(height: 8),
               const Text(
-                'CORE_ENGINE_LOGIN_REQUIRED',
+                'OPERATIONAL_SYSTEM_V1.1',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+                  fontSize: 10, 
+                  fontWeight: FontWeight.bold, 
+                  color: BlueprintTheme.textSecondary,
+                  letterSpacing: 1.5
                 ),
-              ),
-              const SizedBox(height: 64),
-              _buildTerminalInput(
-                label: 'INPUT_IDENTITY',
-                controller: _emailController,
-                hintText: 'user@finance.os',
-              ),
-              const SizedBox(height: 24),
-              _buildTerminalInput(
-                label: 'SECURE_CREDENTIAL',
-                controller: _passwordController,
-                hintText: '********',
-                obscureText: true,
               ),
               const SizedBox(height: 48),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.black))
-                  : ElevatedButton(
-                      onPressed: _handleLogin,
-                      child: const Text('EXECUTE_LOGIN'),
-                    ),
+
+              // Inputs
+              _buildField('EMAIL_ADDRESS', _emailController, false),
               const SizedBox(height: 16),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'ERROR_AUTH: $_errorMessage',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 10),
+              _buildField('PASSWORD_KEY', _passwordController, true),
+              const SizedBox(height: 32),
+
+              // Login Button
+              GestureDetector(
+                onTap: _isLoading ? null : _handleLogin,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: BlueprintTheme.accentPurple,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: _isLoading 
+                      ? const SizedBox(
+                          width: 20, 
+                          height: 20, 
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                        )
+                      : const Text(
+                          'AUTENTICAR', 
+                          style: TextStyle(
+                            fontWeight: FontWeight.black, 
+                            color: Colors.white, 
+                            letterSpacing: 1
+                          )
+                        ),
                   ),
                 ),
-              Text(
-                'SYSTEM_STATUS: ${_isLoading ? "PROCESSING_AUTH" : "IDLE"} // READY_FOR_AUTH',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () {},
+                child: const Text(
+                  'SOLICITAR_ACESSO',
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.bold, 
+                    color: BlueprintTheme.textSecondary
+                  ),
                 ),
               ),
             ],
@@ -129,41 +150,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildTerminalInput({
-    required String label,
-    required TextEditingController controller,
-    String? hintText,
-    bool obscureText = false,
-  }) {
+  Widget _buildField(String label, TextEditingController controller, bool isPassword) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
+            fontSize: 8, 
+            fontWeight: FontWeight.bold, 
+            color: BlueprintTheme.textSecondary,
+            letterSpacing: 1
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          cursorColor: Colors.black,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.2)),
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: 0.05),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.black, width: 2),
-              borderRadius: BorderRadius.zero,
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.blue, width: 2),
-              borderRadius: BorderRadius.zero,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: BlueprintTheme.elevated,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: BlueprintTheme.border, width: 1),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: isPassword,
+            style: const TextStyle(fontSize: 14),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../theme/blueprint_theme.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class ChatMessage {
@@ -73,15 +74,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'TERMINAL_PIERRE_V1.1',
-          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
+        title: const Text('TERMINAL PIERRE'),
       ),
-      backgroundColor: const Color(0xFFD4D1CA),
       body: Column(
         children: [
           Expanded(
@@ -92,9 +86,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               itemBuilder: (context, index) {
                 if (index == _messages.length) {
                   return const Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Text('> PROCESSANDO_REQUISICAO...', 
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.blueGrey)),
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      '> PROCESSANDO_REQUISICAO...', 
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 10, 
+                        color: BlueprintTheme.accentPurple
+                      )
+                    ),
                   );
                 }
                 
@@ -103,60 +103,78 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 24),
-                  child: Column(
-                    crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isUser ? 'USUARIO' : 'PIERRE_AI', 
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.85,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isUser ? const Color(0xFF2A2A2A) : Colors.white,
-                          border: Border.all(color: Colors.black, width: 2),
-                          boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(4, 4))],
-                        ),
-                        child: MarkdownBody(
-                          data: msg.content,
-                          styleSheet: MarkdownStyleSheet(
-                            p: TextStyle(
-                              color: isUser ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                            h1: TextStyle(
-                              color: isUser ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                            ),
-                            h2: TextStyle(
-                              color: isUser ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
-                            listBullet: TextStyle(
-                              color: isUser ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            code: TextStyle(
-                              backgroundColor: isUser ? Colors.white12 : Colors.black12,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
-                            ),
-                            blockquote: const TextStyle(
-                              fontStyle: FontStyle.italic,
-                              color: Colors.blueGrey,
-                            ),
-                            blockquoteDecoration: BoxDecoration(
-                              border: const Border(left: BorderSide(color: Colors.black, width: 4)),
-                              color: isUser ? Colors.white12 : Colors.black12,
+                      if (!isUser) ...[
+                        Container(
+                          width: 24,
+                          height: 24,
+                          margin: const EdgeInsets.only(top: 4, right: 12),
+                          decoration: BoxDecoration(
+                            color: BlueprintTheme.accentPurple.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: BlueprintTheme.accentPurple, width: 1),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'P', 
+                              style: TextStyle(
+                                color: BlueprintTheme.accentPurple, 
+                                fontSize: 12, 
+                                fontWeight: FontWeight.bold
+                              )
                             ),
                           ),
+                        ),
+                      ],
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: isUser ? CrossAxisAlignment.end : MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              isUser ? 'VOCÊ' : 'PIERRE_AI', 
+                              style: const TextStyle(
+                                fontSize: 8, 
+                                fontWeight: FontWeight.bold, 
+                                color: BlueprintTheme.textSecondary,
+                                letterSpacing: 1
+                              )
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isUser ? BlueprintTheme.accentPurple : BlueprintTheme.surface,
+                                borderRadius: BorderRadius.circular(16).copyWith(
+                                  topRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
+                                  topLeft: isUser ? const Radius.circular(16) : const Radius.circular(4),
+                                ),
+                                border: Border.all(
+                                  color: isUser ? BlueprintTheme.accentPurple : BlueprintTheme.border, 
+                                  width: 1
+                                ),
+                              ),
+                              child: MarkdownBody(
+                                data: msg.content,
+                                styleSheet: MarkdownStyleSheet(
+                                  p: TextStyle(
+                                    color: isUser ? Colors.white : BlueprintTheme.textPrimary,
+                                    fontSize: 14,
+                                    height: 1.5,
+                                  ),
+                                  strong: const TextStyle(fontWeight: FontWeight.bold),
+                                  code: TextStyle(
+                                    backgroundColor: Colors.black26,
+                                    fontFamily: 'monospace',
+                                    fontSize: 12,
+                                    color: isUser ? Colors.white : BlueprintTheme.accentTeal,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -173,33 +191,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               bottom: MediaQuery.of(context).padding.bottom + 16
             ),
             decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.black, width: 2)),
+              color: BlueprintTheme.surface,
+              border: Border(top: BorderSide(color: BlueprintTheme.border, width: 1)),
             ),
             child: Row(
               children: [
-                const Text('>', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: TextField(
-                    controller: _inputController,
-                    decoration: const InputDecoration(
-                      hintText: 'DIGITE_SEU_COMANDO_AQUI...',
-                      border: InputBorder.none,
-                      hintStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: BlueprintTheme.elevated,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: BlueprintTheme.border, width: 1),
                     ),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    onSubmitted: (_) => _sendMessage(),
+                    child: TextField(
+                      controller: _inputController,
+                      decoration: const InputDecoration(
+                        hintText: 'Pergunte ao Pierre...',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary),
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
                   ),
                 ),
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    boxShadow: [BoxShadow(color: Colors.grey, offset: Offset(2, 2))],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _isLoading ? null : _sendMessage,
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _isLoading ? null : _sendMessage,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: BlueprintTheme.accentPurple,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
                   ),
                 ),
               ],

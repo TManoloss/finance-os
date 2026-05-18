@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../theme/blueprint_theme.dart';
 
 class MainLayout extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -20,26 +21,33 @@ class MainLayout extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.black, width: 2)),
-          color: Color(0xFFE8E5DE),
+          border: Border(top: BorderSide(color: BlueprintTheme.border, width: 1)),
+          color: BlueprintTheme.surface,
         ),
         child: BottomNavigationBar(
           currentIndex: navigationShell.currentIndex,
           onTap: _goBranch,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: const Color(0xFF0000FF), // Accent Blue
-          unselectedItemColor: Colors.black,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-          type: BottomNavigationBarType.fixed,
           items: const [
-            BottomNavigationBarItem(icon: Icon(LucideIcons.layoutDashboard), label: 'DASHBOARD'),
-            BottomNavigationBarItem(icon: Icon(LucideIcons.arrowLeftRight), label: 'TRANSACTIONS'),
-            BottomNavigationBarItem(icon: Icon(LucideIcons.creditCard), label: 'CREDIT'),
-            BottomNavigationBarItem(icon: Icon(LucideIcons.terminal), label: 'PIERRE_AI'),
+            BottomNavigationBarItem(
+              icon: Icon(LucideIcons.layoutDashboard), 
+              activeIcon: Icon(LucideIcons.layoutDashboard, color: BlueprintTheme.accentPurple),
+              label: 'HOME'
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(LucideIcons.arrowLeftRight), 
+              activeIcon: Icon(LucideIcons.arrowLeftRight, color: BlueprintTheme.accentPurple),
+              label: 'EXTRATO'
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(LucideIcons.creditCard), 
+              activeIcon: Icon(LucideIcons.creditCard, color: BlueprintTheme.accentPurple),
+              label: 'CARTÕES'
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(LucideIcons.terminal), 
+              activeIcon: Icon(LucideIcons.terminal, color: BlueprintTheme.accentPurple),
+              label: 'PIERRE'
+            ),
           ],
         ),
       ),

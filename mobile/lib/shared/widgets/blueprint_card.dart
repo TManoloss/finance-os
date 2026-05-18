@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/blueprint_theme.dart';
 
 class BlueprintCard extends StatelessWidget {
   final Widget child;
@@ -21,29 +22,26 @@ class BlueprintCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (label != null) ...[
-          Text(
-            label!.toUpperCase(),
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 1.2,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              label!.toUpperCase(),
+              style: const TextStyle(
+                color: BlueprintTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+                letterSpacing: 1.2,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
         ],
         Container(
           height: height,
-          padding: padding ?? const EdgeInsets.all(16),
+          padding: padding ?? const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF4F1EA),
-            border: Border.all(color: Colors.black, width: 2),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black,
-                offset: Offset(4, 4),
-                blurRadius: 0,
-              ),
-            ],
+            color: BlueprintTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: BlueprintTheme.border, width: 1),
           ),
           child: child,
         ),

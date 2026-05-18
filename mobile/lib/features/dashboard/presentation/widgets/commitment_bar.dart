@@ -1,34 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 class CommitmentBar extends StatelessWidget {
-  final double checking;
-  final double credit;
+  final double spent;
+  final double limit;
+  final String label;
 
-  const CommitmentBar({super.key, required this.checking, required this.credit});
+  const CommitmentBar({
+    super.key,
+    required this.spent,
+    required this.limit,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = (checking > 0) ? (credit.abs() / checking).clamp(0.0, 1.0) : 1.0;
-    final bool isWarning = percentage > 0.7;
+    final percentage = (spent / limit).clamp(0.0, 1.0);
+    final isWarning = percentage > 0.8;
+    final isDanger = percentage >= 1.0;
+
+    final color = isDanger 
+        ? BlueprintTheme.danger 
+        : (isWarning ? BlueprintTheme.warning : BlueprintTheme.accentPurple);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.between,
           children: [
-            const Text('INDICE_COMPROMETIMENTO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-            Text('${(percentage * 100).toStringAsFixed(0)}%', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isWarning ? Colors.red : Colors.black)),
+            Text(
+              label.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                color: BlueprintTheme.textSecondary,
+              ),
+            ),
+            Text(
+              '${(percentage * 100).toInt()}%',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Container(
-          height: 12,
-          decoration: BoxDecoration(border: Border.all(color: Colors.black)),
+          height: 6,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: BlueprintTheme.elevated,
+            borderRadius: BorderRadius.circular(3),
+          ),
           child: FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: percentage,
-            child: Container(color: isWarning ? Colors.red : Colors.black),
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
