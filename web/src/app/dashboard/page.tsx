@@ -6,7 +6,7 @@ import DonutChartComponent from "@/components/charts/DonutChartComponent";
 import ProjectionChart from "@/components/charts/ProjectionChart";
 import UpcomingExpenses from "@/components/UpcomingExpenses";
 import ActivityFeed from "@/components/ActivityFeed";
-import { ArrowRight, Zap, Database, Terminal, TrendingUp, BarChart3 } from "lucide-react";
+import { ArrowRight, Zap, Database, Terminal, TrendingUp, BarChart3, Activity } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
