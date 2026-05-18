@@ -97,3 +97,23 @@ final mealCostProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     return {};
   }
 });
+
+final ticketAnalysisProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/ticket-analysis');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});
+
+final loyaltyProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/loyalty');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});

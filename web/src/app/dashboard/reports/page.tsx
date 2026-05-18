@@ -13,8 +13,9 @@ import ImpulseAnalysisCard from "@/components/ImpulseAnalysisCard";
 import CompensationPatternCard from "@/components/CompensationPatternCard";
 import MealCostAnalysisCard from "@/components/MealCostAnalysisCard";
 import ConvenienceIndexCard from "@/components/ConvenienceIndexCard";
+import TicketAnalysisCard from "@/components/TicketAnalysisCard";
+import LoyaltyAnalysisCard from "@/components/LoyaltyAnalysisCard";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 async function getReports(token: string) {
   try {
@@ -24,6 +25,28 @@ async function getReports(token: string) {
     return resp.data.data || [];
   } catch (error) {
     return [];
+  }
+}
+
+async function getTicketAnalysis(token: string) {
+  try {
+    const resp = await api.get("/reports/ticket-analysis", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getLoyalty(token: string) {
+  try {
+    const resp = await api.get("/reports/loyalty", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -151,7 +174,9 @@ export default async function ReportsPage() {
     impulse,
     compensation,
     mealCost,
-    convenience
+    convenience,
+    ticketAnalysis,
+    loyalty
   ] = await Promise.all([
     getReports(token),
     getPersonalInflation(token),
@@ -163,7 +188,9 @@ export default async function ReportsPage() {
     getImpulse(token),
     getCompensation(token),
     getMealCost(token),
-    getConvenience(token)
+    getConvenience(token),
+    getTicketAnalysis(token),
+    getLoyalty(token)
   ]);
 
   return (
@@ -187,7 +214,7 @@ export default async function ReportsPage() {
       </div>
 
       {/* Advanced Analytic Cards Section */}
-      {(inflation || growth || weeklyProfile || monthlyWeeks || impulse || compensation || mealCost || convenience) && (
+      {(inflation || growth || weeklyProfile || monthlyWeeks || impulse || compensation || mealCost || convenience || ticketAnalysis || loyalty) && (
         <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
           <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
             <TrendingUp className="w-4 h-4" /> ADVANCED_PATTERN_INSIGHTS_V2.5
@@ -202,6 +229,8 @@ export default async function ReportsPage() {
             {compensation && <CompensationPatternCard data={compensation} />}
             {mealCost && <MealCostAnalysisCard data={mealCost} />}
             {convenience && <ConvenienceIndexCard data={convenience} />}
+            {ticketAnalysis && <TicketAnalysisCard data={ticketAnalysis} />}
+            {loyalty && <LoyaltyAnalysisCard data={loyalty} />}
           </div>
         </div>
       )}

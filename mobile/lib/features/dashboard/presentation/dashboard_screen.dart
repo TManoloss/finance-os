@@ -87,8 +87,8 @@ class DashboardScreen extends ConsumerWidget {
                           data: (data) {
                             if (data.isEmpty) return const SizedBox.shrink();
                             final rate = data['personal_inflation_rate'] ?? 0.0;
-                            return Padding(
-                              padding: const EdgeInsets.bottom(16.0),
+                            return const Padding(
+                              padding: EdgeInsets.only(bottom: 16.0),
                               child: BlueprintCard(
                                 label: 'INFLAÇÃO_PESSOAL_MENSAL',
                                 child: Row(
@@ -250,7 +250,7 @@ class DashboardScreen extends ConsumerWidget {
                       if (data.isEmpty) return const SizedBox.shrink();
                       final avgCost = data['avg_cost_per_meal'] ?? 0.0;
                       return Padding(
-                        padding: const EdgeInsets.bottom(16.0),
+                        padding: const EdgeInsets.only(bottom: 16.0),
                         child: BlueprintCard(
                           label: 'CUSTO_POR_REFEIÇÃO',
                           child: Column(
@@ -280,6 +280,88 @@ class DashboardScreen extends ConsumerWidget {
                     error: (_, __) => const SizedBox.shrink(),
                   ),
 
+                  // Ticket Analysis Insight
+                  ref.watch(ticketAnalysisProvider).when(
+                    data: (data) {
+                      if (data.isEmpty || data['top_decompositions'] == null) return const SizedBox.shrink();
+                      final top = (data['top_decompositions'] as List).firstOrNull;
+                      if (top == null) return const SizedBox.shrink();
+                      final category = top['category'] ?? 'N/A';
+                      final varTicket = (top['var_ticket'] ?? 0.0) * 100;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: BlueprintCard(
+                          label: 'ANÁLISE_DE_TICKET',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.label_important, size: 16, color: BlueprintTheme.accentPurple),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$category: ${varTicket > 0 ? '+' : ''}${varTicket.toStringAsFixed(1)}% TICKET',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['insight_narrative'] ?? '',
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // Loyalty Insight
+                  ref.watch(loyaltyProvider).when(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final stats = data['loyalty_stats'] ?? {};
+                      final leal = stats['leal'] ?? 0;
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: BlueprintCard(
+                          label: 'LEALDADE_&_RECORRÊNCIA',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.favorite, size: 16, color: BlueprintTheme.danger),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$leal ESTABELECIMENTOS LEAIS',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['insight_narrative'] ?? '',
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
                   // TEMPORAL ANALYTICS SECTION
                   Text(
                     'ANÁLISE TEMPORAL',
@@ -298,7 +380,7 @@ class DashboardScreen extends ConsumerWidget {
                       if (data.isEmpty) return const SizedBox.shrink();
                       final peakDay = data['peak_spending_day'] ?? '';
                       return Padding(
-                        padding: const EdgeInsets.bottom(16.0),
+                        padding: const EdgeInsets.only(bottom: 16.0),
                         child: BlueprintCard(
                           label: 'PERFIL_SEMANAL',
                           child: Column(
@@ -334,7 +416,7 @@ class DashboardScreen extends ConsumerWidget {
                       if (data.isEmpty) return const SizedBox.shrink();
                       final spike = data['spending_increase_percent'] ?? 0;
                       return Padding(
-                        padding: const EdgeInsets.bottom(16.0),
+                        padding: const EdgeInsets.only(bottom: 16.0),
                         child: BlueprintCard(
                           label: 'CICLO_MENSAL',
                           child: Column(
