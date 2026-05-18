@@ -87,3 +87,13 @@ final salaryEffectProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     return {};
   }
 });
+
+final mealCostProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/meal-cost');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});

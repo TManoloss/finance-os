@@ -2,13 +2,17 @@ import { auth } from "@/auth";
 import api from "@/lib/api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp, Clock } from "lucide-react";
+import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp, Clock, MousePointer2 } from "lucide-react";
 import TriggerReportButtons from "@/components/TriggerReportButtons";
 import NarrativeReportView from "@/components/NarrativeReportView";
 import PersonalInflationCard from "@/components/PersonalInflationCard";
 import SilentGrowthCard from "@/components/SilentGrowthCard";
 import WeeklyProfileChart from "@/components/WeeklyProfileChart";
 import MonthlyCycleChart from "@/components/MonthlyCycleChart";
+import ImpulseAnalysisCard from "@/components/ImpulseAnalysisCard";
+import CompensationPatternCard from "@/components/CompensationPatternCard";
+import MealCostAnalysisCard from "@/components/MealCostAnalysisCard";
+import ConvenienceIndexCard from "@/components/ConvenienceIndexCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -89,6 +93,50 @@ async function getMonthlyWeeks(token: string) {
   }
 }
 
+async function getImpulse(token: string) {
+  try {
+    const resp = await api.get("/reports/impulse", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getCompensation(token: string) {
+  try {
+    const resp = await api.get("/reports/compensation-pattern", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getMealCost(token: string) {
+  try {
+    const resp = await api.get("/reports/meal-cost", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getConvenience(token: string) {
+  try {
+    const resp = await api.get("/reports/convenience-index", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function ReportsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
@@ -99,7 +147,11 @@ export default async function ReportsPage() {
     weeklyProfile, 
     weekdayWeekend, 
     salaryEffect, 
-    monthlyWeeks
+    monthlyWeeks,
+    impulse,
+    compensation,
+    mealCost,
+    convenience
   ] = await Promise.all([
     getReports(token),
     getPersonalInflation(token),
@@ -107,7 +159,11 @@ export default async function ReportsPage() {
     getWeeklyProfile(token),
     getWeekdayWeekend(token),
     getSalaryEffect(token),
-    getMonthlyWeeks(token)
+    getMonthlyWeeks(token),
+    getImpulse(token),
+    getCompensation(token),
+    getMealCost(token),
+    getConvenience(token)
   ]);
 
   return (
@@ -131,7 +187,7 @@ export default async function ReportsPage() {
       </div>
 
       {/* Advanced Analytic Cards Section */}
-      {(inflation || growth || weeklyProfile || monthlyWeeks) && (
+      {(inflation || growth || weeklyProfile || monthlyWeeks || impulse || compensation || mealCost || convenience) && (
         <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
           <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
             <TrendingUp className="w-4 h-4" /> ADVANCED_PATTERN_INSIGHTS_V2.5
@@ -142,9 +198,14 @@ export default async function ReportsPage() {
             {growth && <SilentGrowthCard data={growth} />}
             {weeklyProfile && <WeeklyProfileChart data={weeklyProfile} weekdayWeekendData={weekdayWeekend} />}
             {monthlyWeeks && <MonthlyCycleChart data={monthlyWeeks} salaryEffectData={salaryEffect} />}
+            {impulse && <ImpulseAnalysisCard data={impulse} />}
+            {compensation && <CompensationPatternCard data={compensation} />}
+            {mealCost && <MealCostAnalysisCard data={mealCost} />}
+            {convenience && <ConvenienceIndexCard data={convenience} />}
           </div>
         </div>
       )}
+
 
       <div className="bg-background min-h-screen">
         {reports.length > 0 ? reports.map((report: any) => (
