@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 
 interface MealData {
-  total_spent: float;
+  total_spent: number;
   total_meals_estimated: number;
   avg_cost_per_meal: number;
   by_channel: {
