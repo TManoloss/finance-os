@@ -91,6 +91,10 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	reports.GET("/narrative", reportsH.GetNarrativeReport)
 	reports.GET("/personal-inflation", reportsH.GetPersonalInflation)
 	reports.GET("/silent-growth", reportsH.GetSilentGrowth)
+	reports.GET("/weekly-profile", reportsH.GetWeeklyProfile)
+	reports.GET("/weekday-weekend", reportsH.GetWeekdayWeekend)
+	reports.GET("/salary-effect", reportsH.GetSalaryEffect)
+	reports.GET("/monthly-weeks", reportsH.GetMonthlyWeeks)
 	reports.POST("/trigger/:type", reportsH.TriggerAgent)
 
 	// Merchants

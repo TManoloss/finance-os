@@ -329,6 +329,30 @@ func (h *ReportsHandler) GetSilentGrowth(c echo.Context) error {
 	return h.getCachedOrTrigger(c, "silent_growth", periodKey)
 }
 
+// GetWeeklyProfile retorna o perfil semanal de gastos.
+func (h *ReportsHandler) GetWeeklyProfile(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "weekly_profile", periodKey)
+}
+
+// GetWeekdayWeekend retorna o relatório de dia útil vs final de semana.
+func (h *ReportsHandler) GetWeekdayWeekend(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "weekday_weekend", periodKey)
+}
+
+// GetSalaryEffect retorna o relatório de efeito salário.
+func (h *ReportsHandler) GetSalaryEffect(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "salary_effect", periodKey)
+}
+
+// GetMonthlyWeeks retorna o relatório de semanas mensais.
+func (h *ReportsHandler) GetMonthlyWeeks(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "monthly_weeks", periodKey)
+}
+
 // getCachedOrTrigger verifica o cache e dispara o agente se necessário.
 func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, periodKey string) error {
 	userID := c.Get("user_id").(string)
