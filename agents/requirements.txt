@@ -7,3 +7,4 @@ httpx
 asyncpg
 google-generativeai
 numpy
+python-dateutil
