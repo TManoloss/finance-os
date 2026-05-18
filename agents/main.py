@@ -28,6 +28,7 @@ from agents.stress_agent import StressAgent
 from agents.loyalty_agent import LoyaltyAgent
 from agents.cfo_agent import CFOAgent
 from agents.timeline_drift_agent import TimelineDriftAgent
+from agents.memory_prediction_agent import MemoryPredictionAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -57,6 +58,7 @@ ticket_analysis_agent = TicketAnalysisAgent()
 loyalty_agent = LoyaltyAgent()
 stress_agent = StressAgent()
 timeline_drift_agent = TimelineDriftAgent()
+memory_prediction_agent = MemoryPredictionAgent()
 
 @app.get("/health")
 async def health_check():
@@ -362,6 +364,16 @@ async def run_survival_mode_agent(user_id: str, background_tasks: BackgroundTask
     background_tasks.add_task(run_agent_task, stress_agent.evaluate_survival_mode, user_id, "modo sobrevivência")
     return {"message": "Processamento do agente de modo sobrevivência iniciado"}
 
+@app.post("/agents/financial-memory/{user_id}")
+async def run_financial_memory_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, memory_prediction_agent.generate_memory_insights, user_id, "memória financeira")
+    return {"message": "Processamento do agente de memória financeira iniciado"}
+
+@app.post("/agents/dangerous-days/{user_id}")
+async def run_dangerous_days_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, memory_prediction_agent.generate_preventive_alerts, user_id, "dias perigosos")
+    return {"message": "Processamento do agente de dias perigosos iniciado"}
+
 @app.get("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
     try:
@@ -432,6 +444,24 @@ async def get_loyalty_analysis(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar análise de lealdade: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/financial-memory/{user_id}")
+async def get_financial_memory(user_id: str):
+    try:
+        result = await memory_prediction_agent.generate_memory_insights(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar memória financeira: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/dangerous-days/{user_id}")
+async def get_dangerous_days(user_id: str):
+    try:
+        result = await memory_prediction_agent.generate_preventive_alerts(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar alertas de dias perigosos: {str(e)}")
         return {"error": str(e)}
 
 @app.get("/reports/timeline/{user_id}")
