@@ -16,6 +16,7 @@ import ConvenienceIndexCard from "@/components/ConvenienceIndexCard";
 import TicketAnalysisCard from "@/components/TicketAnalysisCard";
 import LoyaltyAnalysisCard from "@/components/LoyaltyAnalysisCard";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 async function getReports(token: string) {
   try {
