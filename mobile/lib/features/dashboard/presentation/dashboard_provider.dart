@@ -148,3 +148,23 @@ final salaryPlanProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     return {};
   }
 });
+
+final gamificationProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/gamification');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});
+
+final installmentTimelineProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/installment-timeline');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});

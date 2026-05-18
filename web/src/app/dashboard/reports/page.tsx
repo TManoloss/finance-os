@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import api from "@/lib/api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp, Clock, MousePointer2 } from "lucide-react";
+import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp, Clock, MousePointer2, Award, Target, Anchor } from "lucide-react";
 import TriggerReportButtons from "@/components/TriggerReportButtons";
 import NarrativeReportView from "@/components/NarrativeReportView";
 import PersonalInflationCard from "@/components/PersonalInflationCard";
@@ -15,6 +15,9 @@ import MealCostAnalysisCard from "@/components/MealCostAnalysisCard";
 import ConvenienceIndexCard from "@/components/ConvenienceIndexCard";
 import TicketAnalysisCard from "@/components/TicketAnalysisCard";
 import LoyaltyAnalysisCard from "@/components/LoyaltyAnalysisCard";
+import AchievementsFeed from "@/components/AchievementsFeed";
+import MissionsCard from "@/components/MissionsCard";
+import InstallmentTimeline from "@/components/InstallmentTimeline";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -161,6 +164,39 @@ async function getConvenience(token: string) {
   }
 }
 
+async function getGamification(token: string) {
+  try {
+    const resp = await api.get("/reports/gamification", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getSalaryPlan(token: string) {
+  try {
+    const resp = await api.get("/reports/salary-plan", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getInstallmentTimeline(token: string) {
+  try {
+    const resp = await api.get("/reports/installment-timeline", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function ReportsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
@@ -177,7 +213,10 @@ export default async function ReportsPage() {
     mealCost,
     convenience,
     ticketAnalysis,
-    loyalty
+    loyalty,
+    gamification,
+    salaryPlan,
+    installmentTimeline
   ] = await Promise.all([
     getReports(token),
     getPersonalInflation(token),
@@ -191,7 +230,10 @@ export default async function ReportsPage() {
     getMealCost(token),
     getConvenience(token),
     getTicketAnalysis(token),
-    getLoyalty(token)
+    getLoyalty(token),
+    getGamification(token),
+    getSalaryPlan(token),
+    getInstallmentTimeline(token)
   ]);
 
   return (
@@ -213,6 +255,59 @@ export default async function ReportsPage() {
             <NarrativeReportView token={token} />
          </div>
       </div>
+
+      {/* Gamification & Rewards Section */}
+      {(gamification || salaryPlan) && (
+        <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-8">
+           <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
+            <Award className="w-4 h-4" /> REWARDS_AND_ACHIEVEMENTS_V1.0
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <AchievementsFeed achievements={gamification?.awarded_achievements} />
+            </div>
+            <div>
+              <MissionsCard missions={gamification?.active_missions} />
+            </div>
+          </div>
+
+          {salaryPlan && (
+            <div className="p-6 border-2 border-black bg-elevated shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="w-4 h-4 text-accent-primary" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest">PLANO_DE_SALARIO_INTELIGENTE</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-4">
+                    <div className="text-sm font-bold leading-relaxed markdown-content">
+                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {salaryPlan.narrative}
+                       </ReactMarkdown>
+                    </div>
+                 </div>
+                 <div className="space-y-4">
+                    <div className="text-[10px] font-black uppercase text-text-secondary border-b border-black pb-2">DISTRIBUICAO_RECOMENDADA</div>
+                    <div className="space-y-3">
+                       {salaryPlan.allocation && Object.entries(salaryPlan.allocation).map(([key, val]: [string, any]) => (
+                         <div key={key} className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold uppercase">{key}</span>
+                            <span className="text-xs font-black font-mono text-accent-primary">{new Intl.NumberFormat('pt-BR', { style: 'percent' }).format(val / 100)}</span>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Installment Timeline Section */}
+      {installmentTimeline && (
+        <div className="p-8 md:p-12 bg-background border-b-2 border-black">
+          <InstallmentTimeline data={installmentTimeline} />
+        </div>
+      )}
 
       {/* Advanced Analytic Cards Section */}
       {(inflation || growth || weeklyProfile || monthlyWeeks || impulse || compensation || mealCost || convenience || ticketAnalysis || loyalty) && (
