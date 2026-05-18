@@ -17,7 +17,10 @@ import {
   Moon,
   Activity,
   Zap,
-  ShoppingBag
+  ShoppingBag,
+  Terminal,
+  Cpu,
+  Shield
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
@@ -34,21 +37,38 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
-  // useEffect para evitar erro de hidratação com next-themes
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const menuItems = [
-    { name: "DASHBOARD", href: "/dashboard", icon: LayoutDashboard },
-    { name: "TRANSACOES", href: "/dashboard/transactions", icon: ArrowLeftRight },
-    { name: "ESTABELECIMENTOS", href: "/dashboard/merchants", icon: ShoppingBag },
-    { name: "SAUDE", href: "/dashboard/health", icon: Activity },
-    { name: "SIMULADOR", href: "/dashboard/simulator", icon: Zap },
-    { name: "CARTOES", href: "/dashboard/cards", icon: CreditCard },
-    { name: "RELATORIOS", href: "/dashboard/reports", icon: FileText },
-    { name: "CHAT", href: "/dashboard/chat", icon: MessageCircle },
-    { name: "CONFIG", href: "/dashboard/settings", icon: Settings },
+  const menuGroups = [
+    {
+      name: "CORE_SYSTEM",
+      icon: Terminal,
+      items: [
+        { name: "DASHBOARD", href: "/dashboard", icon: LayoutDashboard },
+        { name: "TRANSACOES", href: "/dashboard/transactions", icon: ArrowLeftRight },
+        { name: "CARTOES", href: "/dashboard/cards", icon: CreditCard },
+      ]
+    },
+    {
+      name: "INTELLIGENCE",
+      icon: Cpu,
+      items: [
+        { name: "ESTABELECIMENTOS", href: "/dashboard/merchants", icon: ShoppingBag },
+        { name: "SAUDE", href: "/dashboard/health", icon: Activity },
+        { name: "SIMULADOR", href: "/dashboard/simulator", icon: Zap },
+        { name: "RELATORIOS", href: "/dashboard/reports", icon: FileText },
+        { name: "CHAT", href: "/dashboard/chat", icon: MessageCircle },
+      ]
+    },
+    {
+      name: "MAINTENANCE",
+      icon: Shield,
+      items: [
+        { name: "CONFIG", href: "/dashboard/settings", icon: Settings },
+      ]
+    }
   ];
 
   const handleLogout = () => {
@@ -66,32 +86,54 @@ export default function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      <div className="p-6 flex items-center justify-between border-b-2 border-border-subtle">
-        {!isCollapsed && <span className="text-text-primary font-bold text-xl uppercase tracking-tighter">FINANCE_OS</span>}
-        {isCollapsed && <span className="text-text-primary font-bold text-xl mx-auto">F_OS</span>}
+      <div className="p-6 flex items-center justify-between border-b-2 border-border-subtle bg-elevated/50">
+        {!isCollapsed && (
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-accent-primary animate-pulse"></div>
+            <span className="text-text-primary font-black text-xl uppercase tracking-tighter">FINANCE_OS</span>
+          </div>
+        )}
+        {isCollapsed && <span className="text-text-primary font-black text-xl mx-auto">F_OS</span>}
       </div>
 
-      <nav className="flex-1 space-y-0">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link 
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center p-4 border-b-2 border-border-subtle transition-colors group",
-                isActive ? "bg-elevated text-text-primary" : "text-text-secondary hover:bg-elevated hover:text-text-primary"
-              )}
-            >
-              <item.icon className={cn("w-5 h-5", !isCollapsed && "mr-4")} />
-              {!isCollapsed && <span className="font-bold text-xs tracking-widest">{item.name}</span>}
-              {isActive && !isCollapsed && <div className="ml-auto w-2 h-2 bg-text-primary"></div>}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border-subtle">
+        {menuGroups.map((group) => (
+          <div key={group.name} className="border-b-2 border-border-subtle last:border-b-0">
+            {!isCollapsed && (
+              <div className="px-4 py-2 bg-elevated/30 flex items-center gap-2">
+                <group.icon className="w-3 h-3 text-text-secondary" />
+                <span className="text-[8px] font-black text-text-secondary uppercase tracking-[0.2em]">{group.name}</span>
+              </div>
+            )}
+            <div className="flex flex-col">
+              {group.items.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link 
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center p-4 transition-colors group relative",
+                      isActive ? "bg-elevated/80 text-text-primary" : "text-text-secondary hover:bg-elevated/50 hover:text-text-primary"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5", !isCollapsed && "mr-4")} />
+                    {!isCollapsed && <span className="font-bold text-[10px] tracking-widest uppercase">{item.name}</span>}
+                    {isActive && (
+                      <div className={cn(
+                        "absolute bg-accent-primary transition-all",
+                        isCollapsed ? "inset-y-0 right-0 w-1" : "right-4 w-1.5 h-1.5"
+                      )}></div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="mt-auto flex flex-col">
+      <div className="mt-auto flex flex-col bg-elevated/30">
         {mounted && (
           <button 
             onClick={toggleTheme}
@@ -102,15 +144,8 @@ export default function Sidebar() {
             title={theme === "dark" ? "MODO_CLARO" : "MODO_ESCURO"}
           >
             {theme === "dark" ? <Sun className={cn("w-5 h-5", !isCollapsed && "mr-4")} /> : <Moon className={cn("w-5 h-5", !isCollapsed && "mr-4")} />}
-            {!isCollapsed && <span className="font-bold text-xs tracking-widest uppercase">{theme === "dark" ? "MODO_CLARO" : "MODO_ESCURO"}</span>}
+            {!isCollapsed && <span className="font-bold text-[10px] tracking-widest uppercase">{theme === "dark" ? "MODO_CLARO" : "MODO_ESCURO"}</span>}
           </button>
-        )}
-
-        {!isCollapsed && (
-          <div className="p-4 border-t-2 border-border-subtle bg-elevated">
-            <div className="text-[10px] uppercase font-bold text-text-secondary mb-1">SYSTEM_STATUS</div>
-            <p className="text-[10px] text-text-primary font-bold">PIERRE_ONLINE: OK</p>
-          </div>
         )}
 
         <button 
@@ -122,7 +157,7 @@ export default function Sidebar() {
           title="SAIR"
         >
           <LogOut className={cn("w-5 h-5", !isCollapsed && "mr-4")} />
-          {!isCollapsed && <span className="font-bold text-xs tracking-widest uppercase">LOGOUT</span>}
+          {!isCollapsed && <span className="font-bold text-[10px] tracking-widest uppercase">LOGOUT</span>}
         </button>
 
         <button 

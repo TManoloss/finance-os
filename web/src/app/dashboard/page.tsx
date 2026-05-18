@@ -6,7 +6,7 @@ import DonutChartComponent from "@/components/charts/DonutChartComponent";
 import ProjectionChart from "@/components/charts/ProjectionChart";
 import UpcomingExpenses from "@/components/UpcomingExpenses";
 import ActivityFeed from "@/components/ActivityFeed";
-import { ArrowUpCircle, ArrowDownCircle, ArrowRight, Zap, Database, Terminal, Filter, TrendingUp, BarChart3 } from "lucide-react";
+import { ArrowRight, Zap, Database, Terminal, TrendingUp, BarChart3 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
@@ -137,7 +137,7 @@ export default async function DashboardPage({
 
   const [
     summary,
-    reports,
+    ,
     latestTransactions,
     cashflowData,
     feedEvents,
@@ -155,15 +155,13 @@ export default async function DashboardPage({
 
   const upcomingExpenses = Array.isArray(upcomingExpensesRaw) ? upcomingExpensesRaw : [];
 
-  const totalSpent = summary?.total_spent || 0;
-  const totalReceived = summary?.total_received || 0;
   const checkingBalance = summary?.checking_balance || 0;
-  const creditBalance = summary?.credit_balance || 0;
   const currentInvoice = summary?.current_invoice || 0;
   const closedInvoice = summary?.closed_invoice || 0;
   const monthInstallments = summary?.month_installments || 0;
   const todaySpent = summary?.today_spent || 0;
   const weeklySpent = summary?.weekly_spent || 0;
+  const totalReceived = summary?.total_received || 0;
   
   // Saldo Disponível Real = Dinheiro em Conta - (Fatura Fechada + Parcelas do Mês)
   // Ignoramos a "Fatura em Aberto" aqui porque ela só vence no mês que vem
@@ -192,7 +190,7 @@ export default async function DashboardPage({
   return (
     <div className="grid-blueprint grid-cols-1">
       {/* Header Area */}
-      <header className="p-4 md:p-8 bg-elevated flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <header className="p-4 md:p-8 bg-elevated flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Terminal className="w-4 h-4" />
@@ -228,47 +226,42 @@ export default async function DashboardPage({
         </div>
       </header>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 bg-background">
+      {/* Stats Grid - Desktop: 6 in line, Tablet: 3+3, Mobile: 2+2+2 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 bg-background">
         {stats.map((card) => (
-          <div key={card.label} className="p-4 md:p-8 border-b-2 md:border-b-0 md:border-r-2 last:border-r-0 border-t-2 border-black hover:bg-elevated transition-colors">
-            <div className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-text-secondary"></div>
+          <div key={card.label} className="p-4 md:p-6 border-b-2 border-r-2 last:border-r-0 border-t-2 border-black hover:bg-elevated transition-colors">
+            <div className="text-[8px] font-black text-text-secondary uppercase tracking-widest mb-2 flex items-center gap-2">
+              <div className="w-1 h-1 bg-text-secondary"></div>
               {card.label}
             </div>
-            <div className={cn("text-xl md:text-3xl font-black font-mono tabular-nums", card.color)}>
+            <div className={cn("text-lg md:text-xl font-black font-mono tabular-nums", card.color)}>
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.value)}
+            </div>
+          </div>
+        ))}
+        {quickStats.map((card) => (
+          <div key={card.label} className="p-4 md:p-6 border-b-2 border-r-2 last:border-r-0 border-t-2 border-black flex flex-col justify-center hover:bg-elevated transition-colors">
+            <div className="text-[8px] font-black text-text-secondary uppercase tracking-widest mb-2 flex items-center gap-2">
+              <card.icon className="w-3 h-3" />
+              {card.label}
+            </div>
+            <div className={cn("text-lg md:text-xl font-black font-mono tabular-nums", card.color)}>
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.value)}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Quick Tactical Stats */}
-      <div className="grid grid-cols-2 bg-background border-t-2 border-black">
-        {quickStats.map((card) => (
-          <div key={card.label} className="p-4 md:p-6 border-r-2 last:border-r-0 border-b-2 border-black flex items-center justify-between hover:bg-elevated transition-colors">
-            <div>
-              <div className="text-[8px] md:text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-1 flex items-center gap-2">
-                <card.icon className="w-3 h-3 md:w-4 h-4" />
-                {card.label}
-              </div>
-              <div className={cn("text-lg md:text-2xl font-black font-mono tabular-nums", card.color)}>
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(card.value)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Charts & Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 bg-background">
-        <div className="lg:col-span-2 p-4 md:p-8 border-t-2 lg:border-r-2 border-black">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-              <Database className="w-5 h-5" />
+      {/* Main Content Area */}
+      <div className="p-4 md:p-5 flex flex-col gap-4">
+        {/* Cashflow — full width */}
+        <div className="bg-surface border border-border-subtle p-3.5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-black uppercase tracking-tighter flex items-center gap-2">
+              <Database className="w-4 h-4" />
               FLUXO_DE_CAIXA_REAL_TIME
             </h3>
-            <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 whitespace-nowrap">STATUS: MONITORANDO</span>
+            <span className="text-[8px] font-bold bg-black text-white px-2 py-0.5">STATUS: MONITORANDO</span>
           </div>
           <div className="h-[250px] md:h-[300px]">
             {cashflowData && cashflowData.length > 0 ? (
@@ -283,28 +276,31 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        <div className="p-4 md:p-8 border-t-2 border-black">
-          <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-6 md:mb-8 flex items-center gap-2">
-            DISTRIBUICAO_CATEGORIAS
-          </h3>
-          <div className="h-[250px] md:h-[300px] mb-12">
-            {summary?.by_category && summary.by_category.length > 0 ? (
-              <DonutChartComponent data={summary.by_category} />
-            ) : (
-              <div className="h-full flex items-center justify-center text-text-secondary border-2 border-dashed border-black uppercase text-[10px] font-bold bg-elevated/50">
-                PENDING_CATEGORIZATION
-              </div>
-            )}
+        {/* Bottom row - Desktop: 2fr 3fr, Others: Stacked */}
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-4">
+          {/* Donut Chart */}
+          <div className="bg-surface border border-border-subtle p-3.5">
+            <h3 className="text-xs font-black uppercase tracking-tighter mb-4">
+              DISTRIBUICAO_CATEGORIAS
+            </h3>
+            <div className="h-[250px] md:h-[300px]">
+              {summary?.by_category && summary.by_category.length > 0 ? (
+                <DonutChartComponent data={summary.by_category} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-text-secondary border-2 border-dashed border-black uppercase text-[10px] font-bold bg-elevated/50">
+                  PENDING_CATEGORIZATION
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="border-t-2 border-black pt-8">
-            <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-6 md:mb-8 flex items-center gap-2">
-              INTELIGENCIA_DE_ATIVIDADE
-            </h3>
+          {/* Activity Feed */}
+          <div className="bg-surface border border-border-subtle p-3.5">
             <ActivityFeed events={feedEvents} />
           </div>
         </div>
       </div>
+
 
       {/* New Section: Top Merchants & Investments Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 bg-background border-t-2 border-black">

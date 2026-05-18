@@ -1,20 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import api from "@/lib/api";
-import { 
-  Bell, 
-  AlertTriangle, 
-  Info, 
-  TrendingUp, 
-  CreditCard, 
-  DollarSign, 
-  CheckCircle2, 
-  Zap,
-  ShoppingBag
-} from "lucide-react";
 
 interface FeedEvent {
   id: string;
@@ -23,88 +10,150 @@ interface FeedEvent {
   description: string;
   amount: number | null;
   severity: string;
-  created_at: string;
-  read_at: string | null;
+  direction?: string;
 }
 
-const getEventIcon = (type: string, severity: string) => {
-  switch (type) {
-    case "salary_detected": return <DollarSign className="w-5 h-5 text-[#4ECDC4]" />;
-    case "unusual_spending": return <AlertTriangle className="w-5 h-5 text-[#FF6B6B]" />;
-    case "duplicate_charge": return <Zap className="w-5 h-5 text-[#FFD93D]" />;
-    case "milestone": return <CheckCircle2 className="w-5 h-5 text-[#7C6FFF]" />;
-    case "new_merchant": return <ShoppingBag className="w-5 h-5 text-[#8888A0]" />;
-    default: return severity === "alert" ? <AlertTriangle className="w-5 h-5 text-[#FF6B6B]" /> : <Info className="w-5 h-5 text-[#7C6FFF]" />;
-  }
-};
-
-const getSeverityStyles = (severity: string) => {
-  switch (severity) {
-    case "alert": return "border-l-4 border-l-[#FF6B6B] bg-[#FF6B6B]/5";
-    case "warning": return "border-l-4 border-l-[#FFD93D] bg-[#FFD93D]/5";
-    default: return "border-l-4 border-l-[#7C6FFF] bg-[#7C6FFF]/5";
-  }
-};
-
 export default function ActivityFeed({ events: initialEvents }: { events: FeedEvent[] }) {
-  const [events, setEvents] = useState(initialEvents);
+  const [events, setEvents] = useState<FeedEvent[]>(initialEvents || []);
+  const [loading, setLoading] = useState(false);
 
+  // Sincroniza o estado interno se as props iniciais mudarem
   useEffect(() => {
-    setEvents(initialEvents);
+    if (initialEvents && initialEvents.length > 0) {
+      setEvents(initialEvents);
+    }
   }, [initialEvents]);
 
-  const handleMarkRead = async (id: string) => {
-    try {
-      await api.patch(`/feed/${id}/read`);
-      setEvents(prev => prev.map(e => e.id === id ? { ...e, read_at: new Date().toISOString() } : e));
-    } catch (error) {
-      console.error("Erro ao marcar como lido:", error);
+  // Se não houver eventos iniciais, busca do servidor
+  useEffect(() => {
+    if (!initialEvents || initialEvents.length === 0) {
+      const fetchFeed = async () => {
+        setLoading(true);
+        try {
+          const resp = await api.get("/feed?page_size=5");
+          setEvents(resp.data.data || []);
+        } catch (error) {
+          console.error("Erro ao carregar feed:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchFeed();
+    }
+  }, [initialEvents]);
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "alert": return "#f44336";
+      case "warning":
+      case "warn": return "#ff9800";
+      case "ok":
+      case "info": return "#4caf50";
+      default: return "#7c6fff";
     }
   };
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <h3 style={{ fontSize: 10, fontWeight: 'bold', color: '#888', letterSpacing: '1px', marginBottom: 8 }}>INTELIGENCIA_ATIVIDADE</h3>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ height: 40, background: '#1a1a1a', borderRadius: 2, animation: 'pulse 1.5s infinite' }} />
+        ))}
+        <style jsx>{`
+          @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.5; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   if (!events || events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="bg-[#111118] p-4 rounded-full mb-4">
-          <Bell className="w-8 h-8 text-[#2A2A3A]" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <h3 style={{ fontSize: 10, fontWeight: 'bold', color: '#888', letterSpacing: '1px', marginBottom: 8 }}>INTELIGENCIA_ATIVIDADE</h3>
+        <div style={{ color: '#333', fontSize: 10, fontWeight: 'bold', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+          AGUARDANDO_EVENTOS...
         </div>
-        <p className="text-[#8888A0] text-sm">Nenhuma atividade recente por aqui.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {events.map((event) => (
-        <div 
-          key={event.id}
-          className={`p-4 rounded-xl border border-[#2A2A3A] transition-all hover:bg-[#1A1A24] cursor-pointer relative ${getSeverityStyles(event.severity)} ${!event.read_at ? 'ring-1 ring-[#7C6FFF]/30' : ''}`}
-          onClick={() => !event.read_at && handleMarkRead(event.id)}
-        >
-          <div className="flex gap-4">
-            <div className={`p-2 rounded-lg bg-[#1A1A24] h-fit`}>
-              {getEventIcon(event.type, event.severity)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <h3 style={{ fontSize: 10, fontWeight: 'bold', color: '#888', letterSpacing: '1px', marginBottom: 16 }}>INTELIGENCIA_ATIVIDADE</h3>
+      
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {events.map((event) => (
+          <div 
+            key={event.id} 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '10px 0', 
+              borderBottom: '1px solid #1e1e1e',
+              gap: 12
+            }}
+          >
+            <div style={{ 
+              width: 24, 
+              height: 24, 
+              border: '1px solid #2a2a2a', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <div style={{ 
+                width: 8, 
+                height: 8, 
+                borderRadius: '50%', 
+                background: getSeverityColor(event.severity) 
+              }} />
             </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-start mb-1">
-                <h4 className="text-[#F0F0F5] font-semibold text-sm">{event.title}</h4>
-                <span className="text-[#8888A0] text-[10px]">
-                  {formatDistanceToNow(new Date(event.created_at), { addSuffix: true, locale: ptBR })}
-                </span>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ 
+                fontSize: 9, 
+                color: '#ccc', 
+                fontWeight: 'bold', 
+                letterSpacing: '0.5px', 
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {event.title}
               </div>
-              <p className="text-[#8888A0] text-sm leading-relaxed">{event.description}</p>
-              {event.amount && (
-                <p className={`text-sm font-bold mt-2 ${event.severity === 'alert' ? 'text-[#FF6B6B]' : 'text-[#F0F0F5]'}`}>
-                  R$ {event.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
-              )}
+              <div style={{ 
+                fontSize: 8, 
+                color: '#444', 
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {event.description}
+              </div>
             </div>
+
+            {event.amount && (
+              <div style={{ 
+                fontSize: 10, 
+                fontWeight: 'bold', 
+                color: event.direction === 'credit' ? '#4caf50' : '#f44336',
+                fontFamily: 'Courier New, monospace'
+              }}>
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(event.amount)}
+              </div>
+            )}
           </div>
-          {!event.read_at && (
-            <div className="absolute top-2 right-2 w-2 h-2 bg-[#7C6FFF] rounded-full shadow-[0_0_8px_#7C6FFF]" />
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
