@@ -316,6 +316,92 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
 
+                  // NUANCED INSIGHTS SECTION (MOVED UP)
+                  Text(
+                    'PIERRE_CORE_INTELLIGENCE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: BlueprintTheme.textSecondary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Meal Cost Insight
+                  ref.watch(mealCostProvider).when(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final avgCost = data['avg_cost_per_meal'] ?? 0.0;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: BlueprintCard(
+                          label: 'CUSTO_POR_REFEIÇÃO',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.restaurant, size: 16, color: BlueprintTheme.accentTeal),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'MÉDIA: ${currencyFormat.format(avgCost)}',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['insight'] ?? 'Analise seus gastos por canal (Delivery, Mercado, Restaurante).',
+                                style: const TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // Monthly Cycle Insight
+                  ref.watch(salaryEffectProvider).when(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final spike = data['spending_increase_percent'] ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: BlueprintCard(
+                          label: 'CICLO_MENSAL',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.monetization_on, size: 16, color: BlueprintTheme.accentTeal),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'EFEITO SALÁRIO: +$spike%',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['insight'] ?? 'Seus gastos estabilizam cerca de 10 dias após o recebimento.',
+                                style: const TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  const SizedBox(height: 8),
+
                   // Period Selector (Tabs style)
                   SizedBox(
                     height: 32,
