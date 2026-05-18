@@ -17,13 +17,15 @@ type ReportsHandler struct {
 	db                  *pgxpool.Pool
 	cfg                 *config.Config
 	survivalModeService *service.SurvivalModeService
+	impulseRadarService *service.ImpulseRadarService
 }
 
-func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService) *ReportsHandler {
+func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService) *ReportsHandler {
 	return &ReportsHandler{
 		db:                  db,
 		cfg:                 cfg,
 		survivalModeService: survivalModeService,
+		impulseRadarService: impulseRadarService,
 	}
 }
 
@@ -315,6 +317,56 @@ func (h *ReportsHandler) GetNarrativeReport(c echo.Context) error {
 
 	return response.Success(c, http.StatusOK, result)
 }
+
+// GetTimeline retorna a timeline de vida financeira.
+func (h *ReportsHandler) GetTimeline(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "timeline", periodKey)
+}
+
+// GetLifestyleDrift retorna o relatório de drift de estilo de vida.
+func (h *ReportsHandler) GetLifestyleDrift(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "lifestyle_drift", periodKey)
+}
+
+// GetFinancialMemory retorna o relatório de memória financeira.
+func (h *ReportsHandler) GetFinancialMemory(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "financial_memory", periodKey)
+}
+
+// GetDangerousDays retorna o relatório de dias perigosos.
+func (h *ReportsHandler) GetDangerousDays(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "dangerous_days", periodKey)
+}
+
+// GetBehavioralPrediction retorna o relatório de previsão comportamental.
+func (h *ReportsHandler) GetBehavioralPrediction(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "behavioral_prediction", periodKey)
+}
+
+// GetMicroSpending retorna o relatório de pequenos vazamentos.
+func (h *ReportsHandler) GetMicroSpending(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "micro_spending", periodKey)
+}
+
+// GetImpulseRadar analisa transações das últimas 24h em busca de impulsividade.
+func (h *ReportsHandler) GetImpulseRadar(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	since := time.Now().Add(-24 * time.Hour)
+
+	alerts, err := h.impulseRadarService.AnalyzeRecentTransactions(c.Request().Context(), userID, since)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao analisar impulsividade")
+	}
+
+	return response.Success(c, http.StatusOK, alerts)
+}
+
 func (h *ReportsHandler) GetComparison(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 	aStart := c.QueryParam("a_start")
@@ -447,6 +499,18 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "ticket-analysis"
 	} else if reportType == "stress_score" {
 		pythonURLType = "stress"
+	} else if reportType == "timeline" {
+		pythonURLType = "timeline"
+	} else if reportType == "lifestyle_drift" {
+		pythonURLType = "lifestyle-drift"
+	} else if reportType == "financial_memory" {
+		pythonURLType = "memory"
+	} else if reportType == "dangerous_days" {
+		pythonURLType = "dangerous-days"
+	} else if reportType == "behavioral_prediction" {
+		pythonURLType = "prediction"
+	} else if reportType == "micro_spending" {
+		pythonURLType = "micro-spending"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
