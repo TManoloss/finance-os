@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/widgets/blueprint_card.dart';
@@ -15,6 +16,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(summaryProvider);
     final currentPeriod = ref.watch(periodProvider);
+    final stressAsync = ref.watch(stressScoreProvider);
+    final survivalAsync = ref.watch(survivalModeProvider);
+    final salaryPlanAsync = ref.watch(salaryPlanProvider);
+    
     final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
     final periods = [
@@ -24,13 +29,30 @@ class DashboardScreen extends ConsumerWidget {
       {'id': 'year', 'label': 'ANO'},
     ];
 
+    // Handle Survival Mode Status Bar
+    survivalAsync.whenData((data) {
+      if (data['level'] == 'CRÍTICO') {
+        SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF8B0000), // Dark Red
+          statusBarIconBrightness: Brightness.light,
+        ));
+      } else {
+        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('DASHBOARD'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
-            onPressed: () => ref.refresh(summaryProvider),
+            onPressed: () {
+              ref.refresh(summaryProvider);
+              ref.refresh(stressScoreProvider);
+              ref.refresh(survivalModeProvider);
+              ref.refresh(salaryPlanProvider);
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -43,7 +65,12 @@ class DashboardScreen extends ConsumerWidget {
           final balance = checkingBalance - (closedInvoice + monthInstallments);
 
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(summaryProvider),
+            onRefresh: () async {
+              ref.refresh(summaryProvider);
+              ref.refresh(stressScoreProvider);
+              ref.refresh(survivalModeProvider);
+              ref.refresh(salaryPlanProvider);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -81,36 +108,76 @@ class DashboardScreen extends ConsumerWidget {
                             letterSpacing: -1,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        // INFLAÇÃO PESSOAL PREVIEW
-                        ref.watch(inflationProvider).when(
-                          data: (data) {
-                            if (data.isEmpty) return const SizedBox.shrink();
-                            final rate = data['personal_inflation_rate'] ?? 0.0;
-                            return const Padding(
-                              padding: EdgeInsets.only(bottom: 16.0),
-                              child: BlueprintCard(
-                                label: 'INFLAÇÃO_PESSOAL_MENSAL',
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${rate.toStringAsFixed(2)}%',
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: rate > 5 ? Colors.red : Colors.black,
+                        const SizedBox(height: 12),
+                        
+                        // Stress & Survival Indicators
+                        Row(
+                          children: [
+                            stressAsync.maybeWhen(
+                              data: (data) {
+                                if (data.isEmpty) return const SizedBox.shrink();
+                                final level = data['level'] ?? 'N/A';
+                                final score = (data['score'] ?? 0.0).toDouble();
+                                Color color = BlueprintTheme.accentTeal;
+                                if (score < 40) color = BlueprintTheme.danger;
+                                else if (score < 70) color = BlueprintTheme.warning;
+
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: color.withOpacity(0.1),
+                                    border: Border.all(color: color, width: 1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.psychology, size: 10, color: color),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'STRESS: ${level.toUpperCase()}',
+                                        style: TextStyle(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
+                                          color: color,
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              orElse: () => const SizedBox.shrink(),
+                            ),
+                            const SizedBox(width: 8),
+                            survivalAsync.maybeWhen(
+                              data: (data) {
+                                if (data.isEmpty || data['level'] == 'TRANQUILO') return const SizedBox.shrink();
+                                final level = data['level'] ?? 'N/A';
+                                Color color = BlueprintTheme.warning;
+                                if (level == 'CRÍTICO') color = BlueprintTheme.danger;
+
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    level.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
-                                    const Icon(Icons.trending_up, color: Colors.black),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                                  ),
+                                );
+                              },
+                              orElse: () => const SizedBox.shrink(),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 12),
+
                         Row(
                           children: [
                             Container(
@@ -134,6 +201,84 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
+
+                  // Daily Limit Widget
+                  salaryPlanAsync.maybeWhen(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final dailyLimit = (data['safe_daily_limit'] ?? 0.0).toDouble();
+                      final spentToday = summary.todaySpent;
+                      final percent = (spentToday / dailyLimit).clamp(0.0, 1.0);
+                      final isOver = spentToday > dailyLimit;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: BlueprintCard(
+                          label: 'LIMITE_DIÁRIO_SEGURO',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    currencyFormat.format(dailyLimit),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                  Text(
+                                    '${(percent * 100).toInt()}%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: isOver ? BlueprintTheme.danger : BlueprintTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Stack(
+                                children: [
+                                  Container(
+                                    height: 8,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: BlueprintTheme.elevated,
+                                      border: Border.all(color: BlueprintTheme.border),
+                                    ),
+                                  ),
+                                  FractionallySizedBox(
+                                    widthFactor: percent,
+                                    child: Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: isOver ? BlueprintTheme.danger : BlueprintTheme.accentPurple,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isOver 
+                                  ? 'VOCÊ EXCEDEU O LIMITE RECOMENDADO PARA HOJE'
+                                  : 'VOCÊ AINDA TEM ${currencyFormat.format(dailyLimit - spentToday)} DISPONÍVEIS HOJE',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  color: isOver ? BlueprintTheme.danger : BlueprintTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    orElse: () => const SizedBox.shrink(),
+                  ),
 
                   // Quick Stats Grid
                   Row(
