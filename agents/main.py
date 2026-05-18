@@ -24,6 +24,8 @@ from agents.monthly_cycle import MonthlyCycleAgent
 from agents.behavioral_nuances import BehavioralNuancesAgent
 from agents.specific_costs import SpecificCostsAgent
 from agents.ticket_analysis import TicketAnalysisAgent
+from agents.stress_agent import StressAgent
+from agents.loyalty_agent import LoyaltyAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -50,6 +52,7 @@ behavioral_nuances_agent = BehavioralNuancesAgent()
 specific_costs_agent = SpecificCostsAgent()
 ticket_analysis_agent = TicketAnalysisAgent()
 loyalty_agent = LoyaltyAgent()
+stress_agent = StressAgent()
 
 @app.get("/health")
 async def health_check():
@@ -162,6 +165,24 @@ async def get_health_score(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao calcular health score: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/stress-score/{user_id}")
+async def get_stress_score(user_id: str):
+    try:
+        result = await stress_agent.calculate_stress_score(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao calcular score de stress: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/survival-mode/{user_id}")
+async def get_survival_mode(user_id: str):
+    try:
+        result = await stress_agent.evaluate_survival_mode(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao avaliar modo sobrevivência: {str(e)}")
         return {"error": str(e)}
 
 @app.get("/merchants/{user_id}")
@@ -305,6 +326,16 @@ async def run_ticket_analysis_agent(user_id: str, background_tasks: BackgroundTa
 async def run_loyalty_agent(user_id: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_agent_task, loyalty_agent.run, user_id, "análise de lealdade")
     return {"message": "Processamento do agente de análise de lealdade iniciado"}
+
+@app.post("/agents/stress-score/{user_id}")
+async def run_stress_score_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, stress_agent.calculate_stress_score, user_id, "score de stress")
+    return {"message": "Processamento do agente de score de stress iniciado"}
+
+@app.post("/agents/survival-mode/{user_id}")
+async def run_survival_mode_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, stress_agent.evaluate_survival_mode, user_id, "modo sobrevivência")
+    return {"message": "Processamento do agente de modo sobrevivência iniciado"}
 
 @app.get("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
