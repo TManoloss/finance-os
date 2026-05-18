@@ -57,3 +57,33 @@ final inflationProvider = FutureProvider<Map<String, dynamic>>((ref) async {
     return {};
   }
 });
+
+final weeklyProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/weekly-profile');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});
+
+final monthlyCycleProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/monthly-weeks');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});
+
+final salaryEffectProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/salary-effect');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});

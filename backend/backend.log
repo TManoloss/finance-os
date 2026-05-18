@@ -1,0 +1,43 @@
+2026/05/15 19:48:29 Conectado ao PostgreSQL com sucesso!
+2026/05/15 19:48:29 Scheduler iniciado com sucesso!
+
+   ____    __
+  / __/___/ /  ___
+ / _// __/ _ \/ _ \
+/___/\__/_//_/\___/ v4.15.2
+High performance, minimalist Go web framework
+https://echo.labstack.com
+____________________________________O/_______
+                                    O\
+⇨ http server started on [::]:8080
+{"time":"2026-05-15T19:48:41.307779829-03:00","id":"UiZGcFfnmIMMgzHpTjzKJqgybIHdQBGV","remote_ip":"::1","host":"localhost:8080","method":"POST","uri":"/api/v1/auth/login","user_agent":"axios/1.16.0","status":400,"error":"","latency":458769,"latency_human":"458.769µs","bytes_in":26,"bytes_out":63}
+2026/05/15 19:48:45 [AuthService] Comparando senha para biniinha27@gmail.com. Hash no banco: $2a$12$7wmsWYBvSOE0UE6oq03AfO4qzZ6KY/YqCLjZtjthrxwO/aOJkPe7y
+{"time":"2026-05-15T19:48:46.431984908-03:00","id":"gmkyAXwHOwmJXHqEIOIzCYiwqnhfBtzR","remote_ip":"::1","host":"localhost:8080","method":"POST","uri":"/api/v1/auth/login","user_agent":"axios/1.16.0","status":200,"error":"","latency":621469000,"latency_human":"621.469ms","bytes_in":56,"bytes_out":617}
+2026/05/15 19:48:47 [Repository] Gerando resumo para user eb59b2b0-8325-4de2-87f6-fcaac68a2b33 (2026-05-01 a 2026-05-31)
+{"time":"2026-05-15T19:48:47.319589137-03:00","id":"DEAroCbDjJUZvuEYSjtWMNdKKXEksUAS","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports","user_agent":"axios/1.16.0","status":200,"error":"","latency":49329503,"latency_human":"49.329503ms","bytes_in":0,"bytes_out":6367}
+{"time":"2026-05-15T19:48:47.328922502-03:00","id":"cJwbFALsVFPyOUZQNGOYfYVqAcQmmOqN","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/feed?page_size=5","user_agent":"axios/1.16.0","status":200,"error":"","latency":59303518,"latency_human":"59.303518ms","bytes_in":0,"bytes_out":1078}
+{"time":"2026-05-15T19:48:47.349613854-03:00","id":"CxamHcJELSDoYuZUEqoduCwAcwHxxYfS","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/transactions?page=1&page_size=10","user_agent":"axios/1.16.0","status":200,"error":"","latency":79578482,"latency_human":"79.578482ms","bytes_in":0,"bytes_out":3390}
+{"time":"2026-05-15T19:48:47.378742296-03:00","id":"EfOpPAgQMnTWocfSdOGIKwaJDZoLwiCT","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/transactions/summary?from_date=2026-05-01&to_date=2026-05-31","user_agent":"axios/1.16.0","status":200,"error":"","latency":120070060,"latency_human":"120.07006ms","bytes_in":0,"bytes_out":2582}
+{"time":"2026-05-15T19:48:51.336345364-03:00","id":"nHWAIVLJGeMcHyanBkEGFggmALkEsgIo","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports/upcoming-expenses","user_agent":"axios/1.16.0","status":200,"error":"","latency":4067165213,"latency_human":"4.067165213s","bytes_in":0,"bytes_out":70}
+{"time":"2026-05-15T19:48:51.542425492-03:00","id":"aJrOLYXKSWdllwwKBoUWQOQgMCGfVhDE","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports/cashflow?from=2026-05-01&to=2026-05-31","user_agent":"axios/1.16.0","status":200,"error":"","latency":4272374223,"latency_human":"4.272374223s","bytes_in":0,"bytes_out":1952}
+{"time":"2026-05-15T19:48:51.919718054-03:00","id":"eQCVSQBsmuOPnHoYUnfKYWDpKCyKesRp","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports/projection","user_agent":"axios/1.16.0","status":200,"error":"","latency":4650127793,"latency_human":"4.650127793s","bytes_in":0,"bytes_out":474}
+{"time":"2026-05-15T19:49:47.292806488-03:00","id":"XwwuKtrtXmWAiQmANxXfIQUBmISYuqtn","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/categories","user_agent":"axios/1.16.0","status":200,"error":"","latency":5928137,"latency_human":"5.928137ms","bytes_in":0,"bytes_out":3019}
+{"time":"2026-05-15T19:49:47.301356473-03:00","id":"NgmJtpaqiFeGoDWeoIlUggYOFfSRfuWf","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/transactions?page=1&page_size=15","user_agent":"axios/1.16.0","status":200,"error":"","latency":14669168,"latency_human":"14.669168ms","bytes_in":0,"bytes_out":5092}
+{"time":"2026-05-15T19:49:55.336012126-03:00","id":"FArfOEGtfDNmPsTEFPWaiIdieXjzAqIg","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/merchants?limit=20","user_agent":"axios/1.16.0","status":200,"error":"","latency":1647312794,"latency_human":"1.647312794s","bytes_in":0,"bytes_out":27}
+{"time":"2026-05-15T19:50:03.015556718-03:00","id":"LzFlcaRHZVrswyLsLrVMrdqaNOSiNSnd","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports/health-score","user_agent":"axios/1.16.0","status":200,"error":"","latency":5622330251,"latency_human":"5.622330251s","bytes_in":0,"bytes_out":259}
+2026/05/15 19:50:22 [Accounts] Listando contas para o usuário: eb59b2b0-8325-4de2-87f6-fcaac68a2b33
+{"time":"2026-05-15T19:50:22.984363173-03:00","id":"qoHzKxNGErfhzlrdwiccTLNBxjQlybWv","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/cards/installments","user_agent":"axios/1.16.0","status":200,"error":"","latency":6941799,"latency_human":"6.941799ms","bytes_in":0,"bytes_out":29}
+{"time":"2026-05-15T19:50:22.986526206-03:00","id":"UnGGltBHrWkyNZESnpqDdRywfzuClIdQ","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/accounts","user_agent":"axios/1.16.0","status":200,"error":"","latency":9101951,"latency_human":"9.101951ms","bytes_in":0,"bytes_out":1204}
+{"time":"2026-05-15T19:50:24.928201004-03:00","id":"gVWohAwzBGClglaaTNfrqZAqpoNEdQMP","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/api/v1/reports","user_agent":"axios/1.16.0","status":200,"error":"","latency":3744091,"latency_human":"3.744091ms","bytes_in":0,"bytes_out":6367}
+{"time":"2026-05-15T19:50:29.462085486-03:00","id":"bTEHdCQHwDMgQXvsRQtfcdIMRGokJfQW","remote_ip":"127.0.0.1","host":"localhost:8080","method":"OPTIONS","uri":"/api/v1/chat","user_agent":"Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0","status":204,"error":"","latency":6703105,"latency_human":"6.703105ms","bytes_in":0,"bytes_out":0}
+2026/05/15 19:50:29 [Chat] Enviando mensagem para agente: .
+2026/05/15 19:50:32 [Chat] Resposta recebida do agente
+{"time":"2026-05-15T19:50:32.506997702-03:00","id":"ncvxzoCtUxrQaNdLvRvsHCtAjaKfLFuy","remote_ip":"127.0.0.1","host":"localhost:8080","method":"POST","uri":"/api/v1/chat","user_agent":"Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0","status":200,"error":"","latency":3042892964,"latency_human":"3.042892964s","bytes_in":158,"bytes_out":802}
+{"time":"2026-05-15T19:50:45.159731085-03:00","id":"GSKQPrdvykggxKOpclpcPIkesgSgNVpl","remote_ip":"127.0.0.1","host":"localhost:8080","method":"OPTIONS","uri":"/api/v1/chat","user_agent":"Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0","status":204,"error":"","latency":9043,"latency_human":"9.043µs","bytes_in":0,"bytes_out":0}
+2026/05/15 19:50:45 [Chat] Enviando mensagem para agente: como foi a semana
+2026/05/15 19:50:48 [Chat] Resposta recebida do agente
+{"time":"2026-05-15T19:50:48.686824666-03:00","id":"gTnidnSYbcTfZwcbuPSgitYszxgWCGTy","remote_ip":"127.0.0.1","host":"localhost:8080","method":"POST","uri":"/api/v1/chat","user_agent":"Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0","status":200,"error":"","latency":3526392991,"latency_human":"3.526392991s","bytes_in":1000,"bytes_out":1244}
+2026/05/16 01:47:45 [Job] Iniciando sincronização diária de todos os usuários...
+2026/05/16 01:47:45 [Job] Erro ao obter cliente pluggy para usuário eb59b2b0-8325-4de2-87f6-fcaac68a2b33: credenciais da Pluggy não configuradas para o usuário eb59b2b0-8325-4de2-87f6-fcaac68a2b33
+2026/05/16 01:47:45 [Job] Erro ao obter cliente pluggy para usuário 44f160ec-549c-4a0c-9ebf-bbb11eea18bf: credenciais da Pluggy não configuradas para o usuário 44f160ec-549c-4a0c-9ebf-bbb11eea18bf
+2026/05/16 01:47:45 [Job] Disparando agentes de relatório...

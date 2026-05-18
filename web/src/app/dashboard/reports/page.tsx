@@ -2,11 +2,13 @@ import { auth } from "@/auth";
 import api from "@/lib/api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp } from "lucide-react";
+import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp, Clock } from "lucide-react";
 import TriggerReportButtons from "@/components/TriggerReportButtons";
 import NarrativeReportView from "@/components/NarrativeReportView";
 import PersonalInflationCard from "@/components/PersonalInflationCard";
 import SilentGrowthCard from "@/components/SilentGrowthCard";
+import WeeklyProfileChart from "@/components/WeeklyProfileChart";
+import MonthlyCycleChart from "@/components/MonthlyCycleChart";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -43,13 +45,69 @@ async function getSilentGrowth(token: string) {
   }
 }
 
+async function getWeeklyProfile(token: string) {
+  try {
+    const resp = await api.get("/reports/weekly-profile", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getWeekdayWeekend(token: string) {
+  try {
+    const resp = await api.get("/reports/weekday-weekend", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getSalaryEffect(token: string) {
+  try {
+    const resp = await api.get("/reports/salary-effect", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getMonthlyWeeks(token: string) {
+  try {
+    const resp = await api.get("/reports/monthly-weeks", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function ReportsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
-  const [reports, inflation, growth] = await Promise.all([
+  const [
+    reports, 
+    inflation, 
+    growth, 
+    weeklyProfile, 
+    weekdayWeekend, 
+    salaryEffect, 
+    monthlyWeeks
+  ] = await Promise.all([
     getReports(token),
     getPersonalInflation(token),
-    getSilentGrowth(token)
+    getSilentGrowth(token),
+    getWeeklyProfile(token),
+    getWeekdayWeekend(token),
+    getSalaryEffect(token),
+    getMonthlyWeeks(token)
   ]);
 
   return (
@@ -73,7 +131,7 @@ export default async function ReportsPage() {
       </div>
 
       {/* Advanced Analytic Cards Section */}
-      {(inflation || growth) && (
+      {(inflation || growth || weeklyProfile || monthlyWeeks) && (
         <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
           <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
             <TrendingUp className="w-4 h-4" /> ADVANCED_PATTERN_INSIGHTS_V2.5
@@ -82,6 +140,8 @@ export default async function ReportsPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
             {inflation && <PersonalInflationCard data={inflation} />}
             {growth && <SilentGrowthCard data={growth} />}
+            {weeklyProfile && <WeeklyProfileChart data={weeklyProfile} weekdayWeekendData={weekdayWeekend} />}
+            {monthlyWeeks && <MonthlyCycleChart data={monthlyWeeks} salaryEffectData={salaryEffect} />}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../shared/widgets/blueprint_card.dart';
-import '../../theme/blueprint_theme.dart';
+import '../../../core/theme/blueprint_theme.dart';
 import 'dashboard_provider.dart';
 import 'widgets/category_chart.dart';
 import 'widgets/daily_spending_chart.dart';
@@ -231,6 +231,90 @@ class DashboardScreen extends ConsumerWidget {
                     child: MerchantRankingWidget(merchants: summary.topMerchants),
                   ),
                   const SizedBox(height: 24),
+
+                  // TEMPORAL ANALYTICS SECTION
+                  Text(
+                    'ANÁLISE TEMPORAL',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: BlueprintTheme.textSecondary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Weekly Profile Insight
+                  ref.watch(weeklyProfileProvider).when(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final peakDay = data['peak_spending_day'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.bottom(16.0),
+                        child: BlueprintCard(
+                          label: 'PERFIL_SEMANAL',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 16, color: BlueprintTheme.accentPurple),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'PICO: $peakDay',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Seu maior volume de gastos acontece geralmente aos sábados, concentrado no período da tarde.',
+                                style: TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // Monthly Cycle Insight
+                  ref.watch(salaryEffectProvider).when(
+                    data: (data) {
+                      if (data.isEmpty) return const SizedBox.shrink();
+                      final spike = data['spending_increase_percent'] ?? 0;
+                      return Padding(
+                        padding: const EdgeInsets.bottom(16.0),
+                        child: BlueprintCard(
+                          label: 'CICLO_MENSAL',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.monetization_on, size: 16, color: BlueprintTheme.accentTeal),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'EFEITO SALÁRIO: +$spike%',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['insight'] ?? 'Seus gastos estabilizam cerca de 10 dias após o recebimento.',
+                                style: const TextStyle(fontSize: 10, color: BlueprintTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
 
                   // Future Projection Link / Preview
                   BlueprintCard(
