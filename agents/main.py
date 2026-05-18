@@ -17,6 +17,8 @@ from app.services.merchant_intelligence_agent import MerchantIntelligenceAgent
 from app.services.seasonality_agent import SeasonalityAgent
 from app.services.narrative_report_agent import NarrativeReportAgent
 from app.services.goals_agent import GoalsAgent
+from agents.personal_inflation import PersonalInflationAgent
+from agents.silent_growth import SilentGrowthAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -35,6 +37,8 @@ merchant_agent = MerchantIntelligenceAgent()
 seasonality_agent = SeasonalityAgent()
 narrative_agent = NarrativeReportAgent()
 goals_agent = GoalsAgent()
+personal_inflation_agent = PersonalInflationAgent()
+silent_growth_agent = SilentGrowthAgent()
 
 @app.get("/health")
 async def health_check():
@@ -193,6 +197,16 @@ async def suggest_goals(user_id: str):
     except Exception as e:
         logger.error(f"Erro ao sugerir metas: {str(e)}")
         return {"error": str(e)}
+
+@app.post("/agents/personal-inflation/{user_id}")
+async def run_personal_inflation_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, personal_inflation_agent.run, user_id, "inflação pessoal")
+    return {"message": "Processamento do agente de inflação pessoal iniciado"}
+
+@app.post("/agents/silent-growth/{user_id}")
+async def run_silent_growth_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, silent_growth_agent.run, user_id, "crescimento silencioso")
+    return {"message": "Processamento do agente de crescimento silencioso iniciado"}
 
 if __name__ == "__main__":
     import uvicorn
