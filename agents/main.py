@@ -29,6 +29,7 @@ from agents.loyalty_agent import LoyaltyAgent
 from agents.cfo_agent import CFOAgent
 from agents.timeline_drift_agent import TimelineDriftAgent
 from agents.memory_prediction_agent import MemoryPredictionAgent
+from agents.future_leakage_agent import FutureLeakageAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -59,6 +60,7 @@ loyalty_agent = LoyaltyAgent()
 stress_agent = StressAgent()
 timeline_drift_agent = TimelineDriftAgent()
 memory_prediction_agent = MemoryPredictionAgent()
+future_leakage_agent = FutureLeakageAgent()
 
 @app.get("/health")
 async def health_check():
@@ -374,6 +376,16 @@ async def run_dangerous_days_agent(user_id: str, background_tasks: BackgroundTas
     background_tasks.add_task(run_agent_task, memory_prediction_agent.generate_preventive_alerts, user_id, "dias perigosos")
     return {"message": "Processamento do agente de dias perigosos iniciado"}
 
+@app.post("/agents/behavioral-prediction/{user_id}")
+async def run_behavioral_prediction_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, future_leakage_agent.predict_future, user_id, "previsão comportamental")
+    return {"message": "Processamento do agente de previsão comportamental iniciado"}
+
+@app.post("/agents/micro-spending/{user_id}")
+async def run_micro_spending_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, future_leakage_agent.analyze_micro_transactions, user_id, "pequenos vazamentos")
+    return {"message": "Processamento do agente de pequenos vazamentos iniciado"}
+
 @app.get("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
     try:
@@ -462,6 +474,24 @@ async def get_dangerous_days(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar alertas de dias perigosos: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/behavioral-prediction/{user_id}")
+async def get_behavioral_prediction(user_id: str):
+    try:
+        result = await future_leakage_agent.predict_future(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar previsão comportamental: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/micro-spending/{user_id}")
+async def get_micro_spending(user_id: str):
+    try:
+        result = await future_leakage_agent.analyze_micro_transactions(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao analisar pequenos vazamentos: {str(e)}")
         return {"error": str(e)}
 
 @app.get("/reports/timeline/{user_id}")
