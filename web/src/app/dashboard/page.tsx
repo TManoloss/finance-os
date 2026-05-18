@@ -105,6 +105,54 @@ async function getUpcomingExpenses(token: string) {
   }
 }
 
+async function getPersonalInflation(token: string) {
+  if (!token) return null;
+  try {
+    const resp = await api.get("/reports/personal-inflation", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getSilentGrowth(token: string) {
+  if (!token) return null;
+  try {
+    const resp = await api.get("/reports/silent-growth", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getMealCost(token: string) {
+  if (!token) return null;
+  try {
+    const resp = await api.get("/reports/meal-cost", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getConvenience(token: string) {
+  if (!token) return null;
+  try {
+    const resp = await api.get("/reports/convenience-index", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -142,7 +190,11 @@ export default async function DashboardPage({
     cashflowData,
     feedEvents,
     projectionData,
-    upcomingExpensesRaw
+    upcomingExpensesRaw,
+    inflation,
+    growth,
+    mealCost,
+    convenience
   ] = await Promise.all([
     getSummary(token, fromDate, toDate),
     getReports(token),
@@ -150,7 +202,11 @@ export default async function DashboardPage({
     fromDate && toDate ? getCashflow(token, fromDate, toDate) : Promise.resolve([]),
     getFeed(token),
     getProjections(token),
-    getUpcomingExpenses(token)
+    getUpcomingExpenses(token),
+    getPersonalInflation(token),
+    getSilentGrowth(token),
+    getMealCost(token),
+    getConvenience(token)
   ]);
 
   const upcomingExpenses = Array.isArray(upcomingExpensesRaw) ? upcomingExpensesRaw : [];
@@ -250,6 +306,71 @@ export default async function DashboardPage({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* PIERRE_CORE_INTELLIGENCE Section */}
+      <div className="p-4 md:p-8 bg-elevated border-b-2 border-black">
+         <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+               <div className="p-2 bg-black text-accent-primary animate-pulse">
+                  <Zap className="w-5 h-5 fill-current" />
+               </div>
+               <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter">PIERRE_CORE_INTELLIGENCE</h3>
+            </div>
+            <Link href="/dashboard/reports" className="text-[10px] font-black underline uppercase hover:text-accent-primary">VER_SISTEMA_COMPLETO</Link>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Inflation Insight */}
+            <div className="p-5 border-2 border-black bg-background relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <TrendingUp className="w-12 h-12" />
+               </div>
+               <div className="text-[8px] font-black text-text-secondary uppercase mb-1">INFLAÇÃO_PESSOAL</div>
+               <div className="text-3xl font-black font-mono text-danger">
+                  {inflation ? `${inflation.personal_inflation_rate.toFixed(1)}%` : "???"}
+               </div>
+               <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">VS_IPCA: {inflation ? `${inflation.ipca_rate}%` : "CALCULANDO"}</div>
+            </div>
+
+            {/* Silent Growth Insight */}
+            <div className="p-5 border-2 border-black bg-background relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Activity className="w-12 h-12" />
+               </div>
+               <div className="text-[8px] font-black text-text-secondary uppercase mb-1">CRESCIMENTO_SILENCIOSO</div>
+               <div className="text-lg font-black uppercase truncate">
+                  {growth?.top_category ? growth.top_category.category_name : "NENHUM_DETECTADO"}
+               </div>
+               <div className="text-[8px] font-bold text-danger mt-2 uppercase">
+                  {growth?.top_category ? `+${growth.top_category.growth_rate_percent.toFixed(1)}% / MÊS` : "ESTÁVEL"}
+               </div>
+            </div>
+
+            {/* Meal Cost Insight */}
+            <div className="p-5 border-2 border-black bg-background relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <BarChart3 className="w-12 h-12" />
+               </div>
+               <div className="text-[8px] font-black text-text-secondary uppercase mb-1">CUSTO_POR_REFEIÇÃO</div>
+               <div className="text-3xl font-black font-mono text-accent-secondary">
+                  {mealCost ? `R$ ${mealCost.avg_cost_per_meal.toFixed(2)}` : "???"}
+               </div>
+               <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">MÉDIA_DOS_ÚLTIMOS_30D</div>
+            </div>
+
+            {/* Convenience Waste Insight */}
+            <div className="p-5 border-2 border-black bg-background relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Zap className="w-12 h-12" />
+               </div>
+               <div className="text-[8px] font-black text-text-secondary uppercase mb-1">PAGO_POR_CONVENIÊNCIA</div>
+               <div className="text-3xl font-black font-mono text-warning">
+                  {convenience ? `R$ ${convenience.summary.total_premium_monthly.toFixed(2)}` : "???"}
+               </div>
+               <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">VALOR_MENSAL_POTENCIAL</div>
+            </div>
+         </div>
       </div>
 
       {/* Main Content Area */}
