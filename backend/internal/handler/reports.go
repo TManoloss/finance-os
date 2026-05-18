@@ -377,6 +377,18 @@ func (h *ReportsHandler) GetConvenienceIndex(c echo.Context) error {
 	return h.getCachedOrTrigger(c, "convenience_index", periodKey)
 }
 
+// GetTicketAnalysis retorna o relatório de análise de tickets.
+func (h *ReportsHandler) GetTicketAnalysis(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "ticket_analysis", periodKey)
+}
+
+// GetLoyalty retorna o relatório de fidelidade e recorrência.
+func (h *ReportsHandler) GetLoyalty(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "loyalty", periodKey)
+}
+
 // getCachedOrTrigger verifica o cache e dispara o agente se necessário.
 func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, periodKey string) error {
 	userID := c.Get("user_id").(string)
@@ -405,6 +417,8 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "meal-cost"
 	} else if reportType == "convenience_index" {
 		pythonURLType = "convenience-index"
+	} else if reportType == "ticket_analysis" {
+		pythonURLType = "ticket-analysis"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
