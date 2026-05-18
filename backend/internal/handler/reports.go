@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/response"
@@ -307,6 +308,62 @@ func (h *ReportsHandler) GetComparison(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
 	}
 	defer resp.Body.Close()
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
+	}
+
+	return response.Success(c, http.StatusOK, result)
+}
+
+// GetPersonalInflation retorna o relatório de inflação pessoal.
+func (h *ReportsHandler) GetPersonalInflation(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "personal_inflation", periodKey)
+}
+
+// GetSilentGrowth retorna o relatório de crescimento silencioso.
+func (h *ReportsHandler) GetSilentGrowth(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "silent_growth", periodKey)
+}
+
+// getCachedOrTrigger verifica o cache e dispara o agente se necessário.
+func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, periodKey string) error {
+	userID := c.Get("user_id").(string)
+
+	var resultJSON []byte
+	err := h.db.QueryRow(c.Request().Context(),
+		"SELECT result_json FROM report_cache WHERE user_id = $1 AND report_type = $2 AND period_key = $3 AND expires_at > NOW()",
+		userID, reportType, periodKey).Scan(&resultJSON)
+
+	if err == nil {
+		var result interface{}
+		if err := json.Unmarshal(resultJSON, &result); err == nil {
+			return response.Success(c, http.StatusOK, result)
+		}
+	}
+
+	// Cache miss ou expirado, chama o serviço de agentes
+	pythonURLType := reportType
+	if reportType == "personal_inflation" {
+		pythonURLType = "personal-inflation"
+	} else if reportType == "silent_growth" {
+		pythonURLType = "silent-growth"
+	}
+
+	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
+
+	resp, err := http.Post(url, "application/json", nil)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return response.Error(c, resp.StatusCode, "erro retornado pelo serviço de agentes")
+	}
 
 	var result interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

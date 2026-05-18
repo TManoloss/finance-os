@@ -208,6 +208,24 @@ async def run_silent_growth_agent(user_id: str, background_tasks: BackgroundTask
     background_tasks.add_task(run_agent_task, silent_growth_agent.run, user_id, "crescimento silencioso")
     return {"message": "Processamento do agente de crescimento silencioso iniciado"}
 
+@app.post("/reports/personal-inflation/{user_id}")
+async def get_personal_inflation(user_id: str):
+    try:
+        result = await personal_inflation_agent.run(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar inflação pessoal: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/silent-growth/{user_id}")
+async def get_silent_growth(user_id: str):
+    try:
+        result = await silent_growth_agent.run(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar crescimento silencioso: {str(e)}")
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
