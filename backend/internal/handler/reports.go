@@ -18,14 +18,16 @@ type ReportsHandler struct {
 	cfg                 *config.Config
 	survivalModeService *service.SurvivalModeService
 	impulseRadarService *service.ImpulseRadarService
+	gamificationService *service.GamificationService
 }
 
-func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService) *ReportsHandler {
+func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService, gamificationService *service.GamificationService) *ReportsHandler {
 	return &ReportsHandler{
 		db:                  db,
 		cfg:                 cfg,
 		survivalModeService: survivalModeService,
 		impulseRadarService: impulseRadarService,
+		gamificationService: gamificationService,
 	}
 }
 
@@ -367,6 +369,46 @@ func (h *ReportsHandler) GetImpulseRadar(c echo.Context) error {
 	return response.Success(c, http.StatusOK, alerts)
 }
 
+// GetGamificationReport retorna o relatório de gamificação (missões e conquistas).
+func (h *ReportsHandler) GetGamificationReport(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+
+	missions, err := h.gamificationService.GetActiveMissions(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao buscar missões")
+	}
+
+	achievements, err := h.gamificationService.GetAwardedAchievements(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao buscar conquistas")
+	}
+
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"active_missions":      missions,
+		"awarded_achievements": achievements,
+	})
+}
+
+// GetSalaryPlan retorna o plano de salário atual do usuário.
+func (h *ReportsHandler) GetSalaryPlan(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+
+	plan, err := h.gamificationService.GetSalaryPlan(c.Request().Context(), userID)
+	if err != nil {
+		// Se não encontrar, apenas retorna sucesso com null ou objeto vazio,
+		// pois pode não ter plano gerado ainda
+		return response.Success(c, http.StatusOK, nil)
+	}
+
+	return response.Success(c, http.StatusOK, plan)
+}
+
+// GetInstallmentTimeline retorna a linha do tempo de parcelamentos.
+func (h *ReportsHandler) GetInstallmentTimeline(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "installment_timeline", periodKey)
+}
+
 func (h *ReportsHandler) GetComparison(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 	aStart := c.QueryParam("a_start")
@@ -511,6 +553,8 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "prediction"
 	} else if reportType == "micro_spending" {
 		pythonURLType = "micro-spending"
+	} else if reportType == "installment_timeline" {
+		pythonURLType = "installment-timeline"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
