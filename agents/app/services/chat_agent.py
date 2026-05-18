@@ -1,6 +1,7 @@
 import json
 from app.services.base_agent import BaseAgent
 from app.models.chat import ChatRequest
+from agents.cfo_agent import CFOAgent
 
 CHAT_SYSTEM_PROMPT = """
 Você é o Pierre, um assistente financeiro pessoal inteligente e amigável.
@@ -21,10 +22,22 @@ Contexto do Usuário (JSON):
 """
 
 class ChatAgent(BaseAgent):
+    def __init__(self):
+        super().__init__()
+        self.cfo_agent = CFOAgent()
+
     async def run(self, chat_req: ChatRequest):
+        # 1. Detectar se a pergunta é uma explicação de gastos
+        explanation_keywords = ["por que", "explica", "o que aconteceu", "por que gastei", "motivo do gasto"]
+        message_lower = chat_req.message.lower()
+        
+        if any(kw in message_lower for kw in explanation_keywords):
+            result = await self.cfo_agent.explain_period_spending(chat_req.user_id, chat_req.message)
+            return {"response": result["explanation"], "is_explanation": True, "context": result["context"]}
+
         conn = await self.get_db_connection()
         try:
-            # 1. Buscar Contexto Relevante (Últimas transações e resumo do mês)
+            # 2. Buscar Contexto Relevante (Últimas transações e resumo do mês)
             rows = await conn.fetch("""
                 SELECT t.description, t.amount, t.direction, t.date, c.name as category
                 FROM transactions t
@@ -49,7 +62,7 @@ class ChatAgent(BaseAgent):
                 "monthly_spending_by_category": [dict(r) for r in summary_rows]
             }
             
-            # 2. Montar Prompt com Histórico
+            # 3. Montar Prompt com Histórico
             system_prompt = CHAT_SYSTEM_PROMPT.format(context=json.dumps(context_data, default=str))
             
             # Simula histórico de mensagens para o LLM
@@ -59,7 +72,7 @@ class ChatAgent(BaseAgent):
                     full_prompt += f"{msg.role}: {msg.content}\n"
             full_prompt += f"user: {chat_req.message}"
 
-            # 3. Chamar LLM
+            # 4. Chamar LLM
             response_text = await self.llm.completion(full_prompt, system_prompt=system_prompt)
             
             return {"response": response_text}

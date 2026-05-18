@@ -26,6 +26,7 @@ from agents.specific_costs import SpecificCostsAgent
 from agents.ticket_analysis import TicketAnalysisAgent
 from agents.stress_agent import StressAgent
 from agents.loyalty_agent import LoyaltyAgent
+from agents.cfo_agent import CFOAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -34,6 +35,7 @@ daily_agent = DailyAgent()
 weekly_agent = WeeklyAgent()
 monthly_agent = MonthlyAgent()
 chat_agent = ChatAgent()
+cfo_agent = CFOAgent()
 cashflow_agent = CashflowAgent()
 behavioral_agent = BehavioralAgent()
 comparison_agent = ComparisonAgent()
@@ -326,6 +328,17 @@ async def run_ticket_analysis_agent(user_id: str, background_tasks: BackgroundTa
 async def run_loyalty_agent(user_id: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_agent_task, loyalty_agent.run, user_id, "análise de lealdade")
     return {"message": "Processamento do agente de análise de lealdade iniciado"}
+
+@app.post("/chat/explain")
+async def explain_spending(req: ChatRequest):
+    # O user_id vem no ChatRequest (que tem o mesmo formato)
+    result = await cfo_agent.explain_period_spending(req.user_id, req.message)
+    return result
+
+@app.post("/agents/cfo/proactive-insight/{user_id}")
+async def run_proactive_insight(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, cfo_agent.generate_proactive_insights, user_id, "insight proativo CFO")
+    return {"message": "Geração de insight proativo iniciada"}
 
 @app.post("/agents/stress-score/{user_id}")
 async def run_stress_score_agent(user_id: str, background_tasks: BackgroundTasks):
