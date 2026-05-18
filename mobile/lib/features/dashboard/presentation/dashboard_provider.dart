@@ -47,3 +47,13 @@ final summaryProvider = FutureProvider<FinancialSummary>((ref) async {
   final resp = await api.dio.get(url);
   return FinancialSummary.fromJson(resp.data['data']);
 });
+
+final inflationProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  try {
+    final resp = await api.dio.get('/reports/personal-inflation');
+    return resp.data['data'] as Map<String, dynamic>;
+  } catch (e) {
+    return {};
+  }
+});

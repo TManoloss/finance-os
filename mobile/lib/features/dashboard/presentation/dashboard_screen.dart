@@ -81,7 +81,36 @@ class DashboardScreen extends ConsumerWidget {
                             letterSpacing: -1,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 16),
+                        // INFLAÇÃO PESSOAL PREVIEW
+                        ref.watch(inflationProvider).when(
+                          data: (data) {
+                            if (data.isEmpty) return const SizedBox.shrink();
+                            final rate = data['personal_inflation_rate'] ?? 0.0;
+                            return Padding(
+                              padding: const EdgeInsets.bottom(16.0),
+                              child: BlueprintCard(
+                                label: 'INFLAÇÃO_PESSOAL_MENSAL',
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${rate.toStringAsFixed(2)}%',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w900,
+                                        color: rate > 5 ? Colors.red : Colors.black,
+                                      ),
+                                    ),
+                                    const Icon(Icons.trending_up, color: Colors.black),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
                         Row(
                           children: [
                             Container(

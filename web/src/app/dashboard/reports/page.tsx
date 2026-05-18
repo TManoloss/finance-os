@@ -2,9 +2,11 @@ import { auth } from "@/auth";
 import api from "@/lib/api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Calendar, Zap, Terminal, Activity, BookOpen } from "lucide-react";
+import { FileText, Calendar, Zap, Terminal, Activity, BookOpen, TrendingUp } from "lucide-react";
 import TriggerReportButtons from "@/components/TriggerReportButtons";
 import NarrativeReportView from "@/components/NarrativeReportView";
+import PersonalInflationCard from "@/components/PersonalInflationCard";
+import SilentGrowthCard from "@/components/SilentGrowthCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -19,10 +21,36 @@ async function getReports(token: string) {
   }
 }
 
+async function getPersonalInflation(token: string) {
+  try {
+    const resp = await api.get("/reports/personal-inflation", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getSilentGrowth(token: string) {
+  try {
+    const resp = await api.get("/reports/silent-growth", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function ReportsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
-  const reports = await getReports(token);
+  const [reports, inflation, growth] = await Promise.all([
+    getReports(token),
+    getPersonalInflation(token),
+    getSilentGrowth(token)
+  ]);
 
   return (
     <div className="grid-blueprint grid-cols-1">
@@ -43,6 +71,20 @@ export default async function ReportsPage() {
             <NarrativeReportView token={token} />
          </div>
       </div>
+
+      {/* Advanced Analytic Cards Section */}
+      {(inflation || growth) && (
+        <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
+          <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
+            <TrendingUp className="w-4 h-4" /> ADVANCED_PATTERN_INSIGHTS_V2.5
+          </div>
+          
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+            {inflation && <PersonalInflationCard data={inflation} />}
+            {growth && <SilentGrowthCard data={growth} />}
+          </div>
+        </div>
+      )}
 
       <div className="bg-background min-h-screen">
         {reports.length > 0 ? reports.map((report: any) => (

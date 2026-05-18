@@ -1620,3 +1620,785 @@ Semana 8 — Fase 11 cont.:
 ```
 
 ---
+## FASE 12 — Análise de Padrões Comportamentais Profundos
+
+> Análises que o usuário nunca perceberia sozinho olhando para os números.
+> Todos os módulos são agentes Python independentes que consomem o PostgreSQL diretamente.
+
+---
+
+### 12.1 Inflação Pessoal — Quanto suas compras ficaram mais caras
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em análise financeira.
+
+Implemente `agents/personal_inflation_agent.py` — detecta quanto os preços
+que o usuário paga estão subindo ao longo do tempo, merchant por merchant
+e categoria por categoria.
+
+**PersonalInflationAgent(BaseAgent)**:
+
+`calculate_merchant_inflation(user_id, merchant_name, months=12)` → MerchantInflation:
+Para um merchant com histórico suficiente (mínimo 6 transações em períodos distintos):
+- Calcular ticket médio por mês para esse merchant
+- Aplicar regressão linear nos ticket médios mensais para extrair tendência
+- Calcular taxa de inflação mensal e anual implícita
+- Separar: inflação de preço real (mesmo produto mais caro) vs inflação de consumo
+  (você passou a comprar itens mais caros no mesmo lugar)
+- Retornar: ticket_medio_6_meses_atras, ticket_medio_atual, variacao_percent,
+  taxa_anualizada, tipo_inflacao (preco/consumo/misto), confianca
+
+`calculate_category_inflation(user_id, category_id, months=12)` → CategoryInflation:
+- Mesmo cálculo mas agregado por categoria
+- Decompor em: inflação de frequência (você vai mais vezes) vs inflação de ticket
+- Identificar qual merchant dentro da categoria mais contribuiu para o aumento
+- Comparar com IPCA do período (buscar via API do Banco Central — endpoint público,
+  sem auth: https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json)
+
+`build_personal_inflation_index(user_id)` → PersonalInflationIndex:
+Construir o índice de inflação pessoal do usuário (estilo IPCA mas dos seus gastos reais):
+- Pegar as top 10 categorias por peso no orçamento
+- Calcular inflação de cada uma nos últimos 12 meses
+- Ponderar pelo peso de cada categoria no total de gastos
+- Resultado: um número percentual — "sua inflação pessoal foi de X% nos últimos 12 meses"
+- Comparar com IPCA oficial do mesmo período
+- Se inflação pessoal > IPCA: "seus gastos subiram X% acima da inflação oficial"
+
+`detect_silent_price_increases(user_id)` → lista de SilentPriceIncrease:
+Merchants onde o ticket médio aumentou mais de 15% nos últimos 6 meses
+sem aumento correspondente na frequência (você não está comprando mais,
+só pagando mais):
+- Ordenar por impacto mensal absoluto (em reais)
+- Top 5 com: merchant, aumento_percent, impacto_mensal_em_reais, primeiro_sinal_de_aumento
+
+Prompt INFLATION_NARRATIVE_PROMPT:
+```
+Analise os dados de inflação pessoal abaixo e escreva um parágrafo em português,
+tom direto, com os números mais relevantes.
+
+Dados:
+{inflation_data_json}
+
+Foque no impacto em reais, não em percentuais abstratos.
+Exemplo de tom: "Seu supermercado habitual ficou 23% mais caro nos últimos 12 meses —
+você está pagando R$187 a mais por mês pelo mesmo carrinho de compras."
+```
+
+Endpoint: GET /reports/inflation
+UI: tabela de merchants com seta de tendência colorida (vermelho=subindo, cinza=estável)
+e o índice pessoal em destaque no topo comparado ao IPCA
+Flutter: card na home "Sua inflação pessoal: X% (IPCA: Y%)"
+```
+
+---
+
+### 12.2 Fim de Semana vs Dia Útil — Sua vida financeira em dois modos
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/weekday_weekend_agent.py`
+— análise completa do comportamento financeiro em dias úteis vs fins de semana.
+
+**WeekdayWeekendAgent(BaseAgent)**:
+
+`compare_weekday_vs_weekend(user_id, months=3)` → WeekdayWeekendReport:
+Separar todas as transações em: seg-sex (útil) vs sab-dom (fim de semana).
+Para cada grupo calcular:
+- gasto_medio_por_dia: média de gasto num dia de cada tipo
+- top_categorias: quais categorias dominam cada tipo de dia
+- top_merchants: merchants mais frequentes em cada contexto
+- ticket_medio: valor médio por transação
+- horario_pico: faixa horária de maior gasto em cada contexto
+- percentual_do_gasto_mensal: quanto % do gasto total ocorre em cada contexto
+
+`calculate_weekend_premium(user_id)` → WeekendPremium:
+O "prêmio de fim de semana" — quanto a mais você gasta por dia no final de semana:
+- gasto_diario_medio_util: float
+- gasto_diario_medio_fds: float
+- premium_absoluto: diferença em reais por dia
+- premium_percentual: quantas vezes maior
+- premium_mensal_estimado: impacto no mês (premium × 8 fins de semana)
+- premium_anual: impacto anual
+- categoria_mais_responsavel: qual categoria mais explica a diferença
+
+`analyze_monday_effect(user_id)` → MondayEffectReport:
+Detectar o "efeito segunda-feira" — compensação após o fim de semana:
+- Comparar gastos de segunda com outros dias úteis
+- Detectar se há queda de gastos na segunda (contenção pós-fds) ou aumento
+  (compras postergadas do fim de semana)
+- Analisar: é consistente ou varia dependendo do quanto foi gasto no fim de semana anterior?
+
+`analyze_day_of_week_full(user_id)` → DayOfWeekBreakdown:
+Perfil completo dos 7 dias da semana:
+- Para cada dia (seg a dom): gasto_medio, top_3_categorias, top_3_merchants,
+  horario_pico, adjetivo_gerado_pelo_llm (ex: "segunda é seu dia mais contido",
+  "sexta é seu dia mais impulsivo")
+- Ranking dos dias por gasto médio
+- Detectar: existe um "dia de reset" onde os gastos são mínimos?
+
+`generate_weekend_insights(user_id, report: WeekdayWeekendReport)` → lista de str:
+Usar Claude para gerar 3 insights em linguagem natural baseados nos dados:
+Prompt: dado o relatório completo, identificar os padrões mais interessantes
+e inesperados. Foco em insights que o usuário provavelmente não sabia.
+Ex: "Seus fins de semana custam o equivalente a um dia útil e meio.
+     Em um ano, isso representa R$4.200 a mais só por causa do comportamento de FDS."
+
+Endpoint: GET /reports/weekday-weekend
+UI: gráfico de barras lado a lado (útil vs fds) por categoria
++ heatmap semanal (7 colunas × N semanas) com intensidade de cor por valor gasto
+Flutter: widget de "Perfil da semana" com os 7 dias como cards horizontais deslizáveis
+```
+
+---
+
+### 12.3 Efeito do Salário — O que acontece depois que o dinheiro cai
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/salary_effect_agent.py`
+— análise de como o comportamento de gastos muda nos dias após a entrada de renda.
+
+**SalaryEffectAgent(BaseAgent)**:
+
+`detect_salary_events(user_id)` → lista de SalaryEvent:
+Identificar todas as entradas de renda histórica:
+- Buscar créditos grandes e recorrentes (mesmo valor ± 10%, mesmo período do mês)
+- Para cada ocorrência: data, valor, dia_do_mes
+- Calcular: dia_medio_do_salario, variacao_de_data (sempre cai no mesmo dia?)
+- Retornar lista de SalaryEvent{date, amount, day_of_month}
+
+`analyze_post_salary_spending(user_id, window_days=14)` → PostSalaryReport:
+Para cada evento de salário detectado, analisar os N dias seguintes:
+- Gasto acumulado por dia (D+1, D+2, ... D+14)
+- Percentual do salário consumido em cada janela (D+3, D+7, D+14)
+- Quais categorias explodem primeiro após o salário
+- Qual merchant recebe o primeiro gasto significativo após o salário
+- Curva média de consumo pós-salário (média de todos os eventos históricos)
+
+`calculate_salary_consumption_curve(user_id)` → ConsumptionCurve:
+A "curva de consumo do salário" — como o dinheiro vai embora ao longo do mês:
+- percent_consumed_day_3: % médio gasto nos primeiros 3 dias
+- percent_consumed_day_7: % médio gasto na primeira semana
+- percent_consumed_day_15: % médio gasto na primeira quinzena
+- percent_consumed_day_30: % médio gasto no mês todo (deve ser próximo de 100%)
+- days_until_half_gone: mediana de dias para consumir 50% do salário
+- spending_acceleration: os gastos aceleram ou desaceleram com o tempo?
+
+`detect_post_salary_patterns(user_id)` → lista de PostSalaryPattern:
+Padrões específicos detectados:
+- FRONT_LOADED: > 40% gasto nos primeiros 5 dias ("você gasta metade do salário
+  na primeira semana")
+- IMPULSE_FIRST: primeiro gasto significativo (> R$200) ocorre em D+1 ou D+2
+- SUBSCRIPTION_CLUSTER: assinaturas se concentram nos dias pós-salário
+- END_OF_MONTH_STRESS: gasto cai drasticamente na última semana (saldo baixo)
+- BALANCED: distribuição relativamente uniforme ao longo do mês
+
+Prompt SALARY_EFFECT_PROMPT:
+```
+Analise o padrão de consumo pós-salário do usuário e escreva um insight em português.
+
+Dados:
+{salary_effect_data}
+
+Seja específico com os números. Tom: analista financeiro direto, sem julgamentos.
+Exemplo: "Você consome 47% do seu salário nos primeiros 7 dias do mês.
+Na última semana, seus gastos caem 60% em relação à média — sinal claro de
+que o dinheiro está acabando antes do fim do mês."
+```
+
+Endpoint: GET /reports/salary-effect
+UI: gráfico de área acumulada mostrando % do salário consumido ao longo dos 30 dias
+com linha de referência em 50% e 100%
+Flutter: card "Seu salário dura X dias" na home screen
+```
+
+---
+
+### 12.4 Análise de Impulso — Compras planejadas vs não planejadas
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em análise comportamental.
+
+Implemente `agents/impulse_agent.py` — detector de compras por impulso
+baseado em sinais comportamentais das transações.
+
+**ImpulseAgent(BaseAgent)**:
+
+`calculate_impulse_score(transaction: Transaction, user_history: list) → float`:
+Score de 0 a 1 de probabilidade de ser compra por impulso, baseado em:
+- Horário incomum: transação fora do horário habitual do usuário nessa categoria (+0.2)
+- Merchant novo: primeira vez nesse estabelecimento (+0.2)
+- Valor atípico: > 2x o ticket médio do usuário nessa categoria (+0.2)
+- Dia incomum: dia da semana fora do padrão para essa categoria (+0.1)
+- Sequência rápida: < 30 min após outra transação (compras em sequência) (+0.15)
+- Horário de madrugada (22h-06h) (+0.15)
+
+`classify_transactions_by_impulse(user_id, months=3)` → ImpulseClassification:
+Classificar todas as transações do período:
+- impulse_transactions: lista de transações com score > 0.6
+- planned_transactions: score < 0.3
+- uncertain: 0.3-0.6
+- impulse_total_amount: soma total das compras por impulso
+- impulse_percent_of_spending: % do gasto total que é por impulso
+- impulse_avg_amount: ticket médio das compras por impulso vs planejadas
+- top_impulse_categories: quais categorias têm mais compras por impulso
+- top_impulse_hours: horários com mais compras por impulso
+- impulse_regret_proxy: merchants de impulso que não aparecem novamente
+  (comprou uma vez, nunca voltou — proxy de arrependimento)
+
+`analyze_impulse_trends(user_id)` → ImpulseTrends:
+- impulse_rate_by_month: % de gastos por impulso em cada mês dos últimos 6
+- tendencia: está aumentando ou diminuindo?
+- melhor_mes: mês com menor taxa de impulso
+- pior_mes: mês com maior taxa
+- correlacao_estresse_financeiro: meses com saldo mais baixo têm mais impulso?
+
+`generate_impulse_report(user_id)` → ImpulseReport:
+Usar Claude para gerar análise narrativa:
+Incluir: % de gastos por impulso, valor mensal médio, padrão de horário,
+categorias mais afetadas, e uma observação sobre o proxy de arrependimento.
+Tom: neutro, baseado em dados, sem julgamento moral.
+
+Endpoint: GET /reports/impulse
+UI: donut chart (impulso vs planejado vs incerto) + lista de transações
+com badge de impulso + heatmap de horário × dia da semana
+Flutter: badge discreto em cada transação com score alto na lista de extrato
+```
+
+---
+
+### 12.5 Custo Real por Refeição — O que você realmente gasta para se alimentar
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/meal_cost_agent.py`
+— calcula o custo real de alimentação do usuário de forma consolidada.
+
+**MealCostAgent(BaseAgent)**:
+
+`calculate_real_meal_cost(user_id, months=3)` → MealCostReport:
+Consolidar TODOS os gastos relacionados a alimentação:
+- Identificar subcategorias dentro de Alimentação: mercado/supermercado,
+  delivery (iFood, Rappi, etc), restaurante/lanchonete, padaria, café
+- Total gasto em alimentação no período
+- Estimar número de refeições: (dias_no_periodo × 3) como denominador base
+  — o usuário come ~3 refeições por dia, então esse é o total teórico
+- custo_medio_por_refeicao: total / total_refeicoes_estimadas
+- custo_por_subcategoria: quanto cada canal representa por refeição equivalente
+- percentual_delivery: % das refeições que provavelmente foram delivery
+- percentual_externo: % que foi fora de casa (restaurante + delivery)
+- percentual_mercado: % que foi em casa (supermercado como proxy)
+
+`compare_food_channels(user_id)` → FoodChannelComparison:
+Comparar custo por refeição equivalente entre canais:
+- ticket_medio_mercado: gasto médio por ida ao mercado ÷ refeições estimadas daquela compra
+- ticket_medio_delivery: gasto médio por pedido de delivery
+- ticket_medio_restaurante: gasto médio por refeição em restaurante
+- canal_mais_caro: qual canal tem maior custo por refeição
+- economia_potencial: se 30% dos deliveries fossem substituídos por cozinha,
+  economia mensal estimada (sem recomendar — apenas informar)
+
+`analyze_food_trends(user_id)` → FoodTrends:
+- gasto_alimentacao_por_mes: série histórica dos últimos 6 meses
+- tendencia_delivery: delivery está aumentando ou diminuindo como % do total?
+- dia_semana_mais_delivery: qual dia tem mais pedidos de delivery
+- horario_pico_delivery: almoço ou jantar dominam?
+- merchant_favorito_por_canal: top merchant de cada canal
+
+`calculate_annual_food_projection(user_id)` → float:
+Com base na média dos últimos 3 meses, projetar gasto anual com alimentação.
+Comparar com benchmarks públicos (usar valor fixo de referência:
+família brasileira gasta em média R$1.200/mês com alimentação — IBGE POF 2023).
+
+Prompt MEAL_COST_INSIGHT_PROMPT:
+```
+Com base nos dados de alimentação abaixo, escreva um insight em 2-3 frases em português.
+Seja específico com números reais. Não use jargão financeiro.
+
+Dados: {meal_data_json}
+
+Exemplo de tom: "Cada refeição sua custa em média R$42. Nos dias que você pede
+delivery, esse custo sobe para R$67 por refeição — 60% mais caro que quando
+você cozinha ou vai a um restaurante."
+```
+
+Endpoint: GET /reports/meal-cost
+UI: breakdown visual de alimentação com ícones por canal
+Flutter: widget "Sua refeição média custa R$X" na seção de categorias
+```
+
+---
+
+### 12.6 Índice de Conveniência — Quanto você paga pela praticidade
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/convenience_index_agent.py`
+— calcula quanto o usuário paga a mais pela conveniência em diferentes aspectos
+da vida financeira.
+
+**ConvenienceIndexAgent(BaseAgent)**:
+
+Definir pares de conveniência vs alternativa econômica (como constante CONVENIENCE_PAIRS):
+```python
+CONVENIENCE_PAIRS = [
+    {
+        "name": "Delivery vs Cozinhar",
+        "convenient_merchants": ["ifood", "rappi", "ubereats", "delivery"],
+        "economic_proxy": "supermercado",
+        "premium_estimate_percent": 60,  # delivery custa ~60% a mais por refeição
+        "category": "alimentação"
+    },
+    {
+        "name": "Uber/99 vs Transporte Público",
+        "convenient_merchants": ["uber", "99", "cabify"],
+        "economic_proxy": "bilhete único",  # detectar por valor R$4-6
+        "premium_estimate_percent": 400,
+        "category": "transporte"
+    },
+    {
+        "name": "Mercado de Bairro vs Supermercado",
+        "convenient_merchants": [],  # detectar por ticket pequeno + frequência alta
+        "economic_merchants": ["carrefour", "extra", "pão de açúcar", "atacadão"],
+        "premium_estimate_percent": 25,
+        "category": "alimentação"
+    },
+    {
+        "name": "Farmácia de Plantão vs Farmácia Normal",
+        "convenient_merchants": [],  # detectar por horário (22h-06h)
+        "economic_proxy": "farmácia",
+        "premium_estimate_percent": 30,
+        "category": "saúde"
+    }
+]
+```
+
+`calculate_convenience_spending(user_id, months=3)` → ConvenienceReport:
+Para cada par de conveniência detectado nos dados do usuário:
+- valor_mensal_gasto_conveniencia: quanto gasta no canal conveniente
+- valor_alternativa_estimado: quanto custaria na alternativa econômica
+- premium_mensal: diferença em reais
+- premium_percentual: diferença em %
+- frequencia_mensal: quantas vezes por mês usa esse canal conveniente
+
+`calculate_total_convenience_cost(user_id)` → ConvenienceSummary:
+- total_premium_mensal: soma de todos os premiums de conveniência
+- total_premium_anual: × 12
+- percentual_da_renda: % da renda mensal estimada que vai para conveniência
+- maior_conveniente: qual categoria tem maior custo de conveniência
+- equivalente_investido: se esse valor fosse investido à SELIC, quanto seria em 5 anos
+
+Prompt CONVENIENCE_INSIGHT_PROMPT:
+```
+Analise o índice de conveniência do usuário e escreva um insight em português.
+Tom: informativo, sem julgamento. O objetivo é apenas mostrar o número real.
+
+Dados: {convenience_data}
+
+Formato: "Você gasta R$X/mês a mais pela conveniência — principalmente em [categorias].
+Isso representa Y% da sua renda estimada. Em um ano, são R$Z pagos pela praticidade."
+```
+
+Endpoint: GET /reports/convenience-index
+UI: lista de pares de conveniência com valor do premium em destaque
++ total mensal em card de destaque no topo
+Flutter: seção "O que você paga pela praticidade" na tela de relatórios
+```
+
+---
+
+### 12.7 Categoria que Cresce Silenciosamente
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/silent_growth_agent.py`
+— detecta qual categoria está crescendo mais rapidamente de forma despercebida.
+
+**SilentGrowthAgent(BaseAgent)**:
+
+`detect_silent_growth_categories(user_id, months=6)` → lista de SilentGrowthCategory:
+Para cada categoria com pelo menos 3 meses de dados:
+- Calcular gasto mensal para cada mês dos últimos N meses
+- Aplicar regressão linear simples para extrair taxa de crescimento mensal
+- Filtrar: apenas categorias que NÃO são as maiores em valor absoluto
+  (as maiores o usuário já monitora — o interesse é nas menores que crescem em silêncio)
+- Calcular:
+  - taxa_crescimento_mensal_percent: coeficiente da regressão em %
+  - gasto_ha_6_meses: valor no primeiro mês da janela
+  - gasto_atual: valor no último mês
+  - variacao_absoluta: diferença em reais
+  - projecao_12_meses: se continuar crescendo nesse ritmo, quanto será daqui 12 meses
+  - r_squared: qualidade do fit da regressão (confiança da detecção)
+- Filtrar apenas: r_squared > 0.5 (tendência consistente, não ruído)
+- Ordenar por taxa_crescimento_mensal_percent DESC
+
+`generate_silent_growth_alert(user_id, top_category: SilentGrowthCategory)` → str:
+Usar Claude para gerar um alerta em linguagem natural para a categoria
+que mais cresce silenciosamente:
+```
+Dado o crescimento silencioso da categoria abaixo, escreva um alerta em 2 frases.
+Tom: direto, sem alarme exagerado. Mostre os números e a projeção.
+
+Categoria: {category_name}
+Crescimento: {growth_data}
+
+Exemplo: "Seus gastos com 'Assinaturas' cresceram R$87/mês nos últimos 6 meses —
+um aumento de 340% que provavelmente passou despercebido. Se continuar,
+serão R$1.044 a mais por ano nessa categoria."
+```
+
+`calculate_growth_heatmap(user_id, months=6)` → GrowthHeatmap:
+Matriz de crescimento: categorias × meses, valor = % de crescimento mês a mês
+Permite visualizar a aceleração ou desaceleração de cada categoria ao longo do tempo
+
+Endpoint: GET /reports/silent-growth
+UI: tabela de categorias com sparkline de 6 meses + indicador de tendência
++ card de destaque "Categoria crescendo mais rápido: X (+Y%/mês)"
+Flutter: alerta na home quando detectar crescimento > 30%/mês em qualquer categoria
+```
+
+---
+
+### 12.8 Análise de Ticket Médio — Você compra mais ou paga mais caro?
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/ticket_analysis_agent.py`
+— decompõe o crescimento de gastos entre aumento de frequência vs aumento de preço.
+
+**TicketAnalysisAgent(BaseAgent)**:
+
+`decompose_spending_growth(user_id, category_id, months=6)` → SpendingDecomposition:
+Para uma categoria com crescimento detectado, decompor a causa:
+- periodo_a: primeiros 3 meses da janela
+- periodo_b: últimos 3 meses da janela
+- frequencia_a: número de transações/mês no período A
+- frequencia_b: número de transações/mês no período B
+- ticket_medio_a: valor médio por transação no período A
+- ticket_medio_b: valor médio por transação no período B
+- variacao_gasto_total: (total_b - total_a) / total_a em %
+- contribuicao_frequencia: quanto do aumento veio de comprar mais vezes
+- contribuicao_ticket: quanto do aumento veio de pagar mais caro por vez
+- tipo_crescimento:
+  - FREQUENCY_DRIVEN: você está comprando mais vezes (mesmo preço)
+  - PRICE_DRIVEN: você está pagando mais por cada compra (mesma frequência)
+  - MIXED: ambos contribuíram
+  - TICKET_UP_FREQUENCY_DOWN: você vai menos mas gasta mais por vez (upgrade de qualidade?)
+
+`analyze_all_categories(user_id)` → lista de SpendingDecomposition:
+Rodar a decomposição para todas as categorias com dados suficientes
+Ordenar por variacao_gasto_total DESC (categorias que mais cresceram primeiro)
+
+`generate_ticket_narrative(user_id, decompositions: list)` → str:
+Usar Claude para sintetizar as descobertas mais interessantes:
+Prompt: dadas as decomposições, identificar o padrão mais interessante e gerar
+insight em 2-3 frases. Focar no padrão menos óbvio (não o maior, mas o mais
+revelador sobre o comportamento do usuário).
+Ex: "Seus gastos com restaurantes cresceram 45%, mas não porque você saiu mais —
+você foi 10% menos vezes, mas o ticket médio subiu de R$67 para R$112.
+Seu padrão de jantar fora ficou mais premium."
+
+Endpoint: GET /reports/ticket-analysis?category_id=optional
+UI: para cada categoria, barra dividida mostrando contribuição de frequência vs preço
+Flutter: breakdown na tela de detalhes de cada categoria
+```
+
+---
+
+### 12.9 Perfil Completo dos 7 Dias da Semana
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/weekly_profile_agent.py`
+— constrói o perfil financeiro completo de cada dia da semana do usuário.
+
+**WeeklyProfileAgent(BaseAgent)**:
+
+`build_day_profiles(user_id, months=3)` → lista de DayProfile (7 profiles):
+Para cada dia da semana (0=segunda, 6=domingo):
+- gasto_medio: média de gasto em dias desse tipo
+- gasto_mediano: mediana (mais robusta a outliers)
+- desvio_padrao: volatilidade dos gastos nesse dia
+- top_3_categorias: categorias dominantes com % do gasto do dia
+- top_3_merchants: merchants mais frequentes
+- horario_pico: faixa horária com mais transações (manhã/almoço/tarde/noite/madrugada)
+- num_transacoes_medio: quantas transações em média nesse dia
+- probabilidade_gasto_zero: % de dias desse tipo sem nenhuma transação (dia de descanso?)
+- adjetivo: gerado pelo Claude — uma palavra que caracteriza o dia financeiramente
+
+`detect_day_anomalies(user_id) → lista de DayAnomaly`:
+Comparar o gasto de cada dia específico com a média histórica do mesmo dia da semana:
+- Qualquer dia com gasto > média + 2σ é uma anomalia positiva
+- Qualquer dia com gasto < média - 2σ é uma anomalia negativa (dia incomum de contenção)
+- Retornar os 5 dias mais anômalos dos últimos 30 dias com explicação
+
+`find_reset_day(user_id)` → ResetDayReport:
+Detectar se existe um "dia de reset" — um dia da semana consistentemente com
+gastos mínimos ou zero. Muitas pessoas têm um dia que naturalmente não gastam.
+- dia_reset: dia da semana (se existir, com p > 0.7)
+- probabilidade_zero_gasto: % de vezes que esse dia teve gasto zero
+- gasto_medio_no_reset_day: mesmo que não seja zero, quanto costuma ser
+
+`generate_week_narrative(user_id, profiles: list) → WeekNarrative`:
+Usar Claude para gerar uma narrativa da semana financeira do usuário:
+```
+Você tem os perfis financeiros dos 7 dias da semana do usuário abaixo.
+Escreva um parágrafo em português descrevendo a "semana financeira típica" dele.
+Mencione os dias mais e menos ativos, os padrões de horário, e qualquer
+particularidade interessante. Tom: analítico mas acessível.
+
+Perfis: {day_profiles_json}
+```
+
+Endpoint: GET /reports/weekly-profile
+UI: heatmap de 7 colunas (dias) × 24 linhas (horas) com intensidade de cor
+por volume de gastos — revela instantaneamente quando o usuário gasta
+Flutter: carrossel horizontal com card para cada dia da semana
+```
+
+---
+
+### 12.10 Análise de Lealdade e Abandono de Merchants
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/loyalty_agent.py`
+— analisa o relacionamento de longo prazo do usuário com cada merchant.
+
+**LoyaltyAgent(BaseAgent)**:
+
+`classify_merchant_relationships(user_id) → MerchantRelationshipMap`:
+Classificar cada merchant em categorias de relacionamento:
+- LEAL: presente em > 80% dos meses dos últimos 6 meses
+- FREQUENTE: presente em 50-80% dos meses
+- OCASIONAL: presente em 20-50% dos meses
+- EXPERIMENTADO: usado apenas 1-2 vezes, não retornou
+- ABANDONADO: foi leal/frequente mas não aparece nos últimos 60 dias
+- RESGATADO: foi abandonado mas voltou recentemente
+
+`calculate_abandonment_cost(user_id) → AbandonmentReport`:
+Para merchants classificados como EXPERIMENTADO:
+- Total gasto nesses merchants (dinheiro "desperdiçado" em experiências não repetidas)
+- Ticket médio das compras únicas
+- Categorias com mais abandono (onde você mais experimenta e não volta)
+- Merchant mais caro que foi abandonado
+
+`detect_loyalty_shifts(user_id) → lista de LoyaltyShift`:
+Detectar quando o usuário trocou de merchant dentro da mesma categoria:
+- Ex: parou de usar iFood e começou a usar Rappi no mesmo período
+- Ex: trocou de supermercado
+- Retornar: categoria, merchant_abandonado, merchant_adotado, data_da_troca,
+  diferenca_de_ticket (ficou mais barato ou mais caro?)
+
+`calculate_customer_lifetime_value(user_id) → lista de MerchantLTV`:
+Para os top 20 merchants por total gasto:
+- total_gasto_historico: soma de todas as transações
+- primeira_compra: data
+- ultima_compra: data
+- duracao_relacionamento_dias: última - primeira
+- frequencia_media_dias: intervalo médio entre compras
+- projecao_12_meses: baseada na frequência e ticket atual
+
+`generate_loyalty_insights(user_id) → lista de str`:
+Usar Claude para 3 insights sobre padrões de lealdade:
+- Qual merchant tem o relacionamento mais valioso (LTV + duracao)
+- Qual categoria tem mais abandono (onde você mais experimenta)
+- Se houve alguma troca significativa de merchant recentemente
+
+Endpoint: GET /reports/loyalty
+UI: tabela de merchants com badge de classificação colorido (leal=verde, abandonado=cinza)
++ seção "Quanto você gastou experimentando" com total de merchants abandonados
+Flutter: tela "Seus estabelecimentos" com filtros por classificação
+```
+
+---
+
+### 12.11 Correlação entre Semanas e Comportamento de Compensação
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior especialista em análise comportamental.
+
+Implemente `agents/compensation_agent.py` — detecta se o usuário compensa
+períodos de contenção com gastos maiores depois, e vice-versa.
+
+**CompensationAgent(BaseAgent)**:
+
+`detect_compensation_patterns(user_id, months=4) → CompensationReport`:
+Analisar autocorrelação dos gastos semanais:
+- Para cada semana, calcular: foi semana de "alta" (> mediana) ou "baixa" (< mediana)?
+- Analisar a semana seguinte: há tendência de compensação (baixa → alta → baixa)?
+- Calcular coeficiente de autocorrelação lag-1 (semana N vs semana N+1)
+- Se autocorrelação negativa forte: padrão de compensação presente
+- Se positiva: padrão de momentum (semanas ruins tendem a continuar ruins)
+
+`quantify_compensation(user_id) → CompensationQuantification`:
+Se padrão de compensação detectado:
+- quanto_gasta_apos_semana_contida: média de gasto nas semanas que seguem baixas
+- quanto_gasta_apos_semana_pesada: média de gasto nas semanas que seguem altas
+- amplitude_compensacao: diferença entre os dois em reais
+- ciclo_medio_dias: duração média do ciclo contenção/compensação
+
+`detect_post_stress_spending(user_id) → lista de StressSpendingEvent`:
+Detectar eventos de "gasto pós-estresse":
+- Semana com saldo muito baixo seguida de semana de gastos altos logo após salário
+- Período de contenção forçada (saldo baixo) → explosão de gastos quando dinheiro entra
+- Retornar: data_inicio_contencao, data_salario, valor_gasto_48h_pos_salario,
+  vs_media_historica_mesmo_periodo
+
+`generate_compensation_narrative(user_id, report) → str`:
+Usar Claude:
+```
+Analise o padrão de compensação financeira do usuário.
+Dados: {compensation_data}
+
+Se há padrão claro, descreva em 2-3 frases o ciclo típico com números reais.
+Se não há padrão, diga que os gastos são relativamente independentes entre semanas.
+Tom: analítico, neutro. Não moralize.
+```
+
+Endpoint: GET /reports/compensation-pattern
+UI: gráfico de linha dos gastos semanais com coloração alternada
+mostrando o padrão de alta/baixa visualmente
+```
+
+---
+
+### 12.12 Primeira Semana vs Última Semana do Mês
+
+```
+PROMPT:
+
+Você é um engenheiro Python sênior. Implemente `agents/monthly_weeks_agent.py`
+— análise comparativa das 4 semanas do mês revelando o ciclo financeiro mensal.
+
+**MonthlyWeeksAgent(BaseAgent)**:
+
+`split_month_into_weeks(year, month) → lista de WeekWindow`:
+Dividir o mês em 4 janelas (não necessariamente de 7 dias cada):
+- Semana 1: dias 1-7
+- Semana 2: dias 8-14
+- Semana 3: dias 15-21
+- Semana 4: dias 22-fim
+
+`analyze_monthly_weeks(user_id, months=3) → MonthlyWeeksReport`:
+Para cada semana do mês, calcular médias históricas (média das semanas 1
+de todos os meses analisados, etc.):
+- gasto_medio_semana_1, 2, 3, 4: médias por semana
+- top_categoria_semana_1, 2, 3, 4: categoria dominante de cada semana
+- variacao_s1_vs_s4: quanto a primeira semana difere da última em %
+- padrao_detectado:
+  - DECLINING: gasto cai progressivamente (controle ao longo do mês)
+  - INCREASING: gasto aumenta (impulso acumulado ou estouro)
+  - U_SHAPED: alto no início, baixo no meio, alto no fim
+  - SPIKE_FIRST: enorme na semana 1, estável depois (pós-salário)
+  - UNIFORM: distribuição relativamente uniforme
+
+`calculate_week_behavior(user_id) → WeekBehaviorProfile`:
+- semana_mais_cara: qual das 4 semanas é historicamente mais cara
+- semana_mais_barata: qual é mais econômica
+- diferenca_s1_s4_percent: variação percentual entre primeira e última semana
+- ultimo_dia_do_mes_behavior: o último dia do mês costuma ter gastos ou não?
+  (detectar padrão de "comprar antes do fim do mês")
+- primeira_compra_do_mes: qual categoria recebe o primeiro gasto de cada mês?
+
+`generate_monthly_cycle_insight(user_id, profile) → str`:
+Usar Claude para descrever o ciclo financeiro mensal em 2-3 frases com dados reais.
+Destacar o padrão mais marcante (ex: U_SHAPED, SPIKE_FIRST) de forma acessível.
+
+Endpoint: GET /reports/monthly-weeks
+UI: 4 cards lado a lado representando as semanas, altura proporcional ao gasto médio
+com a categoria dominante em cada semana como ícone
+Flutter: visualização de "seu mês financeiro típico" na tela de relatórios
+```
+
+---
+
+### Schema adicional para a Fase 12
+
+```
+PROMPT:
+
+Adicione ao `backend/internal/db/schema.sql` as tabelas de cache para
+os relatórios da Fase 12 (evitar recalcular tudo a cada request):
+
+```sql
+-- Cache de relatórios computados (evitar recálculo frequente)
+CREATE TABLE report_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    report_type TEXT NOT NULL,  -- inflation, weekday_weekend, salary_effect, etc.
+    period_key TEXT NOT NULL,   -- ex: "2025-01" ou "2025-Q1" ou "last_90_days"
+    result_json JSONB NOT NULL,
+    computed_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    UNIQUE(user_id, report_type, period_key)
+);
+CREATE INDEX ON report_cache(user_id, report_type);
+CREATE INDEX ON report_cache(expires_at); -- para limpeza de expirados
+
+-- Snapshots de inflação pessoal (histórico mensal)
+CREATE TABLE inflation_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    period_month DATE NOT NULL,
+    personal_inflation_rate NUMERIC(6,3),
+    ipca_rate NUMERIC(6,3),
+    category_breakdown JSONB,
+    computed_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, period_month)
+);
+
+-- Perfis de comportamento por dia da semana (cache semanal)
+CREATE TABLE day_profiles_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    day_of_week SMALLINT NOT NULL, -- 0=seg, 6=dom
+    avg_spending NUMERIC(10,2),
+    top_categories JSONB,
+    top_merchants JSONB,
+    peak_hour_range TEXT,
+    computed_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, day_of_week)
+);
+```
+
+Regras de cache:
+- Relatórios de inflação: expiram em 7 dias
+- Perfis de dia da semana: expiram em 3 dias
+- Relatórios de comportamento (impulso, compensação): expiram em 1 dia
+- O serviço Python verifica o cache antes de computar
+- Após computar, salva no cache automaticamente
+```
+
+---acab
+
+### Ordem de execução da Fase 12 no Antigravity
+
+```
+Semana 9 — Fase 12 (Behavioral Deep Dive):
+├── Agente A: 12.1 Inflação Pessoal + 12.7 Categoria Silenciosa
+├── Agente B: 12.2 Fim de Semana vs Útil + 12.9 Perfil dos 7 Dias
+├── Agente C: 12.3 Efeito do Salário + 12.12 Primeira vs Última Semana
+└── Agente D: 12.4 Análise de Impulso + 12.11 Padrão de Compensação
+
+Semana 10 — Fase 12 cont.:
+├── Agente A: 12.5 Custo Real por Refeição + 12.6 Índice de Conveniência
+├── Agente B: 12.8 Análise de Ticket Médio + 12.10 Lealdade e Abandono
+└── Agente C: Schema adicional + sistema de cache + UIs Flutter/Next.js
+```
+
+---

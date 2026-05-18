@@ -19,6 +19,8 @@ from app.services.narrative_report_agent import NarrativeReportAgent
 from app.services.goals_agent import GoalsAgent
 from agents.personal_inflation import PersonalInflationAgent
 from agents.silent_growth import SilentGrowthAgent
+from agents.weekly_profile import WeeklyProfileAgent
+from agents.monthly_cycle import MonthlyCycleAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -39,6 +41,8 @@ narrative_agent = NarrativeReportAgent()
 goals_agent = GoalsAgent()
 personal_inflation_agent = PersonalInflationAgent()
 silent_growth_agent = SilentGrowthAgent()
+weekly_profile_agent = WeeklyProfileAgent()
+monthly_cycle_agent = MonthlyCycleAgent()
 
 @app.get("/health")
 async def health_check():
@@ -180,6 +184,24 @@ async def get_upcoming_expenses(user_id: str):
         logger.error(f"Erro ao prever despesas futuras: {str(e)}")
         return {"error": str(e)}
 
+@app.get("/reports/weekly-profile/{user_id}")
+async def get_weekly_profile(user_id: str):
+    try:
+        result = await weekly_profile_agent.build_day_profiles(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar perfil semanal: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/weekday-weekend/{user_id}")
+async def get_weekday_weekend(user_id: str):
+    try:
+        result = await weekly_profile_agent.compare_weekday_vs_weekend(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório dia útil vs fds: {str(e)}")
+        return {"error": str(e)}
+
 @app.get("/reports/narrative/{user_id}")
 async def get_narrative_report(user_id: str, month: int, year: int):
     try:
@@ -208,6 +230,27 @@ async def run_silent_growth_agent(user_id: str, background_tasks: BackgroundTask
     background_tasks.add_task(run_agent_task, silent_growth_agent.run, user_id, "crescimento silencioso")
     return {"message": "Processamento do agente de crescimento silencioso iniciado"}
 
+@app.post("/agents/salary-effect/{user_id}")
+async def run_salary_effect_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, monthly_cycle_agent.run_salary_effect, user_id, "efeito salário")
+    return {"message": "Processamento do agente de efeito salário iniciado"}
+
+@app.post("/agents/monthly-weeks/{user_id}")
+async def run_monthly_weeks_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, monthly_cycle_agent.run_monthly_weeks, user_id, "semanas mensais")
+    return {"message": "Processamento do agente de semanas mensais iniciado"}
+
+@app.post("/agents/weekly-profile/{user_id}")
+async def run_weekly_profile_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, weekly_profile_agent.run, user_id, "perfil semanal")
+    return {"message": "Processamento do agente de perfil semanal iniciado"}
+
+@app.post("/agents/weekday-weekend/{user_id}")
+async def run_weekday_weekend_agent(user_id: str, background_tasks: BackgroundTasks):
+    # Reutiliza o mesmo agente pois ele calcula ambos
+    background_tasks.add_task(run_agent_task, weekly_profile_agent.run, user_id, "dia útil vs fds")
+    return {"message": "Processamento do agente de dia útil vs fim de semana iniciado"}
+
 @app.post("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
     try:
@@ -224,6 +267,24 @@ async def get_silent_growth(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar crescimento silencioso: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/salary-effect/{user_id}")
+async def get_salary_effect(user_id: str):
+    try:
+        result = await monthly_cycle_agent.run_salary_effect(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar efeito salário: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/monthly-weeks/{user_id}")
+async def get_monthly_weeks(user_id: str):
+    try:
+        result = await monthly_cycle_agent.run_monthly_weeks(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar semanas mensais: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
