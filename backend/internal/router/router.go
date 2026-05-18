@@ -31,12 +31,13 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	feedService := service.NewFeedService(db)
 	syncService := service.NewSyncService(db, installmentService, classifierService, feedService)
 	goalsService := service.NewGoalsService(db)
+	survivalModeService := service.NewSurvivalModeService(db)
 
 	// Inicializa handlers
 	authH := handler.NewAuthHandler(authService, cfg)
 	accountsH := handler.NewAccountsHandler(db, syncService, encryptionService, userRepo, cfg)
 	transactionsH := handler.NewTransactionsHandler(txRepo, classifierService)
-	reportsH := handler.NewReportsHandler(db, cfg)
+	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService)
 	cardsH := handler.NewCardsHandler(installmentService, subscriptionService)
 	chatH := handler.NewChatHandler(cfg)
 	categoriesH := handler.NewCategoriesHandler(db)
@@ -87,6 +88,8 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	reports.GET("/invisible-spending", reportsH.GetInvisibleSpending)
 	reports.GET("/projection", reportsH.GetProjections)
 	reports.GET("/health-score", reportsH.GetHealthScore)
+	reports.GET("/stress-score", reportsH.GetStressScore)
+	reports.GET("/survival-mode", reportsH.GetSurvivalMode)
 	reports.GET("/upcoming-expenses", reportsH.GetUpcomingExpenses)
 	reports.GET("/narrative", reportsH.GetNarrativeReport)
 	reports.GET("/personal-inflation", reportsH.GetPersonalInflation)

@@ -8,20 +8,46 @@ import (
 
 	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/response"
+	"github.com/finance-os/backend/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 )
 
 type ReportsHandler struct {
-	db  *pgxpool.Pool
-	cfg *config.Config
+	db                  *pgxpool.Pool
+	cfg                 *config.Config
+	survivalModeService *service.SurvivalModeService
 }
 
-func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config) *ReportsHandler {
+func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService) *ReportsHandler {
 	return &ReportsHandler{
-		db:  db,
-		cfg: cfg,
+		db:                  db,
+		cfg:                 cfg,
+		survivalModeService: survivalModeService,
 	}
+}
+
+// GetSurvivalMode retorna o status do modo sobrevivência.
+func (h *ReportsHandler) GetSurvivalMode(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+
+	status, err := h.survivalModeService.EvaluateSurvivalMode(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao avaliar modo sobrevivência")
+	}
+
+	recs, err := h.survivalModeService.GetSurvivalRecommendations(c.Request().Context(), userID)
+	if err == nil {
+		status.Recommendations = recs
+	}
+
+	return response.Success(c, http.StatusOK, status)
+}
+
+// GetStressScore retorna o score de stress financeiro.
+func (h *ReportsHandler) GetStressScore(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01-02") // Stress score é diário
+	return h.getCachedOrTrigger(c, "stress_score", periodKey)
 }
 
 // TriggerAgent dispara manualmente a geração de um relatório.
@@ -419,6 +445,8 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "convenience-index"
 	} else if reportType == "ticket_analysis" {
 		pythonURLType = "ticket-analysis"
+	} else if reportType == "stress_score" {
+		pythonURLType = "stress"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
