@@ -56,9 +56,9 @@ export default function StressScoreBadge() {
 
   const getTrendIcon = (trend: string) => {
     switch (trend.toLowerCase()) {
-      case "melhorando": return <TrendingDown className="w-3 h-3 text-accent-secondary" title="Melhorando (Stress caindo)" />;
-      case "piorando": return <TrendingUp className="w-3 h-3 text-danger" title="Piorando (Stress subindo)" />;
-      default: return <Minus className="w-3 h-3 text-text-secondary" title="Estável" />;
+      case "melhorando": return <TrendingDown className="w-3 h-3 text-accent-secondary" />;
+      case "piorando": return <TrendingUp className="w-3 h-3 text-danger" />;
+      default: return <Minus className="w-3 h-3 text-text-secondary" />;
     }
   };
 
