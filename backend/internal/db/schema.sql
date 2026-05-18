@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_connected_accounts_user_id ON connected_accounts(user_id);
 
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -58,9 +58,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_transactions_account_id_date ON transactions(account_id, date);
-CREATE INDEX idx_transactions_category_id ON transactions(category_id);
-CREATE INDEX idx_transactions_merchant_name ON transactions(merchant_name);
+CREATE INDEX IF NOT EXISTS idx_transactions_account_id_date ON transactions(account_id, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_merchant_name ON transactions(merchant_name);
 
 CREATE TABLE IF NOT EXISTS installments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

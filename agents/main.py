@@ -28,8 +28,11 @@ from agents.stress_agent import StressAgent
 from agents.loyalty_agent import LoyaltyAgent
 from agents.cfo_agent import CFOAgent
 from agents.timeline_drift_agent import TimelineDriftAgent
+from agents.installment_timeline_agent import InstallmentTimelineAgent
 from agents.memory_prediction_agent import MemoryPredictionAgent
 from agents.future_leakage_agent import FutureLeakageAgent
+from agents.gamification_agent import GamificationAgent
+from agents.salary_agent import SalaryPlannerAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -59,8 +62,11 @@ ticket_analysis_agent = TicketAnalysisAgent()
 loyalty_agent = LoyaltyAgent()
 stress_agent = StressAgent()
 timeline_drift_agent = TimelineDriftAgent()
+installment_timeline_agent = InstallmentTimelineAgent()
 memory_prediction_agent = MemoryPredictionAgent()
 future_leakage_agent = FutureLeakageAgent()
+gamification_agent = GamificationAgent()
+salary_agent = SalaryPlannerAgent()
 
 @app.get("/health")
 async def health_check():
@@ -345,6 +351,21 @@ async def run_lifestyle_drift_agent(user_id: str, background_tasks: BackgroundTa
     background_tasks.add_task(run_agent_task, timeline_drift_agent.detect_lifestyle_drift, user_id, "lifestyle drift")
     return {"message": "Processamento de lifestyle drift iniciado"}
 
+@app.post("/agents/installment-timeline/{user_id}")
+async def run_installment_timeline_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, installment_timeline_agent.run, user_id, "timeline de parcelamentos")
+    return {"message": "Processamento da timeline de parcelamentos iniciado"}
+
+@app.post("/agents/gamification/check/{user_id}")
+async def run_gamification_check(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, gamification_agent.run, user_id, "gamification completo")
+    return {"message": "Processamento de gamificação iniciado"}
+
+@app.post("/agents/gamification/missions/{user_id}")
+async def run_gamification_missions(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, gamification_agent.generate_missions, user_id, "gerar missões")
+    return {"message": "Geração de missões iniciada"}
+
 @app.post("/chat/explain")
 async def explain_spending(req: ChatRequest):
     # O user_id vem no ChatRequest (que tem o mesmo formato)
@@ -520,6 +541,74 @@ async def get_lifestyle_drift(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao detectar lifestyle drift: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/installment-timeline/{user_id}")
+async def get_installment_timeline(user_id: str):
+    try:
+        result = await installment_timeline_agent.generate_installment_timeline(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar timeline de parcelamentos: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/gamification/{user_id}")
+async def get_gamification_report(user_id: str):
+    try:
+        conn = await gamification_agent.get_db_connection()
+        try:
+            # Pegar conquistas do mês atual
+            achievements = await conn.fetch("""
+                SELECT achievement_id, awarded_at, context_data
+                FROM achievements_awarded
+                WHERE user_id = $1 AND awarded_at >= date_trunc('month', NOW())
+                ORDER BY awarded_at DESC
+            """, user_id)
+            
+            # Pegar missões ativas
+            missions = await conn.fetch("""
+                SELECT id, template_id, title, description, target_value, current_value, status, ends_at
+                FROM missions
+                WHERE user_id = $1 AND status = 'active'
+                ORDER BY ends_at ASC
+            """, user_id)
+            
+            return {
+                "achievements": [dict(a) for a in achievements],
+                "missions": [dict(m) for m in missions]
+            }
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar relatório de gamificação: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/agents/salary-plan/{user_id}")
+async def run_salary_plan_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, salary_agent.generate_salary_plan, user_id, "planejamento de salário")
+    return {"message": "Processamento do planejamento de salário iniciado"}
+
+@app.get("/reports/salary-plan/{user_id}")
+async def get_salary_plan(user_id: str):
+    try:
+        conn = await salary_agent.get_db_connection()
+        try:
+            row = await conn.fetchrow("""
+                SELECT salary_detected, fixed_commitments, safe_daily_limit, plan_data, valid_until, generated_at
+                FROM salary_plans
+                WHERE user_id = $1
+                ORDER BY generated_at DESC LIMIT 1
+            """, user_id)
+            if row:
+                result = dict(row)
+                if isinstance(result['plan_data'], str):
+                    result['plan_data'] = json.loads(result['plan_data'])
+                return result
+            return {"error": "No salary plan found"}
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar planejamento de salário: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
