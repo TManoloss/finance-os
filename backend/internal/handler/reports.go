@@ -446,13 +446,13 @@ func (h *ReportsHandler) GetCompensationPattern(c echo.Context) error {
 // GetMealCost retorna o relatório de custo de refeição.
 func (h *ReportsHandler) GetMealCost(c echo.Context) error {
 	periodKey := time.Now().Format("2006-01")
-	return h.getCachedOrTrigger(c, "meal_cost", periodKey)
+	return h.getCachedOrTrigger(c, "meal_cost_analysis", periodKey)
 }
 
 // GetConvenienceIndex retorna o relatório de índice de conveniência.
 func (h *ReportsHandler) GetConvenienceIndex(c echo.Context) error {
 	periodKey := time.Now().Format("2006-01")
-	return h.getCachedOrTrigger(c, "convenience_index", periodKey)
+	return h.getCachedOrTrigger(c, "convenience_analysis", periodKey)
 }
 
 // GetTicketAnalysis retorna o relatório de análise de tickets.
@@ -491,9 +491,9 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "silent-growth"
 	} else if reportType == "compensation_pattern" {
 		pythonURLType = "compensation"
-	} else if reportType == "meal_cost" {
+	} else if reportType == "meal_cost_analysis" {
 		pythonURLType = "meal-cost"
-	} else if reportType == "convenience_index" {
+	} else if reportType == "convenience_analysis" {
 		pythonURLType = "convenience-index"
 	} else if reportType == "ticket_analysis" {
 		pythonURLType = "ticket-analysis"
