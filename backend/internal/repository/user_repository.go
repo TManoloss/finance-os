@@ -39,10 +39,10 @@ func (r *pgUserRepository) Create(ctx context.Context, user *models.User) error 
 	return err
 }
 
-// FindByEmail busca um usuário pelo email.
+// FindByEmail busca um usuário pelo email (case-insensitive).
 func (r *pgUserRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `SELECT id, name, email, password_hash, COALESCE(pluggy_client_id, ''), COALESCE(pluggy_client_secret_encrypted, ''), created_at 
-	          FROM users WHERE email = $1`
+	          FROM users WHERE LOWER(email) = LOWER($1)`
 	
 	var user models.User
 	err := r.db.QueryRow(ctx, query, email).Scan(
