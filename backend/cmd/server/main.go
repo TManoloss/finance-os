@@ -48,6 +48,20 @@ func main() {
 	}
 	log.Println("Conectado ao PostgreSQL com sucesso!")
 
+	// 2.1. Executar migrações automáticas
+	log.Println("Executando migrações automáticas...")
+	schemaSQL, err := os.ReadFile("internal/db/schema.sql")
+	if err != nil {
+		log.Printf("Aviso: Erro ao ler schema.sql: %v", err)
+	} else {
+		_, err = dbPool.Exec(context.Background(), string(schemaSQL))
+		if err != nil {
+			log.Printf("Aviso: Erro ao executar migrações: %v", err)
+		} else {
+			log.Println("Migrações executadas com sucesso!")
+		}
+	}
+
 	// 3. Inicializar Echo
 	e := echo.New()
 
