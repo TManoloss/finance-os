@@ -27,6 +27,7 @@ from agents.ticket_analysis import TicketAnalysisAgent
 from agents.stress_agent import StressAgent
 from agents.loyalty_agent import LoyaltyAgent
 from agents.cfo_agent import CFOAgent
+from agents.timeline_drift_agent import TimelineDriftAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -55,6 +56,7 @@ specific_costs_agent = SpecificCostsAgent()
 ticket_analysis_agent = TicketAnalysisAgent()
 loyalty_agent = LoyaltyAgent()
 stress_agent = StressAgent()
+timeline_drift_agent = TimelineDriftAgent()
 
 @app.get("/health")
 async def health_check():
@@ -329,6 +331,16 @@ async def run_loyalty_agent(user_id: str, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_agent_task, loyalty_agent.run, user_id, "análise de lealdade")
     return {"message": "Processamento do agente de análise de lealdade iniciado"}
 
+@app.post("/agents/timeline/{user_id}")
+async def run_timeline_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, timeline_drift_agent.build_financial_timeline, user_id, "timeline financeira")
+    return {"message": "Processamento da timeline financeira iniciado"}
+
+@app.post("/agents/lifestyle-drift/{user_id}")
+async def run_lifestyle_drift_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, timeline_drift_agent.detect_lifestyle_drift, user_id, "lifestyle drift")
+    return {"message": "Processamento de lifestyle drift iniciado"}
+
 @app.post("/chat/explain")
 async def explain_spending(req: ChatRequest):
     # O user_id vem no ChatRequest (que tem o mesmo formato)
@@ -420,6 +432,34 @@ async def get_loyalty_analysis(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar análise de lealdade: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/timeline/{user_id}")
+async def get_financial_timeline(user_id: str, limit: int = 50):
+    try:
+        conn = await timeline_drift_agent.get_db_connection()
+        try:
+            rows = await conn.fetch("""
+                SELECT event_type, event_date, title, narrative, event_data, created_at
+                FROM financial_timeline_events
+                WHERE user_id = $1
+                ORDER BY event_date DESC, created_at DESC
+                LIMIT $2
+            """, user_id, limit)
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.error(f"Erro ao buscar timeline financeira: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/lifestyle-drift/{user_id}")
+async def get_lifestyle_drift(user_id: str):
+    try:
+        result = await timeline_drift_agent.detect_lifestyle_drift(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao detectar lifestyle drift: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
