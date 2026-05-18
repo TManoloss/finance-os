@@ -21,6 +21,7 @@ from agents.personal_inflation import PersonalInflationAgent
 from agents.silent_growth import SilentGrowthAgent
 from agents.weekly_profile import WeeklyProfileAgent
 from agents.monthly_cycle import MonthlyCycleAgent
+from agents.behavioral_nuances import BehavioralNuancesAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -43,6 +44,7 @@ personal_inflation_agent = PersonalInflationAgent()
 silent_growth_agent = SilentGrowthAgent()
 weekly_profile_agent = WeeklyProfileAgent()
 monthly_cycle_agent = MonthlyCycleAgent()
+behavioral_nuances_agent = BehavioralNuancesAgent()
 
 @app.get("/health")
 async def health_check():
@@ -202,6 +204,24 @@ async def get_weekday_weekend(user_id: str):
         logger.error(f"Erro ao gerar relatório dia útil vs fds: {str(e)}")
         return {"error": str(e)}
 
+@app.get("/reports/impulse/{user_id}")
+async def get_impulse_report(user_id: str):
+    try:
+        result = await behavioral_nuances_agent.run_impulse(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de impulso: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/compensation/{user_id}")
+async def get_compensation_report(user_id: str):
+    try:
+        result = await behavioral_nuances_agent.run_compensation(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de compensação: {str(e)}")
+        return {"error": str(e)}
+
 @app.get("/reports/narrative/{user_id}")
 async def get_narrative_report(user_id: str, month: int, year: int):
     try:
@@ -250,6 +270,16 @@ async def run_weekday_weekend_agent(user_id: str, background_tasks: BackgroundTa
     # Reutiliza o mesmo agente pois ele calcula ambos
     background_tasks.add_task(run_agent_task, weekly_profile_agent.run, user_id, "dia útil vs fds")
     return {"message": "Processamento do agente de dia útil vs fim de semana iniciado"}
+
+@app.post("/agents/impulse/{user_id}")
+async def run_impulse_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, behavioral_nuances_agent.run_impulse, user_id, "análise de impulso")
+    return {"message": "Processamento do agente de análise de impulso iniciado"}
+
+@app.post("/agents/compensation/{user_id}")
+async def run_compensation_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, behavioral_nuances_agent.run_compensation, user_id, "padrão de compensação")
+    return {"message": "Processamento do agente de padrão de compensação iniciado"}
 
 @app.post("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
