@@ -23,6 +23,7 @@ from agents.weekly_profile import WeeklyProfileAgent
 from agents.monthly_cycle import MonthlyCycleAgent
 from agents.behavioral_nuances import BehavioralNuancesAgent
 from agents.specific_costs import SpecificCostsAgent
+from agents.ticket_analysis import TicketAnalysisAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -47,6 +48,8 @@ weekly_profile_agent = WeeklyProfileAgent()
 monthly_cycle_agent = MonthlyCycleAgent()
 behavioral_nuances_agent = BehavioralNuancesAgent()
 specific_costs_agent = SpecificCostsAgent()
+ticket_analysis_agent = TicketAnalysisAgent()
+loyalty_agent = LoyaltyAgent()
 
 @app.get("/health")
 async def health_check():
@@ -293,6 +296,16 @@ async def run_convenience_index_agent(user_id: str, background_tasks: Background
     background_tasks.add_task(run_agent_task, specific_costs_agent.calculate_convenience_spending, user_id, "índice de conveniência")
     return {"message": "Processamento do agente de índice de conveniência iniciado"}
 
+@app.post("/agents/ticket-analysis/{user_id}")
+async def run_ticket_analysis_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, ticket_analysis_agent.run, user_id, "análise de ticket médio")
+    return {"message": "Processamento do agente de análise de ticket médio iniciado"}
+
+@app.post("/agents/loyalty/{user_id}")
+async def run_loyalty_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, loyalty_agent.run, user_id, "análise de lealdade")
+    return {"message": "Processamento do agente de análise de lealdade iniciado"}
+
 @app.get("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
     try:
@@ -345,6 +358,24 @@ async def get_convenience_index(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar índice de conveniência: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/ticket-analysis/{user_id}")
+async def get_ticket_analysis(user_id: str):
+    try:
+        result = await ticket_analysis_agent.run(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar análise de ticket médio: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/loyalty/{user_id}")
+async def get_loyalty_analysis(user_id: str):
+    try:
+        result = await loyalty_agent.run(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar análise de lealdade: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
