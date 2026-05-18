@@ -22,6 +22,7 @@ from agents.silent_growth import SilentGrowthAgent
 from agents.weekly_profile import WeeklyProfileAgent
 from agents.monthly_cycle import MonthlyCycleAgent
 from agents.behavioral_nuances import BehavioralNuancesAgent
+from agents.specific_costs import SpecificCostsAgent
 from datetime import datetime
 
 app = FastAPI(title="Finance OS Agents Service")
@@ -45,6 +46,7 @@ silent_growth_agent = SilentGrowthAgent()
 weekly_profile_agent = WeeklyProfileAgent()
 monthly_cycle_agent = MonthlyCycleAgent()
 behavioral_nuances_agent = BehavioralNuancesAgent()
+specific_costs_agent = SpecificCostsAgent()
 
 @app.get("/health")
 async def health_check():
@@ -281,7 +283,17 @@ async def run_compensation_agent(user_id: str, background_tasks: BackgroundTasks
     background_tasks.add_task(run_agent_task, behavioral_nuances_agent.run_compensation, user_id, "padrão de compensação")
     return {"message": "Processamento do agente de padrão de compensação iniciado"}
 
-@app.post("/reports/personal-inflation/{user_id}")
+@app.post("/agents/meal-cost/{user_id}")
+async def run_meal_cost_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, specific_costs_agent.calculate_real_meal_cost, user_id, "custo real por refeição")
+    return {"message": "Processamento do agente de custo real por refeição iniciado"}
+
+@app.post("/agents/convenience-index/{user_id}")
+async def run_convenience_index_agent(user_id: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_agent_task, specific_costs_agent.calculate_convenience_spending, user_id, "índice de conveniência")
+    return {"message": "Processamento do agente de índice de conveniência iniciado"}
+
+@app.get("/reports/personal-inflation/{user_id}")
 async def get_personal_inflation(user_id: str):
     try:
         result = await personal_inflation_agent.run(user_id)
@@ -315,6 +327,24 @@ async def get_monthly_weeks(user_id: str):
         return result
     except Exception as e:
         logger.error(f"Erro ao gerar semanas mensais: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/meal-cost/{user_id}")
+async def get_meal_cost(user_id: str):
+    try:
+        result = await specific_costs_agent.calculate_real_meal_cost(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar custo real por refeição: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/reports/convenience-index/{user_id}")
+async def get_convenience_index(user_id: str):
+    try:
+        result = await specific_costs_agent.calculate_convenience_spending(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar índice de conveniência: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":

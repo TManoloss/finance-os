@@ -353,6 +353,30 @@ func (h *ReportsHandler) GetMonthlyWeeks(c echo.Context) error {
 	return h.getCachedOrTrigger(c, "monthly_weeks", periodKey)
 }
 
+// GetImpulse retorna o relatório de impulsividade.
+func (h *ReportsHandler) GetImpulse(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "impulse", periodKey)
+}
+
+// GetCompensationPattern retorna o relatório de padrão de compensação.
+func (h *ReportsHandler) GetCompensationPattern(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "compensation_pattern", periodKey)
+}
+
+// GetMealCost retorna o relatório de custo de refeição.
+func (h *ReportsHandler) GetMealCost(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "meal_cost", periodKey)
+}
+
+// GetConvenienceIndex retorna o relatório de índice de conveniência.
+func (h *ReportsHandler) GetConvenienceIndex(c echo.Context) error {
+	periodKey := time.Now().Format("2006-01")
+	return h.getCachedOrTrigger(c, "convenience_index", periodKey)
+}
+
 // getCachedOrTrigger verifica o cache e dispara o agente se necessário.
 func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, periodKey string) error {
 	userID := c.Get("user_id").(string)
@@ -375,6 +399,12 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "personal-inflation"
 	} else if reportType == "silent_growth" {
 		pythonURLType = "silent-growth"
+	} else if reportType == "compensation_pattern" {
+		pythonURLType = "compensation"
+	} else if reportType == "meal_cost" {
+		pythonURLType = "meal-cost"
+	} else if reportType == "convenience_index" {
+		pythonURLType = "convenience-index"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
