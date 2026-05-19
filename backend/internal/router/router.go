@@ -48,9 +48,15 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	feedH := handler.NewFeedHandler(feedService)
 	goalsH := handler.NewGoalsHandler(goalsService, cfg)
 	simulatorH := handler.NewSimulatorHandler()
+	syncH := handler.NewSyncHandler(db, syncService, userRepo, encryptionService, cfg)
 
 	// Grupo API v1
 	v1 := e.Group("/api/v1")
+
+	// Rotas internas/sync
+	internal := v1.Group("/internal")
+	internal.POST("/sync", syncH.SyncAll)
+	internal.GET("/sync/status", syncH.Status)
 
 	// Rotas públicas
 	auth := v1.Group("/auth")

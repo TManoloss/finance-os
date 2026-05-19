@@ -196,15 +196,23 @@ func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 func (h *AccountsHandler) Sync(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
-	var req struct {
-		ItemID string `json:"item_id"`
-	}
-	if err := c.Bind(&req); err != nil {
-		return response.Error(c, http.StatusBadRequest, "formato de requisição inválido")
-	}
+	// Rate limit check: max 1 manual sync per user every 30 minutes
+	var lastSync time.Time
+	err := h.db.QueryRow(c.Request().Context(), `
+		SELECT started_at FROM sync_logs 
+		WHERE triggered_by = 'manual' AND errors_detail::text LIKE '%' || $1 || '%'
+		ORDER BY started_at DESC LIMIT 1
+	`, userID).Scan(&lastSync)
+	
+	// We'll use a simpler check: get the most recent 'manual' sync log for this user.
+	// Since sync_logs might not store user_id directly except in errors_detail (which is hacky),
+	// let's do a better check:
+	err = h.db.QueryRow(c.Request().Context(), `
+		SELECT MAX(last_synced_at) FROM connected_accounts WHERE user_id = $1
+	`, userID).Scan(&lastSync)
 
-	if req.ItemID == "" {
-		return response.Error(c, http.StatusBadRequest, "o item_id é obrigatório")
+	if err == nil && !lastSync.IsZero() && time.Since(lastSync) < 30*time.Minute {
+		return response.Error(c, http.StatusTooManyRequests, "sincronização manual permitida apenas a cada 30 minutos")
 	}
 
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
@@ -212,16 +220,35 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
-	// Executa em background para não travar a request
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
-		if err := h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient); err != nil {
+		
+		start := time.Now()
+		saved, err := h.syncService.SyncUserAccounts(ctx, userID, pluggyClient)
+		duration := time.Since(start).Milliseconds()
+		
+		// Log na tabela sync_logs
+		errorsCount := 0
+		var errorsDetail string
+		if err != nil {
+			errorsCount = 1
+			errorsDetail = fmt.Sprintf(`[{"user_id":"%s","error":"%s"}]`, userID, err.Error())
+		} else {
+			errorsDetail = "[]"
+		}
+		
+		h.db.Exec(context.Background(), `
+			INSERT INTO sync_logs (triggered_by, synced_users, transactions_imported, errors_count, errors_detail, duration_ms, started_at, finished_at)
+			VALUES ('manual', 1, $1, $2, $3::jsonb, $4, $5, NOW())
+		`, saved, errorsCount, errorsDetail, duration, start)
+
+		if err != nil {
 			log.Printf("Erro na sincronização assíncrona para user %s: %v", userID, err)
 		}
 	}()
 
-	return response.Success(c, http.StatusAccepted, map[string]string{
+	return response.Success(c, http.StatusAccepted, map[string]interface{}{
 		"message": "sincronização iniciada com sucesso",
 	})
 }

@@ -29,7 +29,7 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 }
 
 // SyncItem realiza a sincronização completa de um Item (contas e transações).
-func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string, pluggyClient *pluggy.Client) error {
+func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string, pluggyClient *pluggy.Client) (int, error) {
 	// 1. Buscar detalhes do Item para pegar o ConnectorID
 	item, err := pluggyClient.GetItem(itemID)
 	var logo, color string
@@ -45,8 +45,10 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 	// 3. Buscar contas do Item na Pluggy
 	pluggyAccounts, err := pluggyClient.GetAccounts(itemID)
 	if err != nil {
-		return fmt.Errorf("erro ao buscar contas na pluggy: %w", err)
+		return 0, fmt.Errorf("erro ao buscar contas na pluggy: %w", err)
 	}
+
+	totalSaved := 0
 
 	for _, pa := range pluggyAccounts {
 		// 4. Upsert da conta no nosso banco com logo e cor
@@ -72,6 +74,8 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 			log.Printf("erro ao salvar transações da conta %s: %v", pa.ID, err)
 		}
 
+		totalSaved += len(savedTxs)
+
 		// 5. Detectar parcelamentos
 		if s.installmentService != nil && len(savedTxs) > 0 {
 			if err := s.installmentService.ProcessTransactions(ctx, accountID, savedTxs); err != nil {
@@ -90,7 +94,36 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 		s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID)
 	}
 
-	return nil
+	return totalSaved, nil
+}
+
+// SyncUserAccounts realiza a sincronização de todas as contas conectadas de um usuário.
+func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, pluggyClient *pluggy.Client) (int, error) {
+	rows, err := s.db.Query(ctx, "SELECT DISTINCT pluggy_item_id FROM connected_accounts WHERE user_id = $1 AND pluggy_item_id IS NOT NULL", userID)
+	if err != nil {
+		return 0, fmt.Errorf("erro ao buscar items do usuário: %w", err)
+	}
+	defer rows.Close()
+
+	var itemIDs []string
+	for rows.Next() {
+		var itemID string
+		if err := rows.Scan(&itemID); err == nil {
+			itemIDs = append(itemIDs, itemID)
+		}
+	}
+
+	totalSaved := 0
+	for _, itemID := range itemIDs {
+		saved, err := s.SyncItem(ctx, userID, itemID, pluggyClient)
+		if err != nil {
+			log.Printf("Erro ao sincronizar item %s do usuário %s: %v", itemID, userID, err)
+			continue
+		}
+		totalSaved += saved
+	}
+
+	return totalSaved, nil
 }
 
 // upsertAccount insere ou atualiza uma conta conectada.

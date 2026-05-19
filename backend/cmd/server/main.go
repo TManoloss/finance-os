@@ -74,7 +74,7 @@ func main() {
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 	}))
 
-	// 5. Inicializar Scheduler
+	// 5. Inicializar Scheduler e Jobs
 	userRepo := repository.NewUserRepository(dbPool)
 	encryptionService, err := service.NewEncryptionService(cfg.EncryptionKey)
 	if err != nil {
@@ -85,15 +85,25 @@ func main() {
 	classifierService := service.NewClassifierService(dbPool, cfg)
 	feedService := service.NewFeedService(dbPool)
 	syncService := service.NewSyncService(dbPool, installmentService, classifierService, feedService)
+	
 	scheduler := jobs.NewScheduler(dbPool, syncService, userRepo, encryptionService, cfg)
 	scheduler.Start()
+
+	// Contexto para jobs em background
+	ctxJobs, cancelJobs := context.WithCancel(context.Background())
+	keepAlive := jobs.NewKeepAliveJob(cfg.SelfURL)
+	go keepAlive.Start(ctxJobs)
 
 	// 6. Registrar rotas
 	router.Setup(e, dbPool, cfg)
 
-	// Rota de Health Check
+	// Rota de Health Check (SEM autenticação para monitoramento externo)
 	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"status": "ok", "time": time.Now().Format(time.RFC3339)})
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":    "ok",
+			"timestamp": time.Now().Format(time.RFC3339),
+			"version":   "1.0.0",
+		})
 	})
 
 	// 7. Iniciar servidor com Graceful Shutdown
@@ -114,6 +124,7 @@ func main() {
 
 	log.Println("Iniciando desligamento gracioso...")
 	scheduler.Stop()
+	cancelJobs() // Para o KeepAliveJob
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
