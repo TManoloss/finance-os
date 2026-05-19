@@ -11,18 +11,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("[Auth] Tentando autorizar:", credentials?.email);
         try {
-          const loginUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
-          console.log("[Auth] Chamando API em:", loginUrl);
+          const loginUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`;
           
           const resp = await axios.post(loginUrl, {
             email: credentials?.email,
             password: credentials?.password,
           });
 
+          console.log("[Auth DEBUG] Resposta completa da API:", JSON.stringify(resp.data, null, 2));
+
           if (resp.data.success) {
-            console.log("[Auth] Sucesso na API para:", credentials?.email);
             return {
               id: resp.data.data.user.id,
               name: resp.data.data.user.name,
@@ -32,12 +31,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               refreshToken: resp.data.data.refresh_token,
             };
           }
-          console.log("[Auth] API retornou erro:", resp.data.error);
           return null;
         } catch (error: any) {
-          console.error("[Auth] Erro na requisição à API:", error.message);
+          console.error("[Auth DEBUG] Erro completo:", error);
           if (error.response) {
-            console.error("[Auth] Resposta da API:", error.response.data);
+            console.error("[Auth DEBUG] Erro resposta:", JSON.stringify(error.response.data, null, 2));
           }
           return null;
         }
