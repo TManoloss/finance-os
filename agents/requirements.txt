@@ -8,3 +8,4 @@ asyncpg
 google-generativeai
 numpy
 python-dateutil
+cryptography
