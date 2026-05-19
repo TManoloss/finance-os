@@ -12,6 +12,7 @@ class Config:
     DATABASE_URL = os.getenv("DATABASE_URL")
     GO_BACKEND_URL = os.getenv("GO_BACKEND_URL", "http://localhost:8080")
     LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").lower()
+    ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
     # Usa AGENTS_PORT se definido, caso contrário PORT, default 8000
     PORT = int(os.getenv("AGENTS_PORT", os.getenv("PORT", 8000)))
 

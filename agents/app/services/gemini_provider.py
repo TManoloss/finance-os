@@ -8,10 +8,20 @@ class GeminiProvider(LLMProvider):
         genai.configure(api_key=config.GOOGLE_API_KEY)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    async def completion(self, prompt: str, system_prompt: str = None) -> str:
+    async def completion(self, prompt: str, system_prompt: str = None, api_key: str = None) -> str:
         try:
             full_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
-            response = await self.model.generate_content_async(full_prompt)
+            
+            model = self.model
+            if api_key:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-2.0-flash')
+
+            try:
+                response = await model.generate_content_async(full_prompt)
+            finally:
+                if api_key:
+                    genai.configure(api_key=config.GOOGLE_API_KEY)
             
             # Tenta obter o texto, tratando possíveis bloqueios de segurança
             try:

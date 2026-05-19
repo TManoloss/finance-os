@@ -31,6 +31,11 @@ export default function SettingsPage() {
   const [savingKeys, setSavingKeys] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
 
+  const [llmKeys, setLlmKeys] = useState({ groq_api_key: "", gemini_api_key: "" });
+  const [savingLLMKeys, setSavingLLMKeys] = useState(false);
+  const [hasGroqKey, setHasGroqKey] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
+
   useEffect(() => {
     if (token) {
       fetchAccounts();
@@ -47,7 +52,8 @@ export default function SettingsPage() {
       console.log("[DEBUG] Dados do usuário carregados:", { 
         id: userData.id, 
         has_pluggy_id: !!userData.pluggy_client_id,
-        pluggy_id_value: userData.pluggy_client_id 
+        has_groq_key: userData.has_groq_key,
+        has_gemini_key: userData.has_gemini_key
       });
 
       if (userData.pluggy_client_id && userData.pluggy_client_id.trim() !== "" && userData.pluggy_client_id !== "NULL") {
@@ -57,6 +63,14 @@ export default function SettingsPage() {
         setHasKeys(false);
         setPluggyKeys({ client_id: "", client_secret: "" });
       }
+
+      setHasGroqKey(userData.has_groq_key);
+      setHasGeminiKey(userData.has_gemini_key);
+      
+      setLlmKeys({
+        groq_api_key: userData.has_groq_key ? "••••••••••••••••••••••••••••••••" : "",
+        gemini_api_key: userData.has_gemini_key ? "••••••••••••••••••••••••••••••••" : ""
+      });
     } catch (err) {
       console.error("Erro ao verificar chaves", err);
       setHasKeys(false);
@@ -84,6 +98,34 @@ export default function SettingsPage() {
       alert("SAVE_ERROR: Falha ao persistir credenciais.");
     } finally {
       setSavingKeys(false);
+    }
+  };
+
+  const handleSaveLLMKeys = async () => {
+    if (!token) return;
+    if (!llmKeys.groq_api_key && !llmKeys.gemini_api_key) {
+      alert("INPUT_ERROR: Forneça ao menos uma das chaves para salvar.");
+      return;
+    }
+
+    // Não envia a máscara se ela não tiver sido alterada
+    const payload = {
+      groq_api_key: llmKeys.groq_api_key === "••••••••••••••••••••••••••••••••" ? "" : llmKeys.groq_api_key,
+      gemini_api_key: llmKeys.gemini_api_key === "••••••••••••••••••••••••••••••••" ? "" : llmKeys.gemini_api_key
+    };
+
+    setSavingLLMKeys(true);
+    try {
+      await api.post("accounts/llm-keys", payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("IA_CREDENTIALS_SAVED: Chaves de API de IA atualizadas com sucesso.");
+      checkKeys();
+    } catch (err) {
+      console.error("Erro ao salvar chaves de IA", err);
+      alert("SAVE_ERROR: Falha ao persistir credenciais de IA.");
+    } finally {
+      setSavingLLMKeys(false);
     }
   };
 
@@ -245,11 +287,71 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Seção de Credenciais de IA (Groq & Gemini) */}
+      <section className={cn(
+        "p-8 border-b-2 border-black transition-all bg-background"
+      )}>
+        <div className="max-w-4xl mx-auto flex flex-col gap-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className={cn("w-8 h-8", (!hasGroqKey && !hasGeminiKey) ? "text-accent-purple animate-pulse" : "text-success")} />
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">2. CREDENCIAIS_IA_PERSONALIZADAS</h2>
+                <p className="text-xs font-black uppercase text-text-secondary">
+                  STATUS_GROQ: {hasGroqKey ? "✓ CONFIGURADA" : "⚠ USANDO_FALLBACK_DO_SISTEMA"} | STATUS_GEMINI: {hasGeminiKey ? "✓ CONFIGURADA" : "⚠ USANDO_FALLBACK_DO_SISTEMA"}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 border-4 border-black bg-elevated shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black uppercase text-text-secondary flex items-center gap-2">
+                GROQ_API_KEY <span className="text-accent-purple">(Llama 3.3 70B)</span>
+              </label>
+              <input 
+                type="password"
+                placeholder="gsk_••••••••••••••••••••"
+                value={llmKeys.groq_api_key}
+                onChange={(e) => setLlmKeys(prev => ({ ...prev, groq_api_key: e.target.value }))}
+                className="w-full bg-background border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+              />
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-black uppercase text-text-secondary flex items-center gap-2">
+                GEMINI_API_KEY <span className="text-accent-purple">(2.0 Flash)</span>
+              </label>
+              <input 
+                type="password"
+                placeholder="AIzaSy••••••••••••••••••••"
+                value={llmKeys.gemini_api_key}
+                onChange={(e) => setLlmKeys(prev => ({ ...prev, gemini_api_key: e.target.value }))}
+                className="w-full bg-background border-2 border-black p-4 text-xs font-mono focus:border-accent-purple focus:outline-none transition-colors"
+              />
+            </div>
+            
+            <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-between gap-6 pt-4 border-t-2 border-dashed border-black/10">
+               <p className="text-[10px] font-bold uppercase text-text-secondary leading-relaxed max-w-md">
+                Suas chaves são individuais, criptografadas via AES-256 e usadas para isolamento de cota e limites.
+                Se deixadas em branco, o sistema utilizará as chaves padrão globais de fallback.
+              </p>
+              <button 
+                onClick={handleSaveLLMKeys}
+                disabled={savingLLMKeys}
+                className="w-full sm:w-auto flex items-center justify-center gap-3 bg-accent-purple text-white px-10 py-4 text-xs font-black uppercase hover:bg-opacity-80 transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] disabled:opacity-50"
+              >
+                {savingLLMKeys ? "PERSISTINDO..." : (hasGroqKey || hasGeminiKey) ? "ATUALIZAR_CHAVES_IA" : "ATIVAR_CHAVES_IA"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Seção Fontes de Dados */}
       <section className={cn("bg-background", !hasKeys && "opacity-40 pointer-events-none")}>
         <div className="p-8 border-b-2 border-black flex flex-col md:flex-row md:items-center justify-between gap-4 bg-elevated/50">
           <h2 className="text-xl font-black flex items-center gap-2 uppercase tracking-tighter">
-            <Building2 className="w-5 h-5" /> 2. FONTES_DE_DADOS_CONECTADAS
+            <Building2 className="w-5 h-5" /> 3. FONTES_DE_DADOS_CONECTADAS
           </h2>
           <button 
             onClick={handleOpenWidget}

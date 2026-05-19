@@ -74,6 +74,49 @@ func (h *AccountsHandler) SavePluggyKeys(c echo.Context) error {
 	})
 }
 
+// SaveLLMKeys salva as credenciais de IA (Groq e Gemini) para o usuário.
+func (h *AccountsHandler) SaveLLMKeys(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+
+	var req struct {
+		GroqAPIKey   string `json:"groq_api_key"`
+		GeminiAPIKey string `json:"gemini_api_key"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "formato de requisição inválido")
+	}
+
+	var groqEncrypted, geminiEncrypted string
+	var err error
+
+	if req.GroqAPIKey != "" {
+		groqEncrypted, err = h.encryptionService.Encrypt(req.GroqAPIKey)
+		if err != nil {
+			log.Printf("Erro ao criptografar chave do Groq: %v", err)
+			return response.Error(c, http.StatusInternalServerError, "erro ao processar credenciais")
+		}
+	}
+
+	if req.GeminiAPIKey != "" {
+		geminiEncrypted, err = h.encryptionService.Encrypt(req.GeminiAPIKey)
+		if err != nil {
+			log.Printf("Erro ao criptografar chave do Gemini: %v", err)
+			return response.Error(c, http.StatusInternalServerError, "erro ao processar credenciais")
+		}
+	}
+
+	err = h.userRepo.UpdateLLMCredentials(c.Request().Context(), userID, groqEncrypted, geminiEncrypted)
+	if err != nil {
+		log.Printf("Erro ao salvar credenciais de IA no banco: %v", err)
+		return response.Error(c, http.StatusInternalServerError, "erro ao salvar credenciais")
+	}
+
+	return response.Success(c, http.StatusOK, map[string]string{
+		"message": "credenciais de IA salvas com sucesso",
+	})
+}
+
 // ListAccounts lista as contas conectadas do usuário.
 func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 	userID := c.Get("user_id").(string)

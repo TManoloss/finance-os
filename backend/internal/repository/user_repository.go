@@ -14,6 +14,7 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindByID(ctx context.Context, id string) (*models.User, error)
 	UpdatePluggyCredentials(ctx context.Context, userID, clientID, encryptedSecret string) error
+	UpdateLLMCredentials(ctx context.Context, userID, groqEncrypted, geminiEncrypted string) error
 	SaveRefreshToken(ctx context.Context, userID, token string, expiresAt time.Time) error
 	ValidateRefreshToken(ctx context.Context, token string) (string, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
@@ -41,31 +42,41 @@ func (r *pgUserRepository) Create(ctx context.Context, user *models.User) error 
 
 // FindByEmail busca um usuário pelo email (case-insensitive).
 func (r *pgUserRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	query := `SELECT id, name, email, password_hash, COALESCE(pluggy_client_id, ''), COALESCE(pluggy_client_secret_encrypted, ''), created_at 
+	query := `SELECT id, name, email, password_hash, COALESCE(pluggy_client_id, ''), COALESCE(pluggy_client_secret_encrypted, ''), COALESCE(groq_api_key_encrypted, ''), COALESCE(gemini_api_key_encrypted, ''), created_at 
 	          FROM users WHERE LOWER(email) = LOWER($1)`
 	
 	var user models.User
+	var groqKey, geminiKey string
 	err := r.db.QueryRow(ctx, query, email).Scan(
-		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PluggyClientID, &user.PluggyClientSecretEncrypted, &user.CreatedAt,
+		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PluggyClientID, &user.PluggyClientSecretEncrypted, &groqKey, &geminiKey, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	user.GroqAPIKeyEncrypted = groqKey
+	user.GeminiAPIKeyEncrypted = geminiKey
+	user.HasGroqKey = groqKey != ""
+	user.HasGeminiKey = geminiKey != ""
 	return &user, nil
 }
 
 // FindByID busca um usuário pelo ID.
 func (r *pgUserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
-	query := `SELECT id, name, email, password_hash, COALESCE(pluggy_client_id, ''), COALESCE(pluggy_client_secret_encrypted, ''), created_at 
+	query := `SELECT id, name, email, password_hash, COALESCE(pluggy_client_id, ''), COALESCE(pluggy_client_secret_encrypted, ''), COALESCE(groq_api_key_encrypted, ''), COALESCE(gemini_api_key_encrypted, ''), created_at 
 	          FROM users WHERE id = $1`
 	
 	var user models.User
+	var groqKey, geminiKey string
 	err := r.db.QueryRow(ctx, query, id).Scan(
-		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PluggyClientID, &user.PluggyClientSecretEncrypted, &user.CreatedAt,
+		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PluggyClientID, &user.PluggyClientSecretEncrypted, &groqKey, &geminiKey, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
+	user.GroqAPIKeyEncrypted = groqKey
+	user.GeminiAPIKeyEncrypted = geminiKey
+	user.HasGroqKey = groqKey != ""
+	user.HasGeminiKey = geminiKey != ""
 	return &user, nil
 }
 
@@ -74,6 +85,14 @@ func (r *pgUserRepository) UpdatePluggyCredentials(ctx context.Context, userID, 
 	query := `UPDATE users SET pluggy_client_id = $1, pluggy_client_secret_encrypted = $2 WHERE id = $3`
 	
 	_, err := r.db.Exec(ctx, query, clientID, encryptedSecret, userID)
+	return err
+}
+
+// UpdateLLMCredentials atualiza as chaves do Groq e Gemini para um usuário.
+func (r *pgUserRepository) UpdateLLMCredentials(ctx context.Context, userID, groqEncrypted, geminiEncrypted string) error {
+	query := `UPDATE users SET groq_api_key_encrypted = $1, gemini_api_key_encrypted = $2 WHERE id = $3`
+	
+	_, err := r.db.Exec(ctx, query, groqEncrypted, geminiEncrypted, userID)
 	return err
 }
 

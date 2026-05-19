@@ -12,6 +12,10 @@ type User struct {
 	PasswordHash               string    `json:"-"`
 	PluggyClientID           string `json:"pluggy_client_id"`
 	PluggyClientSecretEncrypted string `json:"-"`
+	GroqAPIKeyEncrypted        string `json:"-"`
+	GeminiAPIKeyEncrypted      string `json:"-"`
+	HasGroqKey                 bool   `json:"has_groq_key"`
+	HasGeminiKey               bool   `json:"has_gemini_key"`
 	CreatedAt                time.Time `json:"created_at"`
 	}
 

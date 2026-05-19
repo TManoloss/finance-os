@@ -6,13 +6,15 @@ class GroqProvider(LLMProvider):
     def __init__(self):
         self.client = AsyncGroq(api_key=config.GROQ_API_KEY)
 
-    async def completion(self, prompt: str, system_prompt: str = None) -> str:
+    async def completion(self, prompt: str, system_prompt: str = None, api_key: str = None) -> str:
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        response = await self.client.chat.completions.create(
+        client = AsyncGroq(api_key=api_key) if api_key else self.client
+
+        response = await client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
             temperature=0.1,

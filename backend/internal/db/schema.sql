@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     pluggy_client_id TEXT,
     pluggy_client_secret_encrypted TEXT,
+    groq_api_key_encrypted TEXT,
+    gemini_api_key_encrypted TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

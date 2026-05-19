@@ -86,20 +86,52 @@ async def classify_transaction(tx: TransactionClassifyRequest):
 
 import logging
 import asyncio
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.services.fallback_provider import current_user_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class UserContextMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        user_id = None
+        # Tenta extrair das partes do caminho (UUID4)
+        path_parts = request.url.path.strip("/").split("/")
+        for part in path_parts:
+            if len(part) == 36 and part.count("-") == 4:
+                user_id = part
+                break
+        
+        # Tenta extrair dos parâmetros de consulta
+        if not user_id:
+            user_id = request.query_params.get("user_id")
+            
+        token = None
+        if user_id:
+            token = current_user_id.set(user_id)
+            logger.info(f"[MIDDLEWARE] Contexto de usuário definido: {user_id}")
+            
+        try:
+            return await call_next(request)
+        finally:
+            if token:
+                current_user_id.reset(token)
+
+app.add_middleware(UserContextMiddleware)
+
 async def run_agent_task(agent_func, user_id, agent_name):
     logger.info(f"Iniciando tarefa do agente {agent_name} para o usuário {user_id}")
+    token = current_user_id.set(user_id)
     try:
         result = await agent_func(user_id)
-        if "error" in result:
+        if result and isinstance(result, dict) and "error" in result:
             logger.error(f"Erro na tarefa do agente {agent_name}: {result['error']}")
         else:
             logger.info(f"Tarefa do agente {agent_name} concluída com sucesso para o usuário {user_id}")
     except Exception as e:
         logger.error(f"Exceção não tratada na tarefa do agente {agent_name}: {str(e)}")
+    finally:
+        current_user_id.reset(token)
 
 @app.post("/agents/daily/{user_id}")
 async def run_daily_agent(user_id: str, background_tasks: BackgroundTasks):
@@ -118,8 +150,12 @@ async def run_monthly_agent(user_id: str, background_tasks: BackgroundTasks):
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    result = await chat_agent.run(req)
-    return result
+    token = current_user_id.set(req.user_id)
+    try:
+        result = await chat_agent.run(req)
+        return result
+    finally:
+        current_user_id.reset(token)
 
 @app.get("/reports/cashflow/{user_id}")
 async def get_cashflow_timeline(user_id: str, from_date: str, to_date: str):

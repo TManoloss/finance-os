@@ -77,6 +77,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	accounts.POST("/connect-token", accountsH.ConnectToken)
 	accounts.POST("/sync", accountsH.Sync)
 	accounts.POST("/keys", accountsH.SavePluggyKeys)
+	accounts.POST("/llm-keys", accountsH.SaveLLMKeys)
 	accounts.PATCH("/:id/settings", accountsH.UpdateAccountSettings)
 	accounts.DELETE("/:id", accountsH.DeleteAccount)
 
