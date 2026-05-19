@@ -5,8 +5,11 @@ import logging
 
 class GeminiProvider(LLMProvider):
     def __init__(self):
-        genai.configure(api_key=config.GOOGLE_API_KEY)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        if config.GOOGLE_API_KEY:
+            genai.configure(api_key=config.GOOGLE_API_KEY)
+            self.model = genai.GenerativeModel('gemini-2.0-flash')
+        else:
+            self.model = None
 
     async def completion(self, prompt: str, system_prompt: str = None, api_key: str = None) -> str:
         try:
@@ -17,10 +20,13 @@ class GeminiProvider(LLMProvider):
                 genai.configure(api_key=api_key)
                 model = genai.GenerativeModel('gemini-2.0-flash')
 
+            if not model:
+                raise ValueError("Nenhuma chave de API do Gemini configurada.")
+
             try:
                 response = await model.generate_content_async(full_prompt)
             finally:
-                if api_key:
+                if api_key and config.GOOGLE_API_KEY:
                     genai.configure(api_key=config.GOOGLE_API_KEY)
             
             # Tenta obter o texto, tratando possíveis bloqueios de segurança
