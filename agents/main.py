@@ -473,6 +473,42 @@ async def get_monthly_replay(user_id: str, month: str):
         logger.error(f"Erro ao buscar monthly replay: {str(e)}")
         return {"error": str(e)}
 
+@app.post("/reports/weekly-profile/{user_id}")
+async def get_weekly_profile(user_id: str):
+    try:
+        result = await weekly_profile_agent.run(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar perfil semanal: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/weekday-weekend/{user_id}")
+async def get_weekday_weekend(user_id: str):
+    try:
+        result = await weekly_profile_agent.compare_weekday_vs_weekend(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar dia util vs fim de semana: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/impulse/{user_id}")
+async def get_impulse_report(user_id: str):
+    try:
+        result = await behavioral_nuances_agent.run_impulse(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de impulsividade: {str(e)}")
+        return {"error": str(e)}
+
+@app.post("/reports/compensation/{user_id}")
+async def get_compensation_report(user_id: str):
+    try:
+        result = await behavioral_nuances_agent.run_compensation(user_id)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de compensação: {str(e)}")
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

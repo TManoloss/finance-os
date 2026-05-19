@@ -577,6 +577,10 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		pythonURLType = "micro-spending"
 	} else if reportType == "installment_timeline" {
 		pythonURLType = "installment-timeline"
+	} else if reportType == "weekly_profile" {
+		pythonURLType = "weekly-profile"
+	} else if reportType == "weekday_weekend" {
+		pythonURLType = "weekday-weekend"
 	}
 
 	url := fmt.Sprintf("%s/reports/%s/%s", h.cfg.AgentsServiceURL, pythonURLType, userID)
