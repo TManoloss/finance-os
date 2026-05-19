@@ -14,20 +14,22 @@ import (
 )
 
 type ReportsHandler struct {
-	db                  *pgxpool.Pool
-	cfg                 *config.Config
-	survivalModeService *service.SurvivalModeService
-	impulseRadarService *service.ImpulseRadarService
-	gamificationService *service.GamificationService
+	db                   *pgxpool.Pool
+	cfg                  *config.Config
+	survivalModeService  *service.SurvivalModeService
+	impulseRadarService  *service.ImpulseRadarService
+	gamificationService  *service.GamificationService
+	visualReportsService *service.VisualReportsService
 }
 
-func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService, gamificationService *service.GamificationService) *ReportsHandler {
+func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService, gamificationService *service.GamificationService, visualReportsService *service.VisualReportsService) *ReportsHandler {
 	return &ReportsHandler{
-		db:                  db,
-		cfg:                 cfg,
-		survivalModeService: survivalModeService,
-		impulseRadarService: impulseRadarService,
-		gamificationService: gamificationService,
+		db:                   db,
+		cfg:                  cfg,
+		survivalModeService:  survivalModeService,
+		impulseRadarService:  impulseRadarService,
+		gamificationService:  gamificationService,
+		visualReportsService: visualReportsService,
 	}
 }
 
@@ -574,6 +576,46 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
 	}
 
+	return response.Success(c, http.StatusOK, result)
+}
+
+// GetDependencyMap retorna o mapa de dependência do usuário.
+func (h *ReportsHandler) GetDependencyMap(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	
+	result, err := h.visualReportsService.GetDependencyMap(userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao obter dependency map")
+	}
+	
+	return response.Success(c, http.StatusOK, result)
+}
+
+// GetMonthlyReplay retorna o replay financeiro mensal.
+func (h *ReportsHandler) GetMonthlyReplay(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	month := c.QueryParam("month") // YYYY-MM
+	if month == "" {
+		month = time.Now().Format("2006-01")
+	}
+	
+	result, err := h.visualReportsService.GetMonthlyReplay(userID, month)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao obter monthly replay")
+	}
+	
+	return response.Success(c, http.StatusOK, result)
+}
+
+// GetSpendingHeatmap retorna o heatmap de gastos do usuário.
+func (h *ReportsHandler) GetSpendingHeatmap(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	
+	result, err := h.visualReportsService.GetSpendingHeatmap(userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao obter heatmap")
+	}
+	
 	return response.Success(c, http.StatusOK, result)
 }
 

@@ -34,12 +34,13 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	survivalModeService := service.NewSurvivalModeService(db)
 	impulseRadarService := service.NewImpulseRadarService(db)
 	gamificationService := service.NewGamificationService(db)
+	visualReportsService := service.NewVisualReportsService(db, cfg)
 
 	// Inicializa handlers
 	authH := handler.NewAuthHandler(authService, cfg)
 	accountsH := handler.NewAccountsHandler(db, syncService, encryptionService, userRepo, cfg)
 	transactionsH := handler.NewTransactionsHandler(txRepo, classifierService)
-	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService, impulseRadarService, gamificationService)
+	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService, impulseRadarService, gamificationService, visualReportsService)
 	cardsH := handler.NewCardsHandler(installmentService, subscriptionService)
 	chatH := handler.NewChatHandler(cfg)
 	categoriesH := handler.NewCategoriesHandler(db)
@@ -116,6 +117,9 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	reports.GET("/convenience-index", reportsH.GetConvenienceIndex)
 	reports.GET("/ticket-analysis", reportsH.GetTicketAnalysis)
 	reports.GET("/loyalty", reportsH.GetLoyalty)
+	reports.GET("/dependency-map", reportsH.GetDependencyMap)
+	reports.GET("/monthly-replay", reportsH.GetMonthlyReplay)
+	reports.GET("/spending-heatmap", reportsH.GetSpendingHeatmap)
 	reports.POST("/trigger/:type", reportsH.TriggerAgent)
 
 	// Merchants

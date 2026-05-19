@@ -18,6 +18,8 @@ import LoyaltyAnalysisCard from "@/components/LoyaltyAnalysisCard";
 import AchievementsFeed from "@/components/AchievementsFeed";
 import MissionsCard from "@/components/MissionsCard";
 import InstallmentTimeline from "@/components/InstallmentTimeline";
+import { DependencyTreemap } from "@/components/DependencyTreemap";
+import { SpendingHeatmap } from "@/components/SpendingHeatmap";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -197,6 +199,28 @@ async function getInstallmentTimeline(token: string) {
   }
 }
 
+async function getDependencyMap(token: string) {
+  try {
+    const resp = await api.get("/reports/dependency-map", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function getSpendingHeatmap(token: string) {
+  try {
+    const resp = await api.get("/reports/spending-heatmap", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return resp.data.data;
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function ReportsPage() {
   const session = await auth() as any;
   const token = session?.accessToken;
@@ -216,7 +240,9 @@ export default async function ReportsPage() {
     loyalty,
     gamification,
     salaryPlan,
-    installmentTimeline
+    installmentTimeline,
+    dependencyMap,
+    spendingHeatmap
   ] = await Promise.all([
     getReports(token),
     getPersonalInflation(token),
@@ -233,7 +259,9 @@ export default async function ReportsPage() {
     getLoyalty(token),
     getGamification(token),
     getSalaryPlan(token),
-    getInstallmentTimeline(token)
+    getInstallmentTimeline(token),
+    getDependencyMap(token),
+    getSpendingHeatmap(token)
   ]);
 
   return (
@@ -331,6 +359,27 @@ export default async function ReportsPage() {
         </div>
       )}
 
+      {/* Visual Premium Section */}
+      {(spendingHeatmap || dependencyMap) && (
+        <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
+              <Target className="w-4 h-4" /> VISUAL_PREMIUM_V1.0
+            </div>
+            <a 
+              href="/dashboard/reports/replay/2026-05" 
+              className="text-xs font-bold uppercase border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors"
+            >
+              Replay Financeiro (Abril 2026)
+            </a>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-12">
+            {spendingHeatmap && <SpendingHeatmap data={spendingHeatmap} />}
+            {dependencyMap && <DependencyTreemap data={dependencyMap} />}
+          </div>
+        </div>
+      )}
 
       <div className="bg-background min-h-screen">
         {reports.length > 0 ? reports.map((report: any) => (
