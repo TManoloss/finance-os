@@ -11,32 +11,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        const loginUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login` : null;
+        
+        if (!loginUrl) {
+           console.error("[Auth DEBUG] API URL não configurada!");
+           return null;
+        }
+
         try {
-          const loginUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`;
-          
           const resp = await axios.post(loginUrl, {
             email: credentials?.email,
             password: credentials?.password,
           });
 
-          console.log("[Auth DEBUG] Resposta completa da API:", JSON.stringify(resp.data, null, 2));
-
-          if (resp.data.success) {
+          console.log("[Auth DEBUG] Status API:", resp.status);
+          
+          if (resp.data && resp.data.success) {
+            const userData = resp.data.data;
             return {
-              id: resp.data.data.user.id,
-              name: resp.data.data.user.name,
-              email: resp.data.data.user.email,
-              pluggyClientId: resp.data.data.user.pluggy_client_id,
-              accessToken: resp.data.data.access_token,
-              refreshToken: resp.data.data.refresh_token,
+              id: userData.user?.id || 'unknown',
+              name: userData.user?.name || 'User',
+              email: userData.user?.email || credentials?.email,
+              pluggyClientId: userData.user?.pluggy_client_id,
+              accessToken: userData.access_token,
+              refreshToken: userData.refresh_token,
             };
           }
           return null;
         } catch (error: any) {
-          console.error("[Auth DEBUG] Erro completo:", error);
-          if (error.response) {
-            console.error("[Auth DEBUG] Erro resposta:", JSON.stringify(error.response.data, null, 2));
-          }
+          console.error("[Auth DEBUG] Erro na requisição:", error.message);
           return null;
         }
       },
