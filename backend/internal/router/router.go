@@ -153,4 +153,9 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	simulator := protected.Group("/simulator")
 	simulator.POST("/purchase", simulatorH.SimulatePurchase)
 	simulator.POST("/cut-subscription", simulatorH.SimulateCut)
+
+	// DEBUG: Listar rotas registradas
+	for _, route := range e.Routes() {
+		log.Printf("Rota registrada: %s %s", route.Method, route.Path)
+	}
 }
