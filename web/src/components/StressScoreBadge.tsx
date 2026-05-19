@@ -31,7 +31,7 @@ export default function StressScoreBadge() {
   useEffect(() => {
     async function fetchStress() {
       try {
-        const resp = await api.get("/reports/stress-score");
+        const resp = await api.get("reports/stress-score");
         setData(resp.data.data);
       } catch (error) {
         console.error("Erro ao buscar score de stress:", error);

@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getInstallments(token: string) {
   try {
-    const resp = await apiServer.get("/cards/installments", {
+    const resp = await apiServer.get("cards/installments", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
@@ -23,7 +23,7 @@ async function getInstallments(token: string) {
 
 async function getAccounts(token: string) {
   try {
-    const resp = await apiServer.get("/accounts", {
+    const resp = await apiServer.get("accounts", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];

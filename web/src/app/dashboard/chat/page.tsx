@@ -39,7 +39,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const resp = await api.post("/chat", {
+      const resp = await api.post("chat", {
         message: userMessage,
         history: messages.slice(-5).map(m => ({ role: m.role, content: m.content }))
       }, {

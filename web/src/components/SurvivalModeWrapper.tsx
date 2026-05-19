@@ -15,7 +15,7 @@ export default function SurvivalModeWrapper({ children }: { children: ReactNode 
   useEffect(() => {
     async function fetchSurvival() {
       try {
-        const resp = await api.get("/reports/survival-mode");
+        const resp = await api.get("reports/survival-mode");
         setLevel(resp.data.data.level);
       } catch (error) {
         console.error("Erro ao buscar modo sobrevivência:", error);

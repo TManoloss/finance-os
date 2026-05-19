@@ -44,7 +44,7 @@ export default function SimulatorPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const resp = await api.post("/simulator/purchase", {
+      const resp = await api.post("simulator/purchase", {
         amount: parseFloat(purchaseAmount),
         installments: parseInt(installments),
       });
@@ -60,7 +60,7 @@ export default function SimulatorPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const resp = await api.post("/simulator/cut-subscription", {
+      const resp = await api.post("simulator/cut-subscription", {
         monthly_amount: parseFloat(cutAmount),
         merchant_name: cutName,
       });

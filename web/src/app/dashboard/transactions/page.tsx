@@ -14,7 +14,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getTransactions(token: string, page = 1, categoryId?: string) {
   try {
-    let url = `/transactions?page=${page}&page_size=15`;
+    let url = `transactions?page=${page}&page_size=15`;
     if (categoryId && categoryId !== "all") {
       url += `&category_id=${categoryId}`;
     }
@@ -29,7 +29,7 @@ async function getTransactions(token: string, page = 1, categoryId?: string) {
 
 async function getCategories(token: string) {
   try {
-    const resp = await apiServer.get("/categories", {
+    const resp = await apiServer.get("categories", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];

@@ -23,7 +23,7 @@ export default function OnboardingPluggyPage() {
 
     try {
       const response = await api.post(
-        "/accounts/keys",
+        "accounts/keys",
         {
           client_id: clientId,
           client_secret: clientSecret,

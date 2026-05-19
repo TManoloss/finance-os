@@ -30,7 +30,7 @@ export default function ActivityFeed({ events: initialEvents }: { events: FeedEv
       const fetchFeed = async () => {
         setLoading(true);
         try {
-          const resp = await api.get("/feed?page_size=5");
+          const resp = await api.get("feed?page_size=5");
           setEvents(resp.data.data || []);
         } catch (error) {
           console.error("Erro ao carregar feed:", error);

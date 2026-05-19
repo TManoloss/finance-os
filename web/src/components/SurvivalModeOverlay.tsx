@@ -35,7 +35,7 @@ export default function SurvivalModeOverlay() {
   useEffect(() => {
     async function fetchSurvival() {
       try {
-        const resp = await api.get("/reports/survival-mode");
+        const resp = await api.get("reports/survival-mode");
         setData(resp.data.data);
       } catch (error) {
         console.error("Erro ao buscar modo sobrevivência:", error);

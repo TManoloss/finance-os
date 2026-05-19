@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getTopMerchants(token: string) {
   try {
-    const resp = await apiServer.get("/merchants?limit=20", {
+    const resp = await apiServer.get("merchants?limit=20", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];

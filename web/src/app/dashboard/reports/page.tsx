@@ -25,7 +25,7 @@ import remarkGfm from "remark-gfm";
 
 async function getReports(token: string) {
   try {
-    const resp = await apiServer.get("/reports", {
+    const resp = await apiServer.get("reports", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data || [];
@@ -36,7 +36,7 @@ async function getReports(token: string) {
 
 async function getTicketAnalysis(token: string) {
   try {
-    const resp = await apiServer.get("/reports/ticket-analysis", {
+    const resp = await apiServer.get("reports/ticket-analysis", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -47,7 +47,7 @@ async function getTicketAnalysis(token: string) {
 
 async function getLoyalty(token: string) {
   try {
-    const resp = await apiServer.get("/reports/loyalty", {
+    const resp = await apiServer.get("reports/loyalty", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -58,7 +58,7 @@ async function getLoyalty(token: string) {
 
 async function getPersonalInflation(token: string) {
   try {
-    const resp = await apiServer.get("/reports/personal-inflation", {
+    const resp = await apiServer.get("reports/personal-inflation", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -69,7 +69,7 @@ async function getPersonalInflation(token: string) {
 
 async function getSilentGrowth(token: string) {
   try {
-    const resp = await apiServer.get("/reports/silent-growth", {
+    const resp = await apiServer.get("reports/silent-growth", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -80,7 +80,7 @@ async function getSilentGrowth(token: string) {
 
 async function getWeeklyProfile(token: string) {
   try {
-    const resp = await apiServer.get("/reports/weekly-profile", {
+    const resp = await apiServer.get("reports/weekly-profile", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -91,7 +91,7 @@ async function getWeeklyProfile(token: string) {
 
 async function getWeekdayWeekend(token: string) {
   try {
-    const resp = await apiServer.get("/reports/weekday-weekend", {
+    const resp = await apiServer.get("reports/weekday-weekend", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -102,7 +102,7 @@ async function getWeekdayWeekend(token: string) {
 
 async function getSalaryEffect(token: string) {
   try {
-    const resp = await apiServer.get("/reports/salary-effect", {
+    const resp = await apiServer.get("reports/salary-effect", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -113,7 +113,7 @@ async function getSalaryEffect(token: string) {
 
 async function getMonthlyWeeks(token: string) {
   try {
-    const resp = await apiServer.get("/reports/monthly-weeks", {
+    const resp = await apiServer.get("reports/monthly-weeks", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -124,7 +124,7 @@ async function getMonthlyWeeks(token: string) {
 
 async function getImpulse(token: string) {
   try {
-    const resp = await apiServer.get("/reports/impulse", {
+    const resp = await apiServer.get("reports/impulse", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -135,7 +135,7 @@ async function getImpulse(token: string) {
 
 async function getCompensation(token: string) {
   try {
-    const resp = await apiServer.get("/reports/compensation-pattern", {
+    const resp = await apiServer.get("reports/compensation-pattern", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -146,7 +146,7 @@ async function getCompensation(token: string) {
 
 async function getMealCost(token: string) {
   try {
-    const resp = await apiServer.get("/reports/meal-cost", {
+    const resp = await apiServer.get("reports/meal-cost", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -157,7 +157,7 @@ async function getMealCost(token: string) {
 
 async function getConvenience(token: string) {
   try {
-    const resp = await apiServer.get("/reports/convenience-index", {
+    const resp = await apiServer.get("reports/convenience-index", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -168,7 +168,7 @@ async function getConvenience(token: string) {
 
 async function getGamification(token: string) {
   try {
-    const resp = await apiServer.get("/reports/gamification", {
+    const resp = await apiServer.get("reports/gamification", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -179,7 +179,7 @@ async function getGamification(token: string) {
 
 async function getSalaryPlan(token: string) {
   try {
-    const resp = await apiServer.get("/reports/salary-plan", {
+    const resp = await apiServer.get("reports/salary-plan", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -190,7 +190,7 @@ async function getSalaryPlan(token: string) {
 
 async function getInstallmentTimeline(token: string) {
   try {
-    const resp = await apiServer.get("/reports/installment-timeline", {
+    const resp = await apiServer.get("reports/installment-timeline", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -201,7 +201,7 @@ async function getInstallmentTimeline(token: string) {
 
 async function getDependencyMap(token: string) {
   try {
-    const resp = await apiServer.get("/reports/dependency-map", {
+    const resp = await apiServer.get("reports/dependency-map", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;
@@ -212,7 +212,7 @@ async function getDependencyMap(token: string) {
 
 async function getSpendingHeatmap(token: string) {
   try {
-    const resp = await apiServer.get("/reports/spending-heatmap", {
+    const resp = await apiServer.get("reports/spending-heatmap", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data?.data;

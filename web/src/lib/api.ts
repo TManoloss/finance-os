@@ -1,8 +1,12 @@
 import axios from "axios";
 import { getSession, signOut } from "next-auth/react";
 
+// Garante que o baseURL termine com uma barra para que chamadas relativas (sem barra inicial) funcionem corretamente
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+const apiBaseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : `${rawBaseUrl}/`;
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: apiBaseUrl,
 });
 
 api.interceptors.request.use(async (config) => {

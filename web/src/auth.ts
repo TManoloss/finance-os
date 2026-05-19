@@ -11,12 +11,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const loginUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login` : null;
+        // Garantimos que a URL de login seja construída corretamente, tratando possíveis barras duplicadas ou faltantes
+        const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+        
+        // Removemos o prefixo /api/v1 fixo pois ele já está na variável de ambiente NEXT_PUBLIC_API_URL em muitos casos.
+        // Se a baseURL já terminar em /api/v1, não adicionamos novamente.
+        const loginUrl = baseUrl ? (baseUrl.endsWith('/api/v1') ? `${baseUrl}/auth/login` : `${baseUrl}/api/v1/auth/login`) : null;
         
         if (!loginUrl) {
            console.error("[Auth DEBUG] API URL não configurada!");
            return null;
         }
+
+        console.log("[Auth DEBUG] Tentando login em:", loginUrl);
 
         try {
           const resp = await axios.post(loginUrl, {

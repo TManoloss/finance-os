@@ -40,7 +40,7 @@ export default function SettingsPage() {
 
   const checkKeys = async () => {
     try {
-      const resp = await api.get("/me", {
+      const resp = await api.get("me", {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = resp.data.data;
@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
     setSavingKeys(true);
     try {
-      await api.post("/accounts/keys", pluggyKeys, {
+      await api.post("accounts/keys", pluggyKeys, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("CREDENTIALS_SAVED: Chaves da Pluggy atualizadas com sucesso para este usuário.");
@@ -90,7 +90,7 @@ export default function SettingsPage() {
   const fetchAccounts = async () => {
     if (!token) return;
     try {
-      const resp = await api.get("/accounts", {
+      const resp = await api.get("accounts", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAccounts(resp.data.data || []);
@@ -104,7 +104,7 @@ export default function SettingsPage() {
   const handleOpenWidget = async () => {
     if (!token) return;
     try {
-      const resp = await api.post("/accounts/connect-token", {}, {
+      const resp = await api.post("accounts/connect-token", {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setConnectToken(resp.data.data.accessToken);
@@ -117,7 +117,7 @@ export default function SettingsPage() {
   const handleSync = async (itemID: string) => {
     if (!token) return;
     try {
-      await api.post("/accounts/sync", { item_id: itemID }, {
+      await api.post("accounts/sync", { item_id: itemID }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("SYNC_COMMAND_SENT: Sincronização em segundo plano inicializada.");
@@ -129,7 +129,7 @@ export default function SettingsPage() {
   const handleUpdateSettings = async (accountID: string, closeDay: number, dueDay: number) => {
     if (!token) return;
     try {
-      await api.patch(`/accounts/${accountID}/settings`, {
+      await api.patch(`accounts/${accountID}/settings`, {
         close_day: closeDay,
         due_day: dueDay
       }, {
@@ -148,7 +148,7 @@ export default function SettingsPage() {
     }
 
     try {
-      await api.delete(`/accounts/${accountID}`, {
+      await api.delete(`accounts/${accountID}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchAccounts();

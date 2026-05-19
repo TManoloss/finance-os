@@ -14,7 +14,7 @@ export default function TriggerReportButtons() {
     setLoading(type);
     setSuccess(null);
     try {
-      await api.post(`/reports/trigger/${type}`, {}, {
+      await api.post(`reports/trigger/${type}`, {}, {
         headers: { Authorization: `Bearer ${(session as any)?.accessToken}` }
       });
       setSuccess(type);

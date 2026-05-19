@@ -13,7 +13,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getHealthScore(token: string) {
   try {
-    const resp = await apiServer.get("/reports/health-score", {
+    const resp = await apiServer.get("reports/health-score", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
