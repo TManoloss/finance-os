@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import api from "@/lib/api";
+import apiServer from "@/lib/api-server";
 import { Terminal, Activity, TrendingUp, TrendingDown, Target, ShieldCheck, Zap } from "lucide-react";
 import HealthScoreGauge from "@/components/HealthScoreGauge";
 import { clsx, type ClassValue } from "clsx";
@@ -13,7 +13,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getHealthScore(token: string) {
   try {
-    const resp = await api.get("/reports/health-score", {
+    const resp = await apiServer.get("/reports/health-score", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;

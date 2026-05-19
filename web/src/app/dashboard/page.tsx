@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import api from "@/lib/api";
+import apiServer from "@/lib/api-server";
 import AreaChartComponent from "@/components/charts/AreaChartComponent";
 import CashflowChart from "@/components/charts/CashflowChart";
 import DonutChartComponent from "@/components/charts/DonutChartComponent";
@@ -24,7 +24,7 @@ async function getSummary(token: string, from?: string, to?: string) {
     if (from && to) {
       url += `?from_date=${from}&to_date=${to}`;
     }
-    const resp = await api.get(url, {
+    const resp = await apiServer.get(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -36,7 +36,7 @@ async function getSummary(token: string, from?: string, to?: string) {
 async function getReports(token: string) {
   if (!token) return [];
   try {
-    const resp = await api.get("/reports", {
+    const resp = await apiServer.get("/reports", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
@@ -48,7 +48,7 @@ async function getReports(token: string) {
 async function getCashflow(token: string, from: string, to: string) {
   if (!token) return [];
   try {
-    const resp = await api.get(`/reports/cashflow?from=${from}&to=${to}`, {
+    const resp = await apiServer.get(`/reports/cashflow?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data?.daily_balances || [];
@@ -60,7 +60,7 @@ async function getCashflow(token: string, from: string, to: string) {
 async function getFeed(token: string) {
   if (!token) return [];
   try {
-    const resp = await api.get("/feed?page_size=5", {
+    const resp = await apiServer.get("/feed?page_size=5", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
@@ -72,7 +72,7 @@ async function getFeed(token: string) {
 async function getLatestTransactions(token: string) {
   if (!token) return [];
   try {
-    const resp = await api.get("/transactions?page=1&page_size=10", {
+    const resp = await apiServer.get("/transactions?page=1&page_size=10", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data.transactions || [];
@@ -84,7 +84,7 @@ async function getLatestTransactions(token: string) {
 async function getProjections(token: string) {
   if (!token) return null;
   try {
-    const resp = await api.get("/reports/projection", {
+    const resp = await apiServer.get("/reports/projection", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -96,7 +96,7 @@ async function getProjections(token: string) {
 async function getUpcomingExpenses(token: string) {
   if (!token) return [];
   try {
-    const resp = await api.get("/reports/upcoming-expenses", {
+    const resp = await apiServer.get("/reports/upcoming-expenses", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
@@ -108,7 +108,7 @@ async function getUpcomingExpenses(token: string) {
 async function getPersonalInflation(token: string) {
   if (!token) return null;
   try {
-    const resp = await api.get("/reports/personal-inflation", {
+    const resp = await apiServer.get("/reports/personal-inflation", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -120,7 +120,7 @@ async function getPersonalInflation(token: string) {
 async function getSilentGrowth(token: string) {
   if (!token) return null;
   try {
-    const resp = await api.get("/reports/silent-growth", {
+    const resp = await apiServer.get("/reports/silent-growth", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -132,7 +132,7 @@ async function getSilentGrowth(token: string) {
 async function getMealCost(token: string) {
   if (!token) return null;
   try {
-    const resp = await api.get("/reports/meal-cost", {
+    const resp = await apiServer.get("/reports/meal-cost", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -144,7 +144,7 @@ async function getMealCost(token: string) {
 async function getConvenience(token: string) {
   if (!token) return null;
   try {
-    const resp = await api.get("/reports/convenience-index", {
+    const resp = await apiServer.get("/reports/convenience-index", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;

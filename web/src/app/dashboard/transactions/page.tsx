@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import api from "@/lib/api";
+import apiServer from "@/lib/api-server";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowUpCircle, ArrowDownCircle, Search, Filter, ChevronLeft, ChevronRight, Terminal, Download } from "lucide-react";
@@ -18,7 +18,7 @@ async function getTransactions(token: string, page = 1, categoryId?: string) {
     if (categoryId && categoryId !== "all") {
       url += `&category_id=${categoryId}`;
     }
-    const resp = await api.get(url, {
+    const resp = await apiServer.get(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data;
@@ -29,7 +29,7 @@ async function getTransactions(token: string, page = 1, categoryId?: string) {
 
 async function getCategories(token: string) {
   try {
-    const resp = await api.get("/categories", {
+    const resp = await apiServer.get("/categories", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];

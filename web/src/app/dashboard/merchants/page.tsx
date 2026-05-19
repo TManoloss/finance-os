@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import api from "@/lib/api";
+import apiServer from "@/lib/api-server";
 import { Terminal, ShoppingBag, TrendingUp, TrendingDown, ArrowRight, BarChart3, Calendar, Clock } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getTopMerchants(token: string) {
   try {
-    const resp = await api.get("/merchants?limit=20", {
+    const resp = await apiServer.get("/merchants?limit=20", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];

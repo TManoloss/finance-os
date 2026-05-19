@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import api from "@/lib/api";
+import apiServer from "@/lib/api-server";
 import { CreditCard, Calendar, Clock, ArrowRight, Terminal, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
 
 async function getInstallments(token: string) {
   try {
-    const resp = await api.get("/cards/installments", {
+    const resp = await apiServer.get("/cards/installments", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
@@ -23,7 +23,7 @@ async function getInstallments(token: string) {
 
 async function getAccounts(token: string) {
   try {
-    const resp = await api.get("/accounts", {
+    const resp = await apiServer.get("/accounts", {
       headers: { Authorization: `Bearer ${token}` }
     });
     return resp.data.data || [];
