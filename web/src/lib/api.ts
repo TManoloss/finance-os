@@ -2,7 +2,7 @@ import axios from "axios";
 import { getSession, signOut } from "next-auth/react";
 
 const api = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api/v1`,
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
 api.interceptors.request.use(async (config) => {
