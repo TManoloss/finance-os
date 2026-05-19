@@ -173,7 +173,6 @@ func (h *SyncHandler) Status(c echo.Context) error {
 	}
 
 	// Estimativa simples para o próximo sync (assumindo horários fixos do cron-job.org)
-	now := time.Now()
 	res.NextScheduledSync = "Próximo horário agendado (07:00, 13:00, 19:00 ou 23:30)"
 
 	return response.Success(c, http.StatusOK, res)
