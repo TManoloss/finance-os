@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log"
 	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/handler"
 	"github.com/finance-os/backend/internal/middleware"
