@@ -195,10 +195,20 @@ class StressAgent(BaseAgent):
                 "credit_ratio": round(credit_ratio * 100, 1),
                 "installments_income_ratio": round(inst_income_ratio * 100, 1)
             }
-            context_sentence = await self.llm.completion(
-                STRESS_CONTEXT_PROMPT.format(stress_data_json=json.dumps(stress_data)),
-                system_prompt="Você é um assistente financeiro direto e conciso."
-            )
+            try:
+                context_sentence = await self.llm.completion(
+                    STRESS_CONTEXT_PROMPT.format(stress_data_json=json.dumps(stress_data)),
+                    system_prompt="Você é um assistente financeiro direto e conciso."
+                )
+            except Exception as e:
+                print(f"Erro ao chamar LLM no stress score: {e}")
+                # Fallback amigável
+                if total_score < 40:
+                    context_sentence = "Seus gastos recentes e parcelas de cartão estão consumindo grande parte da sua renda. Evite novos parcelamentos e compras supérfluas."
+                elif total_score < 60:
+                    context_sentence = "Seu ritmo de gastos está ligeiramente acelerado nas últimas semanas. Fique atento aos gastos no cartão de crédito."
+                else:
+                    context_sentence = "Suas despesas e fluxo de caixa estão estáveis e sob controle esta semana. Bom trabalho!"
 
             # Save snapshot
             await conn.execute("""
@@ -374,18 +384,25 @@ class StressAgent(BaseAgent):
                     "current_balance": curr_bal,
                     "burn_rate": burn
                 }
-                rec_response = await self.llm.completion(
-                    SURVIVAL_RECOMMENDATIONS_PROMPT.format(survival_data_json=json.dumps(survival_data)),
-                    system_prompt="Você é um consultor financeiro focado em sobrevivência e resgate de contas."
-                )
                 try:
+                    rec_response = await self.llm.completion(
+                        SURVIVAL_RECOMMENDATIONS_PROMPT.format(survival_data_json=json.dumps(survival_data)),
+                        system_prompt="Você é um consultor financeiro focado em sobrevivência e resgate de contas."
+                    )
                     start_idx = rec_response.find("{")
                     end_idx = rec_response.rfind("}")
                     rec_json = json.loads(rec_response[start_idx:end_idx+1])
                     recommendations = rec_json.get("recommendations", [])
                     daily_limit = rec_json.get("daily_spending_limit", 0)
-                except:
-                    recommendations = [{"title": "Análise Indisponível", "description": rec_response, "impact": "N/A"}]
+                except Exception as e:
+                    print(f"Erro ao chamar LLM no survival mode: {e}")
+                    # Recomendações heurísticas de fallback
+                    recommendations = [
+                        {"title": "Pausar Assinaturas", "description": "Suspenda temporariamente serviços de streaming ou clubes de assinatura não essenciais.", "impact": "Alto"},
+                        {"title": "Limite no Cartão", "description": "Evite usar o cartão de crédito e prefira pagamentos à vista/débito para ter maior controle físico.", "impact": "Médio"},
+                        {"title": "Mapear Gastos Diários", "description": "Tente segurar novas compras até que o seu próximo salário caia na conta.", "impact": "Alto"}
+                    ]
+                    daily_limit = round(curr_bal / max(1, days_until_salary), 2)
 
             # Save snapshot
             await conn.execute("""

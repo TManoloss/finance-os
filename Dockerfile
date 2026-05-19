@@ -44,7 +44,7 @@ RUN chmod +x /app/start.sh
 
 # Variáveis de ambiente padrão para o Render
 ENV PORT=8080
-ENV AGENTS_SERVICE_URL=http://localhost:8000
+ENV AGENTS_SERVICE_URL=http://127.0.0.1:8000
 
 # O Render expõe apenas a porta definida na variável PORT para o mundo externo
 EXPOSE 8080

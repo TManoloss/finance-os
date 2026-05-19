@@ -142,23 +142,27 @@ class LoyaltyAgent(BaseAgent):
         }
 
         prompt = f"Analise a lealdade de merchants para o usuário {user_id}:\n{json.dumps(loyalty_data, default=str)}"
-        response_text = await self.llm.completion(prompt, system_prompt=LOYALTY_ANALYSIS_PROMPT)
         
         try:
+            response_text = await self.llm.completion(prompt, system_prompt=LOYALTY_ANALYSIS_PROMPT)
             start_idx = response_text.find("{")
             end_idx = response_text.rfind("}")
             if start_idx == -1 or end_idx == -1:
                 raise ValueError("JSON not found")
             report_data = json.loads(response_text[start_idx:end_idx+1])
-        except Exception:
+        except Exception as e:
+            logger.error(f"Erro ao chamar LLM no loyalty agent: {e}")
             report_data = {
                 "summary": "Análise de lealdade e abandonos.",
-                "insights": [],
-                "insight_narrative": response_text
+                "insights": [
+                    {"title": "Mapeamento de Hábitos", "description": "Você possui estabelecimentos frequentes mapeados. Continue acompanhando suas compras repetidas.", "severity": "info"}
+                ],
+                "insight_narrative": "Não foi possível gerar a análise detalhada via inteligência artificial no momento, mas seus dados históricos continuam disponíveis abaixo."
             }
 
         # Adicionar dados brutos processados ao report_data
         report_data["abandonment_cost"] = abandonment_cost
+        report_data["top_loyal"] = top_loyal
         report_data["loyalty_stats"] = {
             "leal": len([r for r in relationships if r['classification'] == "LEAL"]),
             "frequente": len([r for r in relationships if r['classification'] == "FREQUENTE"]),
