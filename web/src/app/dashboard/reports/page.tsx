@@ -28,7 +28,7 @@ async function getReports(token: string) {
     const resp = await apiServer.get("/reports", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data || [];
+    return resp.data?.data || [];
   } catch (error) {
     return [];
   }
@@ -39,7 +39,7 @@ async function getTicketAnalysis(token: string) {
     const resp = await apiServer.get("/reports/ticket-analysis", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -50,7 +50,7 @@ async function getLoyalty(token: string) {
     const resp = await apiServer.get("/reports/loyalty", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -61,7 +61,7 @@ async function getPersonalInflation(token: string) {
     const resp = await apiServer.get("/reports/personal-inflation", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -72,7 +72,7 @@ async function getSilentGrowth(token: string) {
     const resp = await apiServer.get("/reports/silent-growth", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -83,7 +83,7 @@ async function getWeeklyProfile(token: string) {
     const resp = await apiServer.get("/reports/weekly-profile", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -94,7 +94,7 @@ async function getWeekdayWeekend(token: string) {
     const resp = await apiServer.get("/reports/weekday-weekend", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -105,7 +105,7 @@ async function getSalaryEffect(token: string) {
     const resp = await apiServer.get("/reports/salary-effect", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -116,7 +116,7 @@ async function getMonthlyWeeks(token: string) {
     const resp = await apiServer.get("/reports/monthly-weeks", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -127,7 +127,7 @@ async function getImpulse(token: string) {
     const resp = await apiServer.get("/reports/impulse", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -138,7 +138,7 @@ async function getCompensation(token: string) {
     const resp = await apiServer.get("/reports/compensation-pattern", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -149,7 +149,7 @@ async function getMealCost(token: string) {
     const resp = await apiServer.get("/reports/meal-cost", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -160,7 +160,7 @@ async function getConvenience(token: string) {
     const resp = await apiServer.get("/reports/convenience-index", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -171,7 +171,7 @@ async function getGamification(token: string) {
     const resp = await apiServer.get("/reports/gamification", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -182,7 +182,7 @@ async function getSalaryPlan(token: string) {
     const resp = await apiServer.get("/reports/salary-plan", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -193,7 +193,7 @@ async function getInstallmentTimeline(token: string) {
     const resp = await apiServer.get("/reports/installment-timeline", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -204,7 +204,7 @@ async function getDependencyMap(token: string) {
     const resp = await apiServer.get("/reports/dependency-map", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -215,7 +215,7 @@ async function getSpendingHeatmap(token: string) {
     const resp = await apiServer.get("/reports/spending-heatmap", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }

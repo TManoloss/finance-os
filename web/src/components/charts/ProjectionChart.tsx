@@ -9,7 +9,7 @@ interface ProjectionChartProps {
 }
 
 export default function ProjectionChart({ data }: ProjectionChartProps) {
-  if (!data || !data.next_3_months_projections) return (
+  if (!data || !Array.isArray(data.next_3_months_projections)) return (
     <div className="h-[300px] flex items-center justify-center text-text-secondary border-2 border-dashed border-black uppercase text-[10px] font-bold bg-elevated/50">
       DADOS_DE_PROJEÇÃO_INSUFICIENTES
     </div>

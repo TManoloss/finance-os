@@ -27,7 +27,7 @@ async function getSummary(token: string, from?: string, to?: string) {
     const resp = await apiServer.get(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -39,7 +39,7 @@ async function getReports(token: string) {
     const resp = await apiServer.get("/reports", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data || [];
+    return resp.data?.data || [];
   } catch (error) {
     return [];
   }
@@ -51,7 +51,7 @@ async function getCashflow(token: string, from: string, to: string) {
     const resp = await apiServer.get(`/reports/cashflow?from=${from}&to=${to}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data?.daily_balances || [];
+    return resp.data?.data?.daily_balances || [];
   } catch (error) {
     return [];
   }
@@ -63,7 +63,7 @@ async function getFeed(token: string) {
     const resp = await apiServer.get("/feed?page_size=5", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data || [];
+    return resp.data?.data || [];
   } catch (error) {
     return [];
   }
@@ -75,7 +75,7 @@ async function getLatestTransactions(token: string) {
     const resp = await apiServer.get("/transactions?page=1&page_size=10", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data.transactions || [];
+    return resp.data?.data?.transactions || [];
   } catch (error) {
     return [];
   }
@@ -87,7 +87,7 @@ async function getProjections(token: string) {
     const resp = await apiServer.get("/reports/projection", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -99,7 +99,7 @@ async function getUpcomingExpenses(token: string) {
     const resp = await apiServer.get("/reports/upcoming-expenses", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data || [];
+    return resp.data?.data || [];
   } catch (error) {
     return [];
   }
@@ -111,7 +111,7 @@ async function getPersonalInflation(token: string) {
     const resp = await apiServer.get("/reports/personal-inflation", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -123,7 +123,7 @@ async function getSilentGrowth(token: string) {
     const resp = await apiServer.get("/reports/silent-growth", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -135,7 +135,7 @@ async function getMealCost(token: string) {
     const resp = await apiServer.get("/reports/meal-cost", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -147,7 +147,7 @@ async function getConvenience(token: string) {
     const resp = await apiServer.get("/reports/convenience-index", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data;
+    return resp.data?.data;
   } catch (error) {
     return null;
   }
@@ -328,9 +328,9 @@ export default async function DashboardPage({
                </div>
                <div className="text-[8px] font-black text-text-secondary uppercase mb-1">INFLAÇÃO_PESSOAL</div>
                <div className="text-3xl font-black font-mono text-danger">
-                  {inflation ? `${inflation.personal_inflation_rate.toFixed(1)}%` : "???"}
+                  {inflation?.personal_inflation_rate !== undefined ? `${inflation.personal_inflation_rate.toFixed(1)}%` : "???"}
                </div>
-               <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">VS_IPCA: {inflation ? `${inflation.ipca_rate}%` : "CALCULANDO"}</div>
+               <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">VS_IPCA: {inflation?.ipca_rate !== undefined ? `${inflation.ipca_rate}%` : "CALCULANDO"}</div>
             </div>
 
             {/* Silent Growth Insight */}
@@ -340,10 +340,10 @@ export default async function DashboardPage({
                </div>
                <div className="text-[8px] font-black text-text-secondary uppercase mb-1">CRESCIMENTO_SILENCIOSO</div>
                <div className="text-lg font-black uppercase truncate">
-                  {growth?.top_category ? growth.top_category.category_name : "NENHUM_DETECTADO"}
+                  {growth?.top_category?.category_name ? growth.top_category.category_name : "NENHUM_DETECTADO"}
                </div>
                <div className="text-[8px] font-bold text-danger mt-2 uppercase">
-                  {growth?.top_category ? `+${growth.top_category.growth_rate_percent.toFixed(1)}% / MÊS` : "ESTÁVEL"}
+                  {growth?.top_category?.growth_rate_percent !== undefined ? `+${growth.top_category.growth_rate_percent.toFixed(1)}% / MÊS` : "ESTÁVEL"}
                </div>
             </div>
 
@@ -354,7 +354,7 @@ export default async function DashboardPage({
                </div>
                <div className="text-[8px] font-black text-text-secondary uppercase mb-1">CUSTO_POR_REFEIÇÃO</div>
                <div className="text-3xl font-black font-mono text-accent-secondary">
-                  {mealCost ? `R$ ${mealCost.avg_cost_per_meal.toFixed(2)}` : "???"}
+                  {mealCost?.avg_cost_per_meal !== undefined ? `R$ ${mealCost.avg_cost_per_meal.toFixed(2)}` : "???"}
                </div>
                <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">MÉDIA_DOS_ÚLTIMOS_30D</div>
             </div>
@@ -366,7 +366,7 @@ export default async function DashboardPage({
                </div>
                <div className="text-[8px] font-black text-text-secondary uppercase mb-1">PAGO_POR_CONVENIÊNCIA</div>
                <div className="text-3xl font-black font-mono text-warning">
-                  {convenience ? `R$ ${convenience.summary.total_premium_monthly.toFixed(2)}` : "???"}
+                  {convenience?.summary?.total_premium_monthly !== undefined ? `R$ ${convenience.summary.total_premium_monthly.toFixed(2)}` : "???"}
                </div>
                <div className="text-[8px] font-bold text-text-secondary mt-2 uppercase">VALOR_MENSAL_POTENCIAL</div>
             </div>
@@ -431,7 +431,7 @@ export default async function DashboardPage({
               PRINCIPAIS_DESTINOS_DE_GASTOS
            </h3>
            <div className="space-y-3 md:space-y-4">
-              {summary?.top_merchants?.map((m: any, i: number) => (
+              {Array.isArray(summary?.top_merchants) && summary.top_merchants.map((m: any, i: number) => (
                 <div key={i} className="flex justify-between items-center p-3 md:p-4 border-2 border-black bg-elevated">
                   <div>
                     <div className="font-black uppercase text-xs md:text-sm">{m.merchant_name}</div>

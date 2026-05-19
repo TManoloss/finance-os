@@ -14,12 +14,12 @@ interface FeedEvent {
 }
 
 export default function ActivityFeed({ events: initialEvents }: { events: FeedEvent[] }) {
-  const [events, setEvents] = useState<FeedEvent[]>(initialEvents || []);
+  const [events, setEvents] = useState<FeedEvent[]>(Array.isArray(initialEvents) ? initialEvents : []);
   const [loading, setLoading] = useState(false);
 
   // Sincroniza o estado interno se as props iniciais mudarem
   useEffect(() => {
-    if (initialEvents && initialEvents.length > 0) {
+    if (Array.isArray(initialEvents) && initialEvents.length > 0) {
       setEvents(initialEvents);
     }
   }, [initialEvents]);
