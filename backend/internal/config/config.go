@@ -35,7 +35,7 @@ func Load() (*Config, error) {
 		EncryptionKey:      getEnv("ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"), // 32 bytes default for AES-256
 		PluggyClientID:     getEnv("PLUGGY_CLIENT_ID", ""),
 		PluggyClientSecret: getEnv("PLUGGY_CLIENT_SECRET", ""),
-		AgentsServiceURL:   getEnv("AGENTS_SERVICE_URL", "http://localhost:8000"),
+		AgentsServiceURL:   getEnv("AGENTS_SERVICE_URL", "http://127.0.0.1:8000"),
 		SelfURL:            getEnv("SELF_URL", ""),
 		SyncSecret:         getEnv("SYNC_SECRET", ""),
 		Port:               getEnv("PORT", "8080"),
