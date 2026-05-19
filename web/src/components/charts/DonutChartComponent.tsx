@@ -16,6 +16,8 @@ export default function DonutChartComponent({ data }: DonutChartProps) {
     setIsMounted(true);
   }, []);
 
+  if (!isMounted) return <div className="h-[300px] w-full bg-elevated animate-pulse border-2 border-black" />;
+
   const chartData = data.map(item => ({
     name: item.category_name.toUpperCase(),
     value: item.total,
@@ -26,8 +28,6 @@ export default function DonutChartComponent({ data }: DonutChartProps) {
   const darkColors = ["#7C6FFF", "#FF6B6B", "#4ECDC4", "#FFD93D", "#A78BFA", "#F0F0F5"];
   
   const technicalColors = theme === 'dark' ? darkColors : lightColors;
-
-  if (!isMounted) return <div className="h-[300px] w-full bg-elevated animate-pulse border-2 border-black" />;
 
   return (
     <div className="h-[300px] w-full">

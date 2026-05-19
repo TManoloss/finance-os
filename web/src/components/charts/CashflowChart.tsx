@@ -21,7 +21,7 @@ export default function CashflowChart({ data }: CashflowChartProps) {
   }
 
   const chartData = data.map(item => ({
-    displayDate: format(new Date(item.date), "dd/MM", { locale: ptBR }),
+    displayDate: item.date ? format(new Date(item.date), "dd/MM", { locale: ptBR }) : '?',
     fullDate: item.date,
     saldo: item.balance_end,
     income: item.income,

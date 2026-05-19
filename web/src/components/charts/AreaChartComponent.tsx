@@ -18,13 +18,13 @@ export default function AreaChartComponent({ data }: AreaChartProps) {
     setIsMounted(true);
   }, []);
 
+  if (!isMounted) return <div className="h-[300px] w-full bg-elevated animate-pulse border-2 border-black" />;
+
   const chartData = data.map(item => ({
-    date: format(new Date(item.date), "dd/MM", { locale: ptBR }),
+    date: item.date ? format(new Date(item.date), "dd/MM", { locale: ptBR }) : '?',
     recebido: item.total_received,
     gasto: item.total_spent,
   }));
-
-  if (!isMounted) return <div className="h-[300px] w-full bg-elevated animate-pulse border-2 border-black" />;
 
   const axisColor = theme === 'dark' ? '#ffffff' : '#000000';
   const gridColor = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';

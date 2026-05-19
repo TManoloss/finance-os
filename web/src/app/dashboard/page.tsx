@@ -514,7 +514,7 @@ export default async function DashboardPage({
                 <div className="min-w-0">
                   <div className="text-sm md:text-lg font-black text-text-primary uppercase tracking-tight truncate">{tx.description}</div>
                   <div className="text-[8px] md:text-[10px] font-bold text-text-secondary uppercase">
-                    {format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR })} | {tx.account_name} | {tx.category?.name || 'NULL'}
+                    {tx.date ? format(new Date(tx.date), "dd/MM/yyyy", { locale: ptBR }) : 'SEM_DATA'} | {tx.account_name} | {tx.category?.name || 'NULL'}
                   </div>
                 </div>
               </div>

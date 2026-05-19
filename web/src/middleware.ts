@@ -10,7 +10,7 @@ export default auth((req) => {
   const hasPluggyKeys = pluggyId && pluggyId !== "NULL" && pluggyId.trim() !== ""
 
   if (!isLogged && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", req.url))
+    // return NextResponse.redirect(new URL("/login", req.url))
   }
 
   if (isLogged && isAuthPage) {

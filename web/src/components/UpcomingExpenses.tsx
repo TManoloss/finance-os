@@ -42,7 +42,7 @@ export default function UpcomingExpenses({ expenses }: { expenses: UpcomingExpen
             <div>
               <div className="font-black uppercase text-xs">{expense.description}</div>
               <div className="text-[10px] font-bold text-text-secondary uppercase">
-                PREVISÃO: {format(new Date(expense.date), "dd 'DE' MMMM", { locale: ptBR })}
+                PREVISÃO: {expense.date ? format(new Date(expense.date), "dd 'DE' MMMM", { locale: ptBR }) : 'SEM_DATA'}
               </div>
             </div>
           </div>
