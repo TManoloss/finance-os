@@ -54,6 +54,16 @@ func (m *MockUserRepository) DeleteRefreshToken(ctx context.Context, token strin
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdatePluggyCredentials(ctx context.Context, userID, clientID, clientSecret string) error {
+	args := m.Called(ctx, userID, clientID, clientSecret)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) GetPluggyCredentials(ctx context.Context, userID string) (string, string, error) {
+	args := m.Called(ctx, userID)
+	return args.String(0), args.String(1), args.Error(2)
+}
+
 func setupTest() (*AuthService, *MockUserRepository) {
 	mockRepo := new(MockUserRepository)
 	cfg := &config.Config{
