@@ -387,6 +387,13 @@ async def get_installment_timeline_report(user_id: str):
 @app.post("/reports/gamification/{user_id}")
 async def get_gamification_report(user_id: str):
     try:
+        # Executa o rastreamento de missões, checagem de conquistas e geração de novas missões se nulas
+        try:
+            await gamification_agent.run(user_id)
+        except Exception as run_err:
+            logger.error(f"Erro ao executar agente de gamificação para o usuário {user_id}: {str(run_err)}")
+            # Continuamos para tentar ler o que já existe no banco caso a geração falhe
+
         conn = await gamification_agent.get_db_connection()
         try:
             # Pegar conquistas do mês atual

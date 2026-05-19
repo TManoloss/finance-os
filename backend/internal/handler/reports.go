@@ -375,6 +375,26 @@ func (h *ReportsHandler) GetImpulseRadar(c echo.Context) error {
 func (h *ReportsHandler) GetGamificationReport(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
+	// Tenta chamar o serviço Python para processar/gerar missões
+	url := fmt.Sprintf("%s/reports/gamification/%s", h.cfg.AgentsServiceURL, userID)
+	resp, err := http.Post(url, "application/json", nil)
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			var result struct {
+				Achievements []interface{} `json:"achievements"`
+				Missions     []interface{} `json:"missions"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+				return response.Success(c, http.StatusOK, map[string]interface{}{
+					"active_missions":      result.Missions,
+					"awarded_achievements": result.Achievements,
+				})
+			}
+		}
+	}
+
+	// Fallback: busca direto do banco de dados caso o serviço Python falhe ou retorne erro
 	missions, err := h.gamificationService.GetActiveMissions(c.Request().Context(), userID)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao buscar missões")
