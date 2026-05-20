@@ -28,8 +28,8 @@ class DailySpendingChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getHorizontalLineData: (value) => FlLine(
-            color: BlueprintTheme.border.withOpacity(0.1),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: BlueprintTheme.border.withValues(alpha: 0.1),
             strokeWidth: 1,
           ),
         ),
@@ -79,12 +79,12 @@ class DailySpendingChart extends StatelessWidget {
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
-            belowArea: BarAreaData(
+            belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  BlueprintTheme.accentPurple.withOpacity(0.3),
-                  BlueprintTheme.accentPurple.withOpacity(0),
+                  BlueprintTheme.accentPurple.withValues(alpha: 0.3),
+                  BlueprintTheme.accentPurple.withValues(alpha: 0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -94,7 +94,7 @@ class DailySpendingChart extends StatelessWidget {
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => BlueprintTheme.elevated,
+            tooltipBgColor: BlueprintTheme.elevated,
             tooltipBorder: const BorderSide(color: BlueprintTheme.border, width: 1),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {

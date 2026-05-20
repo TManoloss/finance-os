@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../../theme/blueprint_theme.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class ChatMessage {
@@ -131,7 +131,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ],
                       Flexible(
                         child: Column(
-                          crossAxisAlignment: isUser ? CrossAxisAlignment.end : MainAxisAlignment.start,
+                          crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                           children: [
                             Text(
                               isUser ? 'VOCÊ' : 'PIERRE_AI', 

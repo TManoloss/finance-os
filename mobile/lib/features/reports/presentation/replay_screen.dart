@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/colors.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 // Este é um mock para demonstração do conceito
 // Em um cenário real, os dados viriam do Riverpod Provider
@@ -59,7 +59,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
     final slide = _slides[_currentSlide];
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: BlueprintTheme.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -76,8 +76,8 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
                       height: 4,
                       decoration: BoxDecoration(
                         color: index <= _currentSlide
-                            ? AppColors.primary
-                            : AppColors.border,
+                            ? BlueprintTheme.accentPurple
+                            : BlueprintTheme.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -118,7 +118,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
                     Text(
                       slide['title'],
                       style: const TextStyle(
-                        color: AppColors.success,
+                        color: BlueprintTheme.accentTeal,
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
@@ -128,7 +128,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
                     Text(
                       slide['text'],
                       style: const TextStyle(
-                        color: AppColors.textPrimary,
+                        color: BlueprintTheme.textPrimary,
                         fontSize: 20,
                         height: 1.5,
                       ),
@@ -139,7 +139,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
                       Text(
                         slide['highlight_value'],
                         style: const TextStyle(
-                          color: AppColors.primary,
+                          color: BlueprintTheme.accentPurple,
                           fontSize: 48,
                           fontWeight: FontWeight.w900,
                         ),
@@ -156,7 +156,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
               right: 0,
               child: Center(
                 child: IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: const Icon(Icons.close, color: BlueprintTheme.textSecondary),
                   onPressed: () => context.pop(),
                 ),
               ),

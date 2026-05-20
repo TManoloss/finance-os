@@ -76,8 +76,6 @@ class _PluggySetupScreenState extends ConsumerState<PluggySetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
       body: Center(

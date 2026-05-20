@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'auth_provider.dart';
-import '../../theme/blueprint_theme.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -69,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'F', 
                     style: TextStyle(
                       fontSize: 32, 
-                      fontWeight: FontWeight.black, 
+                      fontWeight: FontWeight.w900, 
                       color: Colors.white
                     )
                   ),
@@ -81,11 +82,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24, 
-                  fontWeight: FontWeight.black, 
+                  fontWeight: FontWeight.w900, 
                   letterSpacing: -1
                 ),
               ),
-              const Text(
+              Text(
                 'OPERATIONAL_SYSTEM_V1.1',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -122,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : const Text(
                           'AUTENTICAR', 
                           style: TextStyle(
-                            fontWeight: FontWeight.black, 
+                            fontWeight: FontWeight.w900, 
                             color: Colors.white, 
                             letterSpacing: 1
                           )
@@ -133,8 +134,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               
               const SizedBox(height: 24),
               TextButton(
-                onPressed: () {},
-                child: const Text(
+                onPressed: () => context.go('/register'),
+                child: Text(
                   'SOLICITAR_ACESSO',
                   style: TextStyle(
                     fontSize: 10, 
@@ -156,7 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 8, 
             fontWeight: FontWeight.bold, 
             color: BlueprintTheme.textSecondary,

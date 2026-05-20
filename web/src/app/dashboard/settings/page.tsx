@@ -89,13 +89,18 @@ export default function SettingsPage() {
       await api.post("accounts/keys", pluggyKeys, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert("CREDENTIALS_SAVED: Chaves da Pluggy atualizadas com sucesso para este usuário.");
+      alert("Credenciais validadas e salvas com sucesso! Agora você pode conectar seus bancos.");
       setHasKeys(true);
       // Limpa o segredo da memória após salvar por segurança
       setPluggyKeys(prev => ({ ...prev, client_secret: "" }));
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao salvar chaves", err);
-      alert("SAVE_ERROR: Falha ao persistir credenciais.");
+      const serverMsg = err?.response?.data?.error || "";
+      if (serverMsg) {
+        alert(serverMsg);
+      } else {
+        alert("Falha ao salvar credenciais. Tente novamente.");
+      }
     } finally {
       setSavingKeys(false);
     }
@@ -152,7 +157,14 @@ export default function SettingsPage() {
       setConnectToken(resp.data.data.accessToken);
       setShowWidget(true);
     } catch (err: any) {
-      alert("ERRO_CONFIG: Falha ao inicializar handshake com Pluggy API.");
+      const serverMsg = err?.response?.data?.error || "";
+      if (serverMsg.includes("credenciais") || serverMsg.includes("Pluggy")) {
+        alert(serverMsg);
+      } else if (err?.response?.status === 400) {
+        alert("Suas credenciais da Pluggy não estão configuradas. Preencha o Client ID e Client Secret nas Configurações acima e salve antes de tentar conectar um banco.");
+      } else {
+        alert("Falha ao conectar com a Pluggy. Verifique suas credenciais nas Configurações e tente novamente.");
+      }
     }
   };
 

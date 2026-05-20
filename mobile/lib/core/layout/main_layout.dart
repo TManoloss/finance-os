@@ -44,6 +44,11 @@ class MainLayout extends StatelessWidget {
               label: 'CARTÕES'
             ),
             BottomNavigationBarItem(
+              icon: Icon(LucideIcons.barChart3), 
+              activeIcon: Icon(LucideIcons.barChart3, color: BlueprintTheme.accentPurple),
+              label: 'RELATÓRIOS'
+            ),
+            BottomNavigationBarItem(
               icon: Icon(LucideIcons.terminal), 
               activeIcon: Icon(LucideIcons.terminal, color: BlueprintTheme.accentPurple),
               label: 'PIERRE'

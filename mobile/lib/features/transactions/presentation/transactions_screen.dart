@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../dashboard/presentation/dashboard_provider.dart';
+import 'package:finance_os/features/transactions/presentation/transactions_provider.dart';
 import '../../../core/theme/blueprint_theme.dart';
 
 class TransactionsScreen extends ConsumerWidget {
@@ -33,7 +33,7 @@ class TransactionsScreen extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: 48, color: BlueprintTheme.textSecondary.withOpacity(0.5)),
+                  Icon(Icons.inventory_2_outlined, size: 48, color: BlueprintTheme.textSecondary.withValues(alpha: 0.5)),
                   const SizedBox(height: 16),
                   const Text(
                     'BUFFER_EMPTY: SEM_OPERAÇÕES',
@@ -45,7 +45,7 @@ class TransactionsScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () async => ref.refresh(transactionsProvider),
+            onRefresh: () async => ref.invalidate(transactionsProvider),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: transactions.length,
@@ -67,7 +67,7 @@ class TransactionsScreen extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: (isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.danger).withOpacity(0.1),
+                          color: (isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.danger).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
@@ -93,8 +93,8 @@ class TransactionsScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${dateFormat.format(tx.date)} | ${tx.accountName.toUpperCase()} | ${tx.categoryName.toUpperCase()}',
-                              style: const TextStyle(
+                              '${DateTime.tryParse(tx.date) != null ? dateFormat.format(DateTime.parse(tx.date)) : tx.date} • ${tx.categoryName?.toUpperCase() ?? 'OUTROS'}',
+                              style: TextStyle(
                                 color: BlueprintTheme.textSecondary,
                                 fontSize: 8,
                                 fontWeight: FontWeight.bold,

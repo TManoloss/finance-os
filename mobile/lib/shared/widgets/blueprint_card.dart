@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/blueprint_theme.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 class BlueprintCard extends StatelessWidget {
   final Widget child;
@@ -26,7 +26,7 @@ class BlueprintCard extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 6),
             child: Text(
               label!.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: BlueprintTheme.textSecondary,
                 fontWeight: FontWeight.bold,
                 fontSize: 10,

@@ -60,6 +60,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> login(String email, String password) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final api = ref.read(apiClientProvider);
+      final resp = await api.dio.post('/auth/login', data: {
+        'email': email,
+        'password': password,
+      });
+
+      if (resp.statusCode == 200) {
+        final accessToken = resp.data['data']['access_token'];
+        if (accessToken != null) {
+          final storage = ref.read(storageProvider);
+          await storage.write(key: 'access_token', value: accessToken);
+          await fetchUser();
+          return true;
+        }
+      }
+      state = state.copyWith(isLoading: false);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     final storage = ref.read(storageProvider);
     await storage.delete(key: 'access_token');

@@ -1,12 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finance_os/features/auth/presentation/login_screen.dart';
+import 'package:finance_os/features/auth/presentation/register_screen.dart';
 import 'package:finance_os/features/auth/presentation/pluggy_setup_screen.dart';
 import 'package:finance_os/features/auth/presentation/auth_provider.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:finance_os/features/transactions/presentation/transactions_screen.dart';
+import 'package:finance_os/features/cards/presentation/cards_screen.dart';
+import 'package:finance_os/features/reports/presentation/reports_screen.dart';
 import 'package:finance_os/features/chat/presentation/chat_screen.dart';
+import 'package:finance_os/features/settings/presentation/settings_screen.dart';
+import 'package:finance_os/features/health/presentation/health_screen.dart';
+import 'package:finance_os/features/merchants/presentation/merchants_screen.dart';
+import 'package:finance_os/features/simulator/presentation/simulator_screen.dart';
+import 'package:finance_os/features/reports/presentation/replay_screen.dart';
 import 'package:finance_os/core/layout/main_layout.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -14,13 +21,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/dashboard',
-    refreshListenable: null, // We could use a Listenable here, but ref.watch already triggers rebuild
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
+      final isRegistering = state.matchedLocation == '/register';
 
       if (!isAuthenticated) {
-        return isLoggingIn ? null : '/login';
+        return (isLoggingIn || isRegistering) ? null : '/login';
       }
 
       // If authenticated
@@ -32,7 +39,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isSettingUpPluggy ? null : '/pluggy-setup';
       }
 
-      if (isLoggingIn || (isSettingUpPluggy && isPluggyConfigured)) {
+      if (isLoggingIn || isRegistering || (isSettingUpPluggy && isPluggyConfigured)) {
         return '/dashboard';
       }
 
@@ -45,9 +52,40 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: '/register',
+        name: 'register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
         path: '/pluggy-setup',
         name: 'pluggy-setup',
         builder: (context, state) => const PluggySetupScreen(),
+      ),
+      // Rotas protegidas que não são parte da shell (settings, health, merchants, simulator, replay)
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/health',
+        name: 'health',
+        builder: (context, state) => const HealthScreen(),
+      ),
+      GoRoute(
+        path: '/merchants',
+        name: 'merchants',
+        builder: (context, state) => const MerchantsScreen(),
+      ),
+      GoRoute(
+        path: '/simulator',
+        name: 'simulator',
+        builder: (context, state) => const SimulatorScreen(),
+      ),
+      GoRoute(
+        path: '/replay/:month',
+        name: 'replay',
+        builder: (context, state) => ReplayScreen(month: state.pathParameters['month'] ?? ''),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -77,7 +115,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/cards',
                 name: 'cards',
-                builder: (context, state) => const Scaffold(body: Center(child: Text('CREDIT_MODULE'))),
+                builder: (context, state) => const CardsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/reports',
+                name: 'reports',
+                builder: (context, state) => const ReportsScreen(),
               ),
             ],
           ),
