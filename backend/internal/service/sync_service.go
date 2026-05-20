@@ -29,71 +29,121 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 }
 
 // SyncItem realiza a sincronização completa de um Item (contas e transações).
+// Quando chamado logo após a conexão via widget, o item pode estar em status
+// UPDATING por até 2 minutos. Fazemos polling até ficar UPDATED.
 func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string, pluggyClient *pluggy.Client) (int, error) {
-	// 1. Buscar detalhes do Item para pegar o ConnectorID
-	item, err := pluggyClient.GetItem(itemID)
+	log.Printf("[SyncItem] Iniciando sync do item %s para user %s", itemID, userID)
+
+	// 1. Aguardar o item ficar pronto (status UPDATED)
+	// Após a conexão via widget, o item pode demorar 30-120s para ficar pronto
+	var item *pluggy.Item
+	var err error
+	maxAttempts := 18 // 18 x 10s = 3 minutos de timeout
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		item, err = pluggyClient.GetItem(itemID)
+		if err != nil {
+			log.Printf("[SyncItem] Tentativa %d/%d: erro ao buscar item %s: %v", attempt, maxAttempts, itemID, err)
+			if attempt == maxAttempts {
+				return 0, fmt.Errorf("item %s não encontrado na Pluggy após %d tentativas: %w", itemID, maxAttempts, err)
+			}
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		log.Printf("[SyncItem] Tentativa %d/%d: item %s status=%s", attempt, maxAttempts, itemID, item.Status)
+
+		if item.Status == "UPDATED" || item.Status == "FINISHED" {
+			break // Item pronto
+		}
+
+		if item.Status == "LOGIN_ERROR" || item.Status == "OUTDATED" || item.Status == "WAITING_USER_INPUT" {
+			return 0, fmt.Errorf("item %s com erro de conexão (status: %s). O banco pode ter rejeitado a autenticação", itemID, item.Status)
+		}
+
+		// Status UPDATING, MERGING, etc — aguardar
+		if attempt == maxAttempts {
+			return 0, fmt.Errorf("item %s não ficou pronto após 3 minutos (status: %s)", itemID, item.Status)
+		}
+		time.Sleep(10 * time.Second)
+	}
+
+	// 2. Buscar detalhes do Conector (Logo e Cor)
 	var logo, color string
-	if err == nil {
-		// 2. Buscar detalhes do Conector (Logo e Cor)
+	if item != nil {
 		connector, err := pluggyClient.GetConnector(item.ConnectorID)
 		if err == nil {
 			logo = connector.ImageUrl
 			color = connector.PrimaryColor
+			log.Printf("[SyncItem] Conector: %s (logo=%s)", connector.Name, logo)
+		} else {
+			log.Printf("[SyncItem] Aviso: não foi possível buscar conector %d: %v", item.ConnectorID, err)
 		}
 	}
 
 	// 3. Buscar contas do Item na Pluggy
 	pluggyAccounts, err := pluggyClient.GetAccounts(itemID)
 	if err != nil {
-		return 0, fmt.Errorf("erro ao buscar contas na pluggy: %w", err)
+		return 0, fmt.Errorf("erro ao buscar contas na pluggy para item %s: %w", itemID, err)
+	}
+
+	log.Printf("[SyncItem] Item %s: encontradas %d contas", itemID, len(pluggyAccounts))
+
+	if len(pluggyAccounts) == 0 {
+		return 0, fmt.Errorf("item %s conectado mas retornou 0 contas. Pode ser que o banco não tenha informações disponíveis", itemID)
 	}
 
 	totalSaved := 0
 
 	for _, pa := range pluggyAccounts {
+		log.Printf("[SyncItem] Processando conta %s (%s/%s) - saldo: %.2f", pa.ID, pa.Name, pa.Type, pa.Balance)
+
 		// 4. Upsert da conta no nosso banco com logo e cor
 		accountID, err := s.upsertAccount(ctx, userID, pa, logo, color)
 		if err != nil {
-			log.Printf("erro ao sincronizar conta %s: %v", pa.ID, err)
+			log.Printf("[SyncItem] Erro ao sincronizar conta %s: %v", pa.ID, err)
 			continue
 		}
 
-		// 3. Buscar transações dos últimos 90 dias
+		// 5. Buscar transações dos últimos 90 dias
 		to := time.Now().Format("2006-01-02")
 		from := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
 		
 		transactions, err := pluggyClient.GetTransactions(pa.ID, from, to)
 		if err != nil {
-			log.Printf("erro ao buscar transações da conta %s: %v", pa.ID, err)
+			log.Printf("[SyncItem] Erro ao buscar transações da conta %s: %v", pa.ID, err)
 			continue
 		}
 
-		// 4. Salvar transações (passando userID para classificação)
+		log.Printf("[SyncItem] Conta %s: %d transações encontradas (período %s a %s)", pa.ID, len(transactions), from, to)
+
+		// 6. Salvar transações (passando userID para classificação)
 		savedTxs, err := s.saveTransactionsAndReturn(ctx, userID, accountID, transactions)
 		if err != nil {
-			log.Printf("erro ao salvar transações da conta %s: %v", pa.ID, err)
+			log.Printf("[SyncItem] Erro ao salvar transações da conta %s: %v", pa.ID, err)
 		}
 
 		totalSaved += len(savedTxs)
+		log.Printf("[SyncItem] Conta %s: %d transações salvas (novas)", pa.ID, len(savedTxs))
 
-		// 5. Detectar parcelamentos
+		// 7. Detectar parcelamentos
 		if s.installmentService != nil && len(savedTxs) > 0 {
 			if err := s.installmentService.ProcessTransactions(ctx, accountID, savedTxs); err != nil {
-				log.Printf("erro ao processar parcelamentos: %v", err)
+				log.Printf("[SyncItem] Erro ao processar parcelamentos: %v", err)
 			}
 		}
 
-		// 6. Gerar eventos no feed
+		// 8. Gerar eventos no feed
 		if s.feedService != nil && len(savedTxs) > 0 {
 			if err := s.feedService.GenerateEvents(ctx, userID, savedTxs); err != nil {
-				log.Printf("erro ao gerar eventos no feed: %v", err)
+				log.Printf("[SyncItem] Erro ao gerar eventos no feed: %v", err)
 			}
 		}
 		
-		// 7. Atualizar last_synced_at
+		// 9. Atualizar last_synced_at
 		s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID)
 	}
 
+	log.Printf("[SyncItem] Sync completo: item %s, user %s, total %d transações salvas", itemID, userID, totalSaved)
 	return totalSaved, nil
 }
 
