@@ -41,6 +41,7 @@ func NewAccountsHandler(
 }
 
 // SavePluggyKeys salva as credenciais da Pluggy para o usuário.
+// Antes de persistir, valida que as credenciais são aceitas pela API da Pluggy.
 func (h *AccountsHandler) SavePluggyKeys(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
@@ -57,6 +58,22 @@ func (h *AccountsHandler) SavePluggyKeys(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "client_id e client_secret são obrigatórios")
 	}
 
+	// Validar credenciais na Pluggy antes de salvar
+	// Etapa 1: Testar autenticação (POST /auth)
+	testClient := pluggy.NewClient(req.ClientID, req.ClientSecret)
+	if err := testClient.Authenticate(); err != nil {
+		log.Printf("[SavePluggyKeys] Credenciais inválidas para user %s: %v", userID, err)
+		return response.Error(c, http.StatusBadRequest, "Credenciais inválidas. A Pluggy rejeitou o Client ID e Client Secret informados. Verifique se copiou corretamente no painel da Pluggy.")
+	}
+
+	// Etapa 2: Testar operação real (POST /connect_token)
+	// Algumas credenciais passam no auth mas não funcionam na prática
+	if _, err := testClient.CreateConnectToken(nil); err != nil {
+		log.Printf("[SavePluggyKeys] Credenciais autenticam mas não operam para user %s: %v", userID, err)
+		return response.Error(c, http.StatusBadRequest, "Suas credenciais autenticaram, mas a Pluggy não permitiu operações. Verifique se sua conta na Pluggy está ativa e se você está usando as credenciais do ambiente correto (Produção vs Sandbox).")
+	}
+	log.Printf("[SavePluggyKeys] Credenciais válidas e operacionais para user %s, salvando...", userID)
+
 	encryptedSecret, err := h.encryptionService.Encrypt(req.ClientSecret)
 	if err != nil {
 		log.Printf("Erro ao criptografar secret: %v", err)
@@ -70,7 +87,7 @@ func (h *AccountsHandler) SavePluggyKeys(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, map[string]string{
-		"message": "credenciais salvas com sucesso",
+		"message": "credenciais validadas e salvas com sucesso",
 	})
 }
 
@@ -222,12 +239,14 @@ func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
 	if err != nil {
+		log.Printf("[ConnectToken] Falha ao obter client Pluggy para user %s: %v", userID, err)
 		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
 	token, err := pluggyClient.CreateConnectToken(&req.ItemID)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao gerar connect token")
+		log.Printf("[ConnectToken] Falha ao gerar connect token para user %s: %v", userID, err)
+		return response.Error(c, http.StatusBadGateway, "Falha ao conectar com a Pluggy. Suas credenciais podem estar expiradas ou inválidas. Atualize-as nas Configurações.")
 	}
 
 	return response.Success(c, http.StatusOK, map[string]string{
@@ -239,23 +258,21 @@ func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 func (h *AccountsHandler) Sync(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
-	// Rate limit check: max 1 manual sync per user every 30 minutes
-	var lastSync time.Time
-	err := h.db.QueryRow(c.Request().Context(), `
-		SELECT started_at FROM sync_logs 
-		WHERE triggered_by = 'manual' AND errors_detail::text LIKE '%' || $1 || '%'
-		ORDER BY started_at DESC LIMIT 1
-	`, userID).Scan(&lastSync)
-	
-	// We'll use a simpler check: get the most recent 'manual' sync log for this user.
-	// Since sync_logs might not store user_id directly except in errors_detail (which is hacky),
-	// let's do a better check:
-	err = h.db.QueryRow(c.Request().Context(), `
-		SELECT MAX(last_synced_at) FROM connected_accounts WHERE user_id = $1
-	`, userID).Scan(&lastSync)
+	var req struct {
+		ItemID string `json:"item_id"`
+	}
+	_ = c.Bind(&req)
 
-	if err == nil && !lastSync.IsZero() && time.Since(lastSync) < 30*time.Minute {
-		return response.Error(c, http.StatusTooManyRequests, "sincronização manual permitida apenas a cada 30 minutos")
+	if req.ItemID == "" {
+		// Rate limit check: max 1 manual sync per user every 30 minutes
+		var lastSync time.Time
+		err := h.db.QueryRow(c.Request().Context(), `
+			SELECT MAX(last_synced_at) FROM connected_accounts WHERE user_id = $1
+		`, userID).Scan(&lastSync)
+
+		if err == nil && !lastSync.IsZero() && time.Since(lastSync) < 30*time.Minute {
+			return response.Error(c, http.StatusTooManyRequests, "sincronização manual permitida apenas a cada 30 minutos")
+		}
 	}
 
 	pluggyClient, err := h.getPluggyClientForUser(c.Request().Context(), userID)
@@ -268,7 +285,15 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		defer cancel()
 		
 		start := time.Now()
-		saved, err := h.syncService.SyncUserAccounts(ctx, userID, pluggyClient)
+		var saved int
+		var err error
+
+		if req.ItemID != "" {
+			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient)
+		} else {
+			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient)
+		}
+		
 		duration := time.Since(start).Milliseconds()
 		
 		// Log na tabela sync_logs
