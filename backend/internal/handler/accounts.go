@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -301,7 +302,13 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		var errorsDetail string
 		if err != nil {
 			errorsCount = 1
-			errorsDetail = fmt.Sprintf(`[{"user_id":"%s","error":"%s"}]`, userID, err.Error())
+			
+			// Usa json.Marshal para escapar corretamente as aspas e quebras de linha
+			errObj := []map[string]string{
+				{"user_id": userID, "error": err.Error()},
+			}
+			jsonBytes, _ := json.Marshal(errObj)
+			errorsDetail = string(jsonBytes)
 		} else {
 			errorsDetail = "[]"
 		}

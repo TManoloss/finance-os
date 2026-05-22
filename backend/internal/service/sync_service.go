@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/finance-os/backend/internal/pluggy"
@@ -34,8 +35,9 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string, pluggyClient *pluggy.Client) (int, error) {
 	log.Printf("[SyncItem] Iniciando sync do item %s para user %s", itemID, userID)
 
-	// 1. Aguardar o item ficar pronto (status UPDATED)
-	// Após a conexão via widget, o item pode demorar 30-120s para ficar pronto
+	// 1. Verificar o status do item na Pluggy
+	// Para syncs de rotina, o item já existe e geralmente estará em status UPDATED.
+	// Para novas conexões via widget, pode estar UPDATING por até 2 minutos.
 	var item *pluggy.Item
 	var err error
 	maxAttempts := 18 // 18 x 10s = 3 minutos de timeout
@@ -43,6 +45,12 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 		item, err = pluggyClient.GetItem(itemID)
 		if err != nil {
 			log.Printf("[SyncItem] Tentativa %d/%d: erro ao buscar item %s: %v", attempt, maxAttempts, itemID, err)
+			
+			// Se o item não for encontrado (404), não adianta tentar novamente
+			if strings.Contains(err.Error(), "status 404") {
+				return 0, fmt.Errorf("item %s não foi encontrado na Pluggy (possivelmente desconectado).", itemID)
+			}
+			
 			if attempt == maxAttempts {
 				return 0, fmt.Errorf("item %s não encontrado na Pluggy após %d tentativas: %w", itemID, maxAttempts, err)
 			}
@@ -60,7 +68,15 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 			return 0, fmt.Errorf("item %s com erro de conexão (status: %s). O banco pode ter rejeitado a autenticação", itemID, item.Status)
 		}
 
-		// Status UPDATING, MERGING, etc — aguardar
+		// Status UPDATING, MERGING, etc
+		// Se for a primeira tentativa e o item está atualizando (sync automático),
+		// aguardamos até 15s antes de usar os dados existentes mesmo assim.
+		// Isso evita timeout de 3min em syncs de rotina.
+		if attempt >= 2 {
+			log.Printf("[SyncItem] Item %s em status %s após %ds de espera. Prosseguindo com dados disponíveis.", itemID, item.Status, attempt*10)
+			break
+		}
+
 		if attempt == maxAttempts {
 			return 0, fmt.Errorf("item %s não ficou pronto após 3 minutos (status: %s)", itemID, item.Status)
 		}
@@ -105,7 +121,8 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 		}
 
 		// 5. Buscar transações dos últimos 90 dias
-		to := time.Now().Format("2006-01-02")
+		// Adicionamos 1 dia ao 'to' para garantir que transações de hoje não sejam cortadas por fuso horário.
+		to := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 		from := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
 		
 		transactions, err := pluggyClient.GetTransactions(pa.ID, from, to)
