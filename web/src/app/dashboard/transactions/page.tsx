@@ -33,7 +33,21 @@ async function getCategories(token: string) {
     const resp = await apiServer.get("categories", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data.data || [];
+    
+    const list = resp.data?.data || [];
+    const uniqueCategories: any[] = [];
+    const seenNames = new Set<string>();
+    
+    for (const cat of list) {
+      if (!cat?.name) continue;
+      const normalizedName = cat.name.trim().toLowerCase();
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        uniqueCategories.push(cat);
+      }
+    }
+    
+    return uniqueCategories;
   } catch (error) {
     return [];
   }
