@@ -290,7 +290,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		var err error
 
 		if req.ItemID != "" {
-			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient)
+			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient, true)
 		} else {
 			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, true)
 		}
