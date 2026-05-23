@@ -36,7 +36,7 @@ interface CompensationPatternCardProps {
 export default function CompensationPatternCard({ data }: CompensationPatternCardProps) {
   if (!data) return null;
 
-  const chartData = data.weekly_data.map((value, i) => ({
+  const chartData = (data.weekly_data || []).map((value, i) => ({
     name: `W${i + 1}`,
     value: value,
   }));
@@ -74,7 +74,7 @@ export default function CompensationPatternCard({ data }: CompensationPatternCar
                       {chartData.map((entry, index) => (
                         <Cell 
                            key={`cell-${index}`} 
-                           fill={entry.value > data.weekly_median ? "#FF6B6B" : "#4ECDC4"} 
+                           fill={entry.value > (data.weekly_median || 0) ? "#FF6B6B" : "#4ECDC4"} 
                         />
                       ))}
                    </Bar>
@@ -87,15 +87,15 @@ export default function CompensationPatternCard({ data }: CompensationPatternCar
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 border-2 border-black bg-elevated relative overflow-hidden group">
             <div className="text-[10px] font-black text-text-secondary uppercase mb-2">PADRÃO_DETECTADO</div>
-            <div className={`text-2xl font-black uppercase tracking-tighter ${data.insights.pattern_detected ? 'text-danger' : 'text-success'}`}>
-               {data.insights.pattern_type} // {data.insights.strength}
+            <div className={`text-2xl font-black uppercase tracking-tighter ${data.insights?.pattern_detected ? 'text-danger' : 'text-success'}`}>
+               {data.insights?.pattern_type || "N/A"} // {data.insights?.strength || "N/A"}
             </div>
           </div>
 
           <div className="p-6 border-2 border-black bg-elevated relative overflow-hidden group">
             <div className="text-[10px] font-black text-text-secondary uppercase mb-2">AUTOCORRELAÇÃO_LAG-1</div>
             <div className="text-2xl font-black text-text-primary">
-               {data.autocorrelation.toFixed(3)}
+               {(data.autocorrelation ?? 0).toFixed(3)}
             </div>
             <div className="mt-1 text-[10px] font-bold text-text-secondary uppercase">
                VALORES NEGATIVOS INDICAM COMPENSAÇÃO
@@ -110,13 +110,13 @@ export default function CompensationPatternCard({ data }: CompensationPatternCar
           </div>
           <div className="p-6 border-2 border-black bg-background shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] italic text-lg font-bold leading-relaxed border-l-8 border-l-accent-primary">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {data.insights.narrative}
+              {data.insights?.narrative || ""}
             </ReactMarkdown>
           </div>
         </div>
 
         {/* Stress Insights */}
-        {data.insights.stress_insight && (
+        {data.insights?.stress_insight && (
           <div className="p-6 border-2 border-black bg-elevated/20 border-dashed">
              <div className="flex items-center gap-2 text-danger font-black text-[10px] uppercase tracking-widest mb-4">
                 <AlertCircle className="w-4 h-4" /> POST_STRESS_SPENDING_ALERTA
