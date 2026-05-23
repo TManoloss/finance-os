@@ -7,6 +7,7 @@ import Link from "next/link";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import CategoryFilter from "@/components/CategoryFilter";
+import CategorySelect from "@/components/CategorySelect";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -123,9 +124,12 @@ export default async function TransactionsPage({
                     {tx.account_name}
                   </td>
                   <td className="px-6 py-4 border-r-2 border-black">
-                    <span className="px-2 py-1 bg-black text-white text-[10px] font-black uppercase tracking-tighter">
-                      {tx.category?.name || 'NULL_CATEGORY'}
-                    </span>
+                    <CategorySelect
+                      transactionId={tx.id}
+                      currentCategoryId={tx.category?.id}
+                      currentCategoryName={tx.category?.name}
+                      categories={categories}
+                    />
                   </td>
                   <td className={cn(
                     "px-6 py-4 text-lg font-black font-mono text-right tabular-nums",
@@ -166,9 +170,12 @@ export default async function TransactionsPage({
                     <span className="text-[8px] font-black text-black/40 uppercase">
                       {tx.account_name}
                     </span>
-                    <span className="px-1.5 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-tighter">
-                      {tx.category?.name || 'NULL'}
-                    </span>
+                    <CategorySelect
+                      transactionId={tx.id}
+                      currentCategoryId={tx.category?.id}
+                      currentCategoryName={tx.category?.name}
+                      categories={categories}
+                    />
                   </div>
                 </div>
               </div>
