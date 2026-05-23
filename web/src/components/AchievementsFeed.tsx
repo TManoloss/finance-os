@@ -53,7 +53,9 @@ export default function AchievementsFeed({ achievements }: { achievements: Achie
 
             <div className="flex items-center gap-1 text-[8px] font-black text-accent-primary uppercase">
               <Calendar className="w-2 h-2" />
-              {format(new Date(achievement.awarded_at), "dd.MM.yyyy", { locale: ptBR })}
+              {achievement.awarded_at && !isNaN(new Date(achievement.awarded_at).getTime())
+                ? format(new Date(achievement.awarded_at), "dd.MM.yyyy", { locale: ptBR })
+                : "--"}
             </div>
           </div>
         ))}

@@ -28,7 +28,8 @@ async function getReports(token: string) {
     const resp = await apiServer.get("reports", {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return resp.data?.data || [];
+    const data = resp.data?.data;
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
   }
@@ -402,7 +403,9 @@ export default async function ReportsPage() {
                    <div className="text-[10px] font-black uppercase text-text-secondary mb-1">GENERATION_TIMESTAMP</div>
                    <div className="flex items-center gap-2 font-bold text-xs uppercase">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(report.created_at), "dd.MM.yyyy HH:mm", { locale: ptBR })}
+                      {report.created_at && !isNaN(new Date(report.created_at).getTime()) 
+                        ? format(new Date(report.created_at), "dd.MM.yyyy HH:mm", { locale: ptBR })
+                        : "--"}
                    </div>
                 </div>
               </div>
