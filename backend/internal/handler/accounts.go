@@ -292,7 +292,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		if req.ItemID != "" {
 			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient)
 		} else {
-			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient)
+			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, true)
 		}
 		
 		duration := time.Since(start).Milliseconds()
@@ -313,10 +313,14 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 			errorsDetail = "[]"
 		}
 		
-		h.db.Exec(context.Background(), `
+		_, dbErr := h.db.Exec(context.Background(), `
 			INSERT INTO sync_logs (triggered_by, synced_users, transactions_imported, errors_count, errors_detail, duration_ms, started_at, finished_at)
 			VALUES ('manual', 1, $1, $2, $3::jsonb, $4, $5, NOW())
 		`, saved, errorsCount, errorsDetail, duration, start)
+
+		if dbErr != nil {
+			log.Printf("Erro ao salvar log de sync_logs: %v", dbErr)
+		}
 
 		if err != nil {
 			log.Printf("Erro na sincronização assíncrona para user %s: %v", userID, err)

@@ -111,7 +111,7 @@ func (h *SyncHandler) SyncAll(c echo.Context) error {
 			}
 
 			// Sincronizar
-			count, err := h.syncService.SyncUserAccounts(ctx, userID, pluggyClient)
+			count, err := h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, false)
 			
 			resultsMu.Lock()
 			if err != nil {

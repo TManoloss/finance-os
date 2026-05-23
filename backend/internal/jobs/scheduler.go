@@ -190,7 +190,7 @@ func (s *Scheduler) SyncAllUsers() {
 			}
 
 			log.Printf("[Job] Sincronizando item %s para usuário %s", itemID, userID)
-			if _, err := s.syncService.SyncItem(ctx, userID, itemID, pluggyClient); err != nil {
+			if _, err := s.syncService.SyncItem(ctx, userID, itemID, pluggyClient, false); err != nil {
 				log.Printf("[Job] Erro ao sincronizar item %s: %v", itemID, err)
 			}
 		}

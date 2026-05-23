@@ -50,6 +50,28 @@ func (c *Client) GetItem(itemID string) (*Item, error) {
 	return &res, nil
 }
 
+// ForceUpdateItem força a atualização de um item na Pluggy.
+func (c *Client) ForceUpdateItem(itemID string) (*Item, error) {
+	path := fmt.Sprintf("/items/%s", itemID)
+	// PATCH /items/{id} aciona uma sincronização manual
+	resp, err := c.doRequest(http.MethodPatch, path, []byte("{}"))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		return nil, fmt.Errorf("erro ao forçar atualização do item: status %d", resp.StatusCode)
+	}
+
+	var res Item
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}
+
 // GetConnector busca detalhes de um conector (instituição).
 func (c *Client) GetConnector(connectorID int) (*Connector, error) {
 	path := fmt.Sprintf("/connectors/%d", connectorID)
@@ -71,28 +93,47 @@ func (c *Client) GetConnector(connectorID int) (*Connector, error) {
 	return &res, nil
 }
 
-// GetTransactions busca transações de uma conta com filtros de data.
+// GetTransactions busca TODAS as transações de uma conta com filtros de data,
+// percorrendo automaticamente todas as páginas da API da Pluggy.
 func (c *Client) GetTransactions(accountID string, from, to string) ([]Transaction, error) {
-	path := fmt.Sprintf("/transactions?accountId=%s&from=%s&to=%s", accountID, from, to)
-	
-	// A Pluggy usa paginação, para esta micro-tarefa inicial vamos focar na primeira página
-	// Nas próximas evoluções podemos implementar o scroll completo
-	resp, err := c.doRequest(http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	var allTransactions []Transaction
+	page := 1
+	pageSize := 500 // máximo suportado pela Pluggy
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("erro ao buscar transações: status %d", resp.StatusCode)
+	for {
+		path := fmt.Sprintf("/transactions?accountId=%s&from=%s&to=%s&page=%d&pageSize=%d",
+			accountID, from, to, page, pageSize)
+
+		resp, err := c.doRequest(http.MethodGet, path, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("erro ao buscar transações (página %d): status %d", page, resp.StatusCode)
+		}
+
+		var res struct {
+			Results    []Transaction `json:"results"`
+			Total      int           `json:"total"`
+			TotalPages int           `json:"totalPages"`
+			Page       int           `json:"page"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+			resp.Body.Close()
+			return nil, err
+		}
+		resp.Body.Close()
+
+		allTransactions = append(allTransactions, res.Results...)
+
+		// Sai do loop se estamos na última página
+		if page >= res.TotalPages || len(res.Results) == 0 {
+			break
+		}
+		page++
 	}
 
-	var res struct {
-		Results []Transaction `json:"results"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return nil, err
-	}
-
-	return res.Results, nil
+	return allTransactions, nil
 }

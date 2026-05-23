@@ -29,10 +29,22 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 	}
 }
 
-// SyncItem realiza a sincronização completa de um Item (contas e transações).
-// Quando chamado logo após a conexão via widget, o item pode estar em status
-// UPDATING por até 2 minutos. Fazemos polling até ficar UPDATED.
-func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string, pluggyClient *pluggy.Client) (int, error) {
+// SyncItem sincroniza os dados de um item específico na Pluggy para o nosso banco.
+// Retorna o número de novas transações identificadas/salvas.
+func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, pluggyClient *pluggy.Client, force bool) (int, error) {
+	// Se for uma sincronização manual forçada, avisa a Pluggy para buscar novos dados no banco
+	if force {
+		log.Printf("[SyncItem] Forçando atualização do item %s na Pluggy...", itemID)
+		_, err := pluggyClient.ForceUpdateItem(itemID)
+		if err != nil {
+			log.Printf("[SyncItem] Falha ao forçar update do item %s: %v", itemID, err)
+			// Não retornamos erro fatal aqui, vamos tentar prosseguir com os dados existentes
+		} else {
+			// Espera 2 segundos para o item entrar em estado UPDATING na Pluggy
+			time.Sleep(2 * time.Second)
+		}
+	}
+
 	log.Printf("[SyncItem] Iniciando sync do item %s para user %s", itemID, userID)
 
 	// 1. Verificar o status do item na Pluggy
@@ -69,14 +81,8 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 		}
 
 		// Status UPDATING, MERGING, etc
-		// Se for a primeira tentativa e o item está atualizando (sync automático),
-		// aguardamos até 15s antes de usar os dados existentes mesmo assim.
-		// Isso evita timeout de 3min em syncs de rotina.
-		if attempt >= 2 {
-			log.Printf("[SyncItem] Item %s em status %s após %ds de espera. Prosseguindo com dados disponíveis.", itemID, item.Status, attempt*10)
-			break
-		}
-
+		// Se o item está atualizando, devemos esperar ele terminar para garantir que teremos as transações novas.
+		// O Render não tem timeout de 10s como a Vercel, então podemos esperar até 3 minutos.
 		if attempt == maxAttempts {
 			return 0, fmt.Errorf("item %s não ficou pronto após 3 minutos (status: %s)", itemID, item.Status)
 		}
@@ -165,7 +171,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID string, itemID string
 }
 
 // SyncUserAccounts realiza a sincronização de todas as contas conectadas de um usuário.
-func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, pluggyClient *pluggy.Client) (int, error) {
+func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, pluggyClient *pluggy.Client, force bool) (int, error) {
 	rows, err := s.db.Query(ctx, "SELECT DISTINCT pluggy_item_id FROM connected_accounts WHERE user_id = $1 AND pluggy_item_id IS NOT NULL", userID)
 	if err != nil {
 		return 0, fmt.Errorf("erro ao buscar items do usuário: %w", err)
@@ -182,7 +188,7 @@ func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, plugg
 
 	totalSaved := 0
 	for _, itemID := range itemIDs {
-		saved, err := s.SyncItem(ctx, userID, itemID, pluggyClient)
+		saved, err := s.SyncItem(ctx, userID, itemID, pluggyClient, force)
 		if err != nil {
 			log.Printf("Erro ao sincronizar item %s do usuário %s: %v", itemID, userID, err)
 			continue
