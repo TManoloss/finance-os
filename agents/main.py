@@ -454,6 +454,24 @@ async def get_dependency_map(user_id: str):
         logger.error(f"Erro ao gerar dependency map: {str(e)}")
         return {"error": str(e)}
 
+@app.get("/merchants/{user_id}")
+async def get_top_merchants(user_id: str, months: int = 3):
+    try:
+        result = await merchant_agent.get_top_merchants(user_id, period_months=months)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao obter principais estabelecimentos: {str(e)}")
+        return {"error": str(e)}
+
+@app.get("/merchants/{user_id}/{merchant_name}")
+async def get_merchant_profile(user_id: str, merchant_name: str):
+    try:
+        result = await merchant_agent.get_merchant_profile(user_id, merchant_name)
+        return result
+    except Exception as e:
+        logger.error(f"Erro ao obter perfil de estabelecimento: {str(e)}")
+        return {"error": str(e)}
+
 @app.post("/agents/monthly-replay/{user_id}")
 async def generate_monthly_replay(user_id: str, month: str):
     try:

@@ -31,8 +31,11 @@ export default function MissionsCard({ missions }: { missions: Mission[] }) {
       
       <div className="space-y-6">
         {missions.map((mission) => {
-          const progressPercent = Math.min(100, Math.round((mission.progress / mission.target_value) * 100));
+          const missionName = mission.name || (mission as any).title || "Missão Financeira";
+          const progressValue = mission.progress !== undefined ? mission.progress : (((mission as any).current_value) || 0);
+          const progressPercent = Math.min(100, Math.round((progressValue / mission.target_value) * 100));
           const isCompleted = mission.status === 'completed';
+          const rewardPoints = mission.reward_points || 100;
 
           return (
             <div key={mission.id} className="space-y-2 group">
@@ -45,7 +48,7 @@ export default function MissionsCard({ missions }: { missions: Mission[] }) {
                   )}
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-tighter text-text-primary">
-                      {mission.name}
+                      {missionName}
                     </div>
                     <div className="text-[8px] font-bold uppercase text-text-secondary leading-tight">
                       {mission.description}
@@ -53,7 +56,7 @@ export default function MissionsCard({ missions }: { missions: Mission[] }) {
                   </div>
                 </div>
                 <div className="text-[10px] font-black font-mono text-accent-primary whitespace-nowrap">
-                   +{mission.reward_points} PTS
+                   +{rewardPoints} PTS
                 </div>
               </div>
 
