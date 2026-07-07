@@ -33,10 +33,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           console.log("[Auth DEBUG] Status API:", resp.status);
+          console.log("[Auth DEBUG] Resposta da API:", JSON.stringify(resp.data));
           
           if (resp.data && resp.data.success) {
             const userData = resp.data.data;
-            return {
+            const userObj = {
               id: userData.user?.id || 'unknown',
               name: userData.user?.name || 'User',
               email: userData.user?.email || credentials?.email,
@@ -44,10 +45,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               accessToken: userData.access_token,
               refreshToken: userData.refresh_token,
             };
+            console.log("[Auth DEBUG] Retornando usuário para NextAuth:", JSON.stringify(userObj));
+            return userObj;
           }
+          console.warn("[Auth DEBUG] Falha na resposta da API ou sucesso falso:", JSON.stringify(resp.data));
           return null;
         } catch (error: any) {
-          console.error("[Auth DEBUG] Erro na requisição:", error.message);
+          console.error("[Auth DEBUG] Erro na requisição:", error.message, error.response?.data);
           return null;
         }
       },
@@ -67,10 +71,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).pluggyClientId = token.pluggyClientId;
+      }
       (session as any).accessToken = token.accessToken;
       (session as any).refreshToken = token.refreshToken;
-      (session as any).user.id = token.id;
-      (session as any).user.pluggyClientId = token.pluggyClientId;
       return session;
     },
   },

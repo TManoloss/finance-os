@@ -27,14 +27,16 @@ function LoginForm() {
     setError("");
     setSuccess("");
 
+    console.log("[Login Form] Enviando credenciais...");
     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
+    console.log("[Login Form] Resultado do signIn:", JSON.stringify(result));
 
     if (result?.error) {
-      setError("AUTH_ERROR: CREDENCIAIS_INVALIDAS");
+      setError(`AUTH_ERROR: ${result.error}`);
       setLoading(false);
     } else {
       router.push("/dashboard");
