@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
+import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -17,7 +18,7 @@ class CardsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: BlueprintTheme.background,
-      appBar: AppBar(title: const Text('GESTAO_DE_CREDITO')),
+      appBar: AppBar(title: const Text('GESTAO_DE_CREDITO'), actions: [IconButton(icon: const Icon(LucideIcons.plus), onPressed: () => _addAccount(context, ref))]),
       body: RefreshIndicator(
         color: BlueprintTheme.accentPurple,
         onRefresh: () async {
@@ -122,6 +123,20 @@ class CardsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _addAccount(BuildContext context, WidgetRef ref) async {
+    final name = TextEditingController(); final balance = TextEditingController(); var type = 'CREDIT';
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: BlueprintTheme.elevated, builder: (sheet) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.viewInsetsOf(sheet).bottom + 24),
+      child: StatefulBuilder(builder: (context, setState) => Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Nova conta manual', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 14),
+        TextField(controller: name, decoration: const InputDecoration(hintText: 'Nome da conta ou cartão')),
+        const SizedBox(height: 10), TextField(controller: balance, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Saldo inicial em R\$')),
+        const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: type, dropdownColor: BlueprintTheme.elevated, items: const [DropdownMenuItem(value: 'CHECKING', child: Text('Conta corrente')), DropdownMenuItem(value: 'SAVINGS', child: Text('Poupança')), DropdownMenuItem(value: 'CREDIT', child: Text('Cartão de crédito'))], onChanged: (v) => setState(() => type = v!)),
+        const SizedBox(height: 18), ElevatedButton(onPressed: () async { final initial = double.tryParse(balance.text.replaceAll(',', '.')) ?? 0; if (name.text.trim().isEmpty) return; await ref.read(apiClientProvider).dio.post('/accounts', data: {'name': name.text.trim(), 'type': type, 'balance': initial}); ref.invalidate(connectedAccountsProvider); if (context.mounted) Navigator.pop(context); }, child: const Text('Criar conta')),
+      ])),
+    ));
   }
 
   Widget _buildCreditCard(Map<String, dynamic> card, NumberFormat fmt) {

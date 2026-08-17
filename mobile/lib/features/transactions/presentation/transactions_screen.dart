@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/features/transactions/presentation/transactions_provider.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
+import 'package:finance_os/features/settings/presentation/settings_provider.dart';
+import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
@@ -25,6 +27,10 @@ class TransactionsScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 4),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFFFA58E), foregroundColor: Colors.black,
+        onPressed: () => _addTransaction(context, ref), child: const Icon(LucideIcons.plus),
       ),
       body: Column(
         children: [
@@ -103,5 +109,24 @@ class TransactionsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _addTransaction(BuildContext context, WidgetRef ref) async {
+    final accounts = await ref.read(connectedAccountsProvider.future);
+    if (!context.mounted) return;
+    if (accounts.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Crie uma conta ou cartão primeiro.'))); return; }
+    final description = TextEditingController(); final amount = TextEditingController();
+    var accountId = accounts.first['id'].toString(); var direction = 'debit';
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: BlueprintTheme.elevated, builder: (sheet) => Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.viewInsetsOf(sheet).bottom + 24),
+      child: StatefulBuilder(builder: (context, setState) => Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('Novo lançamento', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 14),
+        TextField(controller: description, decoration: const InputDecoration(hintText: 'Descrição')),
+        const SizedBox(height: 10), TextField(controller: amount, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Valor em R\$')),
+        const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: accountId, dropdownColor: BlueprintTheme.elevated, items: accounts.map((a) => DropdownMenuItem(value: a['id'].toString(), child: Text(a['institution_name'].toString()))).toList(), onChanged: (v) => setState(() => accountId = v!)),
+        const SizedBox(height: 10), SegmentedButton<String>(segments: const [ButtonSegment(value: 'debit', label: Text('Saída')), ButtonSegment(value: 'credit', label: Text('Entrada'))], selected: {direction}, onSelectionChanged: (v) => setState(() => direction = v.first)),
+        const SizedBox(height: 18), ElevatedButton(onPressed: () async { final value = double.tryParse(amount.text.replaceAll(',', '.')); if (description.text.trim().isEmpty || value == null || value <= 0) return; await ref.read(apiClientProvider).dio.post('/transactions', data: {'account_id': accountId, 'description': description.text.trim(), 'amount': value, 'direction': direction}); ref.invalidate(transactionsProvider); ref.invalidate(summaryProvider); if (context.mounted) Navigator.pop(context); }, child: const Text('Salvar lançamento')),
+      ])),
+    ));
   }
 }
