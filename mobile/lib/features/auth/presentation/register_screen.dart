@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 
@@ -60,13 +61,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (resp.statusCode == 200 || resp.statusCode == 201) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('REGISTRO CONCLUÍDO COM SUCESSO')),
+            SnackBar(
+              content: Text('REGISTRO CONCLUÍDO COM SUCESSO', style: terminalLabel(color: Colors.white)),
+              backgroundColor: BlueprintTheme.success,
+            ),
           );
           context.go('/login');
         }
       }
     } catch (e) {
-      setState(() => _error = 'FALHA NO REGISTRO. EMAIL JÁ PODE ESTAR EM USO.');
+      setState(() => _error = 'FALHA NO REGISTRO. EMAIL EM USO.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -75,111 +79,186 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: BlueprintTheme.accentTeal,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Center(
-                  child: Icon(Icons.person_add_rounded, color: Colors.white, size: 32),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'NOVO_OPERADOR',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1),
-              ),
-              const Text(
-                'CRIAR_CONTA_NO_SISTEMA',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1.5),
-              ),
-              const SizedBox(height: 40),
-
-              _buildField('NOME_COMPLETO', _nameController, false),
-              const SizedBox(height: 16),
-              _buildField('EMAIL_ADDRESS', _emailController, false),
-              const SizedBox(height: 16),
-              _buildField('PASSWORD_KEY', _passwordController, true),
-              const SizedBox(height: 16),
-              _buildField('CONFIRM_PASSWORD', _confirmController, true),
-
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: BlueprintTheme.danger.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: BlueprintTheme.danger.withValues(alpha: 0.3)),
+      backgroundColor: BlueprintTheme.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo Neo-Brutalist (Teal)
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: BlueprintTheme.accentTeal,
+                      border: Border.all(color: BlueprintTheme.border, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: BlueprintTheme.border,
+                          offset: Offset(4, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(LucideIcons.userPlus, color: Colors.white, size: 28),
+                    ),
                   ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'NOVO_OPERADOR',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                    letterSpacing: -1,
+                    color: BlueprintTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'CRIAR_ACESSO_AO_NÚCLEO',
+                  textAlign: TextAlign.center,
+                  style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
+                ),
+                const SizedBox(height: 36),
+
+                // Form Container
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: BlueprintTheme.surface,
+                    border: Border.all(color: BlueprintTheme.border, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: BlueprintTheme.border,
+                        offset: Offset(6, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildField('NOME_COMPLETO', _nameController, false, LucideIcons.user),
+                      const SizedBox(height: 14),
+                      _buildField('EMAIL_ADDRESS', _emailController, false, LucideIcons.mail),
+                      const SizedBox(height: 14),
+                      _buildField('PASSWORD_KEY', _passwordController, true, LucideIcons.lock),
+                      const SizedBox(height: 14),
+                      _buildField('CONFIRM_PASSWORD', _confirmController, true, LucideIcons.checkSquare),
+                      
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: BlueprintTheme.danger.withValues(alpha: 0.1),
+                            border: Border.all(color: BlueprintTheme.danger, width: 2),
+                          ),
+                          child: Text(
+                            'ERROR: $_error',
+                            style: terminalLabel(color: BlueprintTheme.danger, fontSize: 8),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 24),
+
+                      // Button
+                      GestureDetector(
+                        onTap: _isLoading ? null : _handleRegister,
+                        child: Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: BlueprintTheme.accentTeal,
+                            border: Border.all(color: BlueprintTheme.border, width: 2),
+                            boxShadow: _isLoading
+                                ? null
+                                : const [
+                                    BoxShadow(
+                                      color: BlueprintTheme.border,
+                                      offset: Offset(3, 3),
+                                    ),
+                                  ],
+                          ),
+                          child: Center(
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'REGISTRAR_OPERADOR',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                TextButton(
+                  onPressed: () => context.go('/login'),
                   child: Text(
-                    'ERROR: $_error',
-                    style: const TextStyle(color: BlueprintTheme.danger, fontSize: 10, fontWeight: FontWeight.bold),
+                    'JÁ POSSUI ACESSO? AUTENTICAR',
+                    style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
                   ),
                 ),
               ],
-
-              const SizedBox(height: 32),
-              GestureDetector(
-                onTap: _isLoading ? null : _handleRegister,
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: BlueprintTheme.accentTeal,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('REGISTRAR_OPERADOR', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              TextButton(
-                onPressed: () => context.go('/login'),
-                child: const Text(
-                  'JÁ POSSUI ACESSO? AUTENTICAR',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, bool isPassword) {
+  Widget _buildField(String label, TextEditingController controller, bool isPassword, IconData icon) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(icon, size: 10, color: BlueprintTheme.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 8),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: BlueprintTheme.elevated,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: BlueprintTheme.border, width: 1),
+            border: Border.all(color: BlueprintTheme.border, width: 2),
           ),
           child: TextField(
             controller: controller,
             obscureText: isPassword,
-            style: const TextStyle(fontSize: 14),
-            decoration: const InputDecoration(border: InputBorder.none),
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
         ),
       ],

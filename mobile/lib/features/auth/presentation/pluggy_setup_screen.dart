@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 import 'package:finance_os/features/auth/presentation/auth_provider.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 class PluggySetupScreen extends ConsumerStatefulWidget {
   const PluggySetupScreen({super.key});
@@ -30,7 +32,7 @@ class _PluggySetupScreenState extends ConsumerState<PluggySetupScreen> {
 
     if (clientId.isEmpty || clientSecret.isEmpty) {
       setState(() {
-        _errorMessage = 'PLEASE_FILL_ALL_FIELDS';
+        _errorMessage = 'PREENCHA TODOS OS CAMPOS';
       });
       return;
     }
@@ -51,19 +53,18 @@ class _PluggySetupScreenState extends ConsumerState<PluggySetupScreen> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Refresh user info to update pluggyClientId status
         await ref.read(authProvider.notifier).fetchUser();
         if (mounted) {
           context.go('/dashboard');
         }
       } else {
         setState(() {
-          _errorMessage = 'FAILED_TO_SAVE_KEYS';
+          _errorMessage = 'FALHA AO SALVAR CREDENCIAIS';
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'ERROR_OCCURRED_WHILE_SAVING';
+        _errorMessage = 'ERRO AO SALVAR AS CHAVES';
       });
     } finally {
       if (mounted) {
@@ -77,86 +78,151 @@ class _PluggySetupScreenState extends ConsumerState<PluggySetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0F),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'PLUGGY_INITIAL_SETUP',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'OPEN_FINANCE_INTEGRATION_REQUIRED',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 48),
-              _buildTerminalInput(
-                label: 'PLUGGY_CLIENT_ID',
-                controller: _clientIdController,
-                hintText: 'your_client_id_here',
-              ),
-              const SizedBox(height: 24),
-              _buildTerminalInput(
-                label: 'PLUGGY_CLIENT_SECRET',
-                controller: _clientSecretController,
-                hintText: 'your_client_secret_here',
-                obscureText: true,
-              ),
-              const SizedBox(height: 48),
-              _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C6FFF)))
-                  : ElevatedButton(
-                      onPressed: _handleSave,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7C6FFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+      backgroundColor: BlueprintTheme.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo/Ícone Open Finance
+                Center(
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: BlueprintTheme.accentPurple,
+                      border: Border.all(color: BlueprintTheme.border, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: BlueprintTheme.border,
+                          offset: Offset(4, 4),
                         ),
-                      ),
-                      child: const Text('INITIALIZE_SYNC_ENGINE'),
+                      ],
                     ),
-              const SizedBox(height: 16),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'ERROR_SETUP: $_errorMessage',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFFF6B6B),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                    child: const Center(
+                      child: Icon(LucideIcons.wallet, color: Colors.white, size: 28),
                     ),
                   ),
                 ),
-              Text(
-                'SYSTEM_STATUS: ${_isLoading ? "CONFIGURING_ADAPTER" : "AWAITING_CONFIG"} // READY',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white.withValues(alpha: 0.4),
+                const SizedBox(height: 24),
+                const Text(
+                  'CONEXÃO_OPEN_FINANCE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                    letterSpacing: -0.5,
+                    color: BlueprintTheme.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  'INICIALIZAR ADAPTADOR PLUGGY API',
+                  textAlign: TextAlign.center,
+                  style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
+                ),
+                const SizedBox(height: 36),
+
+                // Form Container
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: BlueprintTheme.surface,
+                    border: Border.all(color: BlueprintTheme.border, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: BlueprintTheme.border,
+                        offset: Offset(6, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTerminalInput(
+                        label: 'PLUGGY_CLIENT_ID',
+                        controller: _clientIdController,
+                        hintText: 'your_client_id_here',
+                        icon: LucideIcons.key,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTerminalInput(
+                        label: 'PLUGGY_CLIENT_SECRET',
+                        controller: _clientSecretController,
+                        hintText: 'your_client_secret_here',
+                        obscureText: true,
+                        icon: LucideIcons.lock,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Botão
+                      _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: BlueprintTheme.accentPurple,
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: _handleSave,
+                              child: Container(
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: BlueprintTheme.accentPurple,
+                                  border: Border.all(color: BlueprintTheme.border, width: 2),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: BlueprintTheme.border,
+                                      offset: Offset(3, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'INICIALIZAR_SINCRONIZADOR',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: BlueprintTheme.danger.withValues(alpha: 0.1),
+                        border: Border.all(color: BlueprintTheme.danger, width: 2),
+                      ),
+                      child: Text(
+                        'ERRO: $_errorMessage',
+                        textAlign: TextAlign.center,
+                        style: terminalLabel(color: BlueprintTheme.danger, fontSize: 8),
+                      ),
+                    ),
+                  ),
+
+                Text(
+                  'SYSTEM_STATUS: ${_isLoading ? "CONFIGURING_ADAPTER" : "AWAITING_CONFIG"}',
+                  textAlign: TextAlign.center,
+                  style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 8),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -166,40 +232,40 @@ class _PluggySetupScreenState extends ConsumerState<PluggySetupScreen> {
   Widget _buildTerminalInput({
     required String label,
     required TextEditingController controller,
+    required IconData icon,
     String? hintText,
     bool obscureText = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          style: const TextStyle(color: Colors.white),
-          cursorColor: const Color(0xFF7C6FFF),
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2)),
-            filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.05),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF2A2A3A), width: 1),
-              borderRadius: BorderRadius.zero,
+        Row(
+          children: [
+            Icon(icon, size: 10, color: BlueprintTheme.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 8),
             ),
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF7C6FFF), width: 1),
-              borderRadius: BorderRadius.zero,
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: BlueprintTheme.elevated,
+            border: Border.all(color: BlueprintTheme.border, width: 2),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: hintText,
+              hintStyle: TextStyle(color: BlueprintTheme.textSecondary.withValues(alpha: 0.3)),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
         ),

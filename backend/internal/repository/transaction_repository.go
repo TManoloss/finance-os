@@ -23,18 +23,18 @@ type TransactionFilters struct {
 
 // TransactionSummary representa o resumo financeiro de um período.
 type TransactionSummary struct {
-	TotalSpent      float64           `json:"total_spent"`
-	TotalReceived   float64           `json:"total_received"`
-	CheckingBalance float64           `json:"checking_balance"`
-	CreditBalance   float64           `json:"credit_balance"`
-	CurrentInvoice  float64           `json:"current_invoice"`  // Fatura acumulando (em aberto)
-	ClosedInvoice   float64           `json:"closed_invoice"`   // Fatura já fechada (vencimento próximo)
-	MonthInstallments float64         `json:"month_installments"` // Soma das parcelas que vencem este mês
-	TodaySpent      float64           `json:"today_spent"`
-	WeeklySpent     float64           `json:"weekly_spent"`
-	ByCategory      []CategorySummary `json:"by_category"`
-	ByDay           []DaySummary      `json:"by_day"`
-	TopMerchants    []MerchantSummary `json:"top_merchants"`
+	TotalSpent        float64           `json:"total_spent"`
+	TotalReceived     float64           `json:"total_received"`
+	CheckingBalance   float64           `json:"checking_balance"`
+	CreditBalance     float64           `json:"credit_balance"`
+	CurrentInvoice    float64           `json:"current_invoice"`    // Fatura acumulando (em aberto)
+	ClosedInvoice     float64           `json:"closed_invoice"`     // Fatura já fechada (vencimento próximo)
+	MonthInstallments float64           `json:"month_installments"` // Soma das parcelas que vencem este mês
+	TodaySpent        float64           `json:"today_spent"`
+	WeeklySpent       float64           `json:"weekly_spent"`
+	ByCategory        []CategorySummary `json:"by_category"`
+	ByDay             []DaySummary      `json:"by_day"`
+	TopMerchants      []MerchantSummary `json:"top_merchants"`
 }
 
 type CategorySummary struct {
@@ -63,6 +63,28 @@ type TransactionRepository interface {
 	GetTransactions(ctx context.Context, filters TransactionFilters) ([]map[string]interface{}, int, error)
 	GetSummary(ctx context.Context, userID string, from, to time.Time) (*TransactionSummary, error)
 	UpdateCategory(ctx context.Context, txID, categoryID string) error
+	CreateManual(ctx context.Context, userID, accountID, description, direction, categoryID string, amount float64, date time.Time) (string, error)
+}
+
+func (r *pgTransactionRepository) CreateManual(ctx context.Context, userID, accountID, description, direction, categoryID string, amount float64, date time.Time) (string, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx)
+	var id string
+	err = tx.QueryRow(ctx, `INSERT INTO transactions (account_id, amount, direction, description, merchant_name, category_id, date) SELECT $1,$2,$3,$4,$4,NULLIF($5,''),$6 WHERE EXISTS (SELECT 1 FROM connected_accounts WHERE id=$1 AND user_id=$7) RETURNING id`, accountID, amount, direction, description, categoryID, date, userID).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	delta := amount
+	if direction == "debit" {
+		delta = -delta
+	}
+	if _, err = tx.Exec(ctx, `UPDATE connected_accounts SET balance = balance + $1 WHERE id=$2`, delta, accountID); err != nil {
+		return "", err
+	}
+	return id, tx.Commit(ctx)
 }
 
 type pgTransactionRepository struct {

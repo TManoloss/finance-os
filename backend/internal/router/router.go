@@ -1,7 +1,6 @@
 package router
 
 import (
-	"log"
 	"github.com/finance-os/backend/internal/config"
 	"github.com/finance-os/backend/internal/handler"
 	"github.com/finance-os/backend/internal/middleware"
@@ -9,6 +8,7 @@ import (
 	"github.com/finance-os/backend/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
+	"log"
 )
 
 // Setup configura todas as rotas da aplicação.
@@ -74,6 +74,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	// Accounts
 	accounts := protected.Group("/accounts")
 	accounts.GET("", accountsH.ListAccounts)
+	accounts.POST("", accountsH.CreateManual)
 	accounts.POST("/connect-token", accountsH.ConnectToken)
 	accounts.POST("/sync", accountsH.Sync)
 	accounts.POST("/keys", accountsH.SavePluggyKeys)
@@ -84,6 +85,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	// Transactions
 	transactions := protected.Group("/transactions")
 	transactions.GET("", transactionsH.ListTransactions)
+	transactions.POST("", transactionsH.CreateManual)
 	transactions.PATCH("/:id/category", transactionsH.UpdateCategory)
 	transactions.GET("/summary", transactionsH.Summary)
 

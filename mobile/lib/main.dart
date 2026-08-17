@@ -21,8 +21,8 @@ class MyApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Finance OS',
       theme: BlueprintTheme.dark,
-      routerConfig: router,
       debugShowCheckedModeBanner: false,
+      routerConfig: router,
     );
   }
 }

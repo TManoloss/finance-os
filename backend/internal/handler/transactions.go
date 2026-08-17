@@ -93,6 +93,32 @@ func (h *TransactionsHandler) UpdateCategory(c echo.Context) error {
 	})
 }
 
+// CreateManual registra uma entrada ou saída digitada pelo usuário.
+func (h *TransactionsHandler) CreateManual(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	var req struct {
+		AccountID, Description, Direction, Date string
+		Amount                                  float64 `json:"amount"`
+		CategoryID                              string  `json:"category_id"`
+	}
+	if err := c.Bind(&req); err != nil || req.AccountID == "" || req.Description == "" || req.Amount <= 0 || (req.Direction != "credit" && req.Direction != "debit") {
+		return response.Error(c, http.StatusBadRequest, "conta, descrição, valor e tipo válidos são obrigatórios")
+	}
+	date := time.Now()
+	if req.Date != "" {
+		var err error
+		date, err = time.Parse("2006-01-02", req.Date)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "data inválida")
+		}
+	}
+	id, err := h.repo.CreateManual(c.Request().Context(), userID, req.AccountID, req.Description, req.Direction, req.CategoryID, req.Amount, date)
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "conta inválida")
+	}
+	return response.Success(c, http.StatusCreated, map[string]string{"id": id})
+}
+
 // Summary retorna o resumo financeiro do período.
 func (h *TransactionsHandler) Summary(c echo.Context) error {
 	userID := c.Get("user_id").(string)

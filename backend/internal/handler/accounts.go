@@ -156,7 +156,7 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 		FROM connected_accounts 
 		WHERE user_id = $1 
 		ORDER BY institution_name ASC`
-	
+
 	rows, err := h.db.Query(c.Request().Context(), query, userID)
 	if err != nil {
 		log.Printf("[Accounts] Erro ao executar query para user %s: %v", userID, err)
@@ -168,15 +168,15 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 	for rows.Next() {
 		var (
 			id, instName, accType, currency string
-			instLogo, instColor, pluggyID *string
-			balance float64
-			lastSynced *time.Time
-			closeDay, dueDay *int
+			instLogo, instColor, pluggyID   *string
+			balance                         float64
+			lastSynced                      *time.Time
+			closeDay, dueDay                *int
 		)
 
 		err := rows.Scan(
-			&id, &instName, &instLogo, &instColor, 
-			&accType, &balance, &currency, &lastSynced, 
+			&id, &instName, &instLogo, &instColor,
+			&accType, &balance, &currency, &lastSynced,
 			&pluggyID, &closeDay, &dueDay,
 		)
 		if err != nil {
@@ -185,9 +185,15 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 		}
 
 		// Garante valores padrão para campos obrigatórios na UI
-		if instName == "" { instName = "Instituição Desconhecida" }
-		if accType == "" { accType = "CHECKING" }
-		if currency == "" { currency = "BRL" }
+		if instName == "" {
+			instName = "Instituição Desconhecida"
+		}
+		if accType == "" {
+			accType = "CHECKING"
+		}
+		if currency == "" {
+			currency = "BRL"
+		}
 
 		accounts = append(accounts, map[string]interface{}{
 			"id":                id,
@@ -205,6 +211,25 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, accounts)
+}
+
+// CreateManual cria uma conta ou cartão sem integração Open Finance.
+func (h *AccountsHandler) CreateManual(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	var req struct {
+		Name, Type       string
+		Balance          float64 `json:"balance"`
+		CloseDay, DueDay int     `json:"close_day"`
+	}
+	if err := c.Bind(&req); err != nil || req.Name == "" || (req.Type != "CHECKING" && req.Type != "SAVINGS" && req.Type != "CREDIT") {
+		return response.Error(c, http.StatusBadRequest, "nome e tipo de conta válidos são obrigatórios")
+	}
+	var id string
+	err := h.db.QueryRow(c.Request().Context(), `INSERT INTO connected_accounts (user_id, institution_name, account_type, balance, close_day, due_day) VALUES ($1,$2,$3,$4,NULLIF($5,0),NULLIF($6,0)) RETURNING id`, userID, req.Name, req.Type, req.Balance, req.CloseDay, req.DueDay).Scan(&id)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao criar conta")
+	}
+	return response.Success(c, http.StatusCreated, map[string]string{"id": id})
 }
 
 // UpdateAccountSettings atualiza configurações específicas da conta (ex: dia de fechamento do cartão).
@@ -284,7 +309,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
-		
+
 		start := time.Now()
 		var saved int
 		var err error
@@ -294,15 +319,15 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		} else {
 			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, true)
 		}
-		
+
 		duration := time.Since(start).Milliseconds()
-		
+
 		// Log na tabela sync_logs
 		errorsCount := 0
 		var errorsDetail string
 		if err != nil {
 			errorsCount = 1
-			
+
 			// Usa json.Marshal para escapar corretamente as aspas e quebras de linha
 			errObj := []map[string]string{
 				{"user_id": userID, "error": err.Error()},
@@ -312,7 +337,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		} else {
 			errorsDetail = "[]"
 		}
-		
+
 		_, dbErr := h.db.Exec(context.Background(), `
 			INSERT INTO sync_logs (triggered_by, synced_users, transactions_imported, errors_count, errors_detail, duration_ms, started_at, finished_at)
 			VALUES ('manual', 1, $1, $2, $3::jsonb, $4, $5, NOW())

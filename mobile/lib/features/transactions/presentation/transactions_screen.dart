@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/features/transactions/presentation/transactions_provider.dart';
-import '../../../core/theme/blueprint_theme.dart';
+import 'package:finance_os/core/theme/blueprint_theme.dart';
 
 class TransactionsScreen extends ConsumerWidget {
   const TransactionsScreen({super.key});
@@ -10,118 +11,96 @@ class TransactionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(transactionsProvider);
-    final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final fmt = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+    final dateFmt = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
+      backgroundColor: BlueprintTheme.background,
       appBar: AppBar(
-        title: const Text('TRANSAÇÕES'),
+        title: const Text('EXTRATO_DE_OPERACOES'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded, size: 20),
-            onPressed: () {
-              // TODO: Implementar filtros
-            },
+            icon: const Icon(LucideIcons.filter, size: 18),
+            onPressed: () {},
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
-      body: transactionsAsync.when(
-        data: (transactions) {
-          if (transactions.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inventory_2_outlined, size: 48, color: BlueprintTheme.textSecondary.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'BUFFER_EMPTY: SEM_OPERAÇÕES',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, fontSize: 10),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(transactionsProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: transactions.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final tx = transactions[index];
-                final isCredit = tx.direction == 'credit';
-
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: BlueprintTheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: BlueprintTheme.border, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: (isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.danger).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            isCredit ? Icons.add_rounded : Icons.remove_rounded,
+      body: Column(
+        children: [
+          // Header neo-brutal
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: BlueprintTheme.elevated,
+            child: Row(children: [
+              const Icon(LucideIcons.arrowLeftRight, size: 14),
+              const SizedBox(width: 8),
+              Text('OPERACOES_REGISTRADAS', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+            ]),
+          ),
+          Container(height: 2, color: BlueprintTheme.border),
+          // Lista
+          Expanded(
+            child: transactionsAsync.when(
+              data: (transactions) {
+                if (transactions.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Text('BUFFER_EMPTY: SEM_OPERAÇÕES',
+                          style: terminalLabel(), textAlign: TextAlign.center),
+                    ),
+                  );
+                }
+                return RefreshIndicator(
+                  color: BlueprintTheme.accentPurple,
+                  onRefresh: () async => ref.invalidate(transactionsProvider),
+                  child: ListView.separated(
+                    itemCount: transactions.length,
+                    separatorBuilder: (_, __) => Container(height: 1, color: BlueprintTheme.border),
+                    itemBuilder: (_, i) {
+                      final tx = transactions[i];
+                      final isCredit = tx.direction == 'credit';
+                      return Container(
+                        color: BlueprintTheme.surface,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(children: [
+                          // ícone quadrado
+                          Container(
+                            width: 38, height: 38,
                             color: isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.danger,
+                            child: Center(child: Text(isCredit ? '+' : '-',
+                              style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 18))),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(tx.description.toUpperCase(),
+                              style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12),
+                              overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 2),
                             Text(
-                              tx.description.toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 12,
-                                letterSpacing: -0.2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              '${DateTime.tryParse(tx.date) != null ? dateFmt.format(DateTime.parse(tx.date)) : tx.date} • ${tx.categoryName?.toUpperCase() ?? 'OUTROS'}',
+                              style: terminalLabel(fontSize: 8),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${DateTime.tryParse(tx.date) != null ? dateFormat.format(DateTime.parse(tx.date)) : tx.date} • ${tx.categoryName?.toUpperCase() ?? 'OUTROS'}',
-                              style: TextStyle(
-                                color: BlueprintTheme.textSecondary,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        currencyFormat.format(tx.amount),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          fontFamily: 'monospace',
-                          color: isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.textPrimary,
-                        ),
-                      ),
-                    ],
+                          ])),
+                          const SizedBox(width: 8),
+                          Text(fmt.format(tx.amount),
+                            style: moneyStyle(
+                              color: isCredit ? BlueprintTheme.accentTeal : BlueprintTheme.textPrimary,
+                              fontSize: 13,
+                            )),
+                        ]),
+                      );
+                    },
                   ),
                 );
               },
+              loading: () => const Center(child: CircularProgressIndicator(color: BlueprintTheme.accentPurple)),
+              error: (err, _) => Center(child: Text('ERRO: $err', style: const TextStyle(color: BlueprintTheme.danger, fontFamily: 'monospace', fontSize: 12))),
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('ERRO: $err')),
+          ),
+        ],
       ),
     );
   }

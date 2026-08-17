@@ -10,139 +10,86 @@ class SummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-    final netBalance = summary.checkingBalance + summary.creditBalance;
+    final balance = summary.checkingBalance - (summary.closedInvoice + summary.monthInstallments);
 
-    return Column(
-      children: [
-        // Card principal: Saldo líquido
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1A1A2E), Color(0xFF0A0A0F)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: BlueprintTheme.accentPurple.withValues(alpha: 0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'SALDO_LÍQUIDO',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: BlueprintTheme.textSecondary, letterSpacing: 1),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                fmt.format(netBalance),
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'monospace',
-                  letterSpacing: -1,
-                  color: netBalance >= 0 ? BlueprintTheme.accentTeal : BlueprintTheme.danger,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildMiniStat('CONTA', fmt.format(summary.checkingBalance), BlueprintTheme.textPrimary),
-                  const SizedBox(width: 24),
-                  _buildMiniStat('CRÉDITO', fmt.format(summary.creditBalance), BlueprintTheme.warning),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Row: Gastos / Receitas / Parcelas
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                label: 'GASTO_MÊS',
-                value: fmt.format(summary.totalSpent),
-                color: BlueprintTheme.danger,
-                icon: Icons.arrow_downward_rounded,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildMetricCard(
-                label: 'RECEITA_MÊS',
-                value: fmt.format(summary.totalReceived),
-                color: BlueprintTheme.accentTeal,
-                icon: Icons.arrow_upward_rounded,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                label: 'FATURA_FECHADA',
-                value: fmt.format(summary.closedInvoice),
-                color: BlueprintTheme.warning,
-                icon: Icons.receipt_long_rounded,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildMetricCard(
-                label: 'PARCELAS_MÊS',
-                value: fmt.format(summary.monthInstallments),
-                color: BlueprintTheme.accentPurple,
-                icon: Icons.calendar_today_rounded,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+    final stats = [
+      {'label': 'SALDO_EM_CONTA', 'value': summary.checkingBalance, 'color': BlueprintTheme.accentTeal},
+      {'label': 'FATURA_FECHADA', 'value': summary.closedInvoice + summary.monthInstallments, 'color': BlueprintTheme.danger},
+      {'label': 'FATURA_EM_ABERTO', 'value': summary.currentInvoice, 'color': BlueprintTheme.warning},
+      {'label': 'TOTAL_RECEBIDO', 'value': summary.totalReceived, 'color': BlueprintTheme.accentTeal},
+    ];
 
-  Widget _buildMiniStat(String label, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: color)),
+        // Header com saldo líquido — igual ao web
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          color: BlueprintTheme.elevated,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.terminal, size: 12, color: BlueprintTheme.textSecondary),
+                  const SizedBox(width: 6),
+                  Text('FINANCE_CORE_V1.1', style: terminalLabel()),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text('SALDO_TOTAL_LIQUIDO', style: TextStyle(
+                fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.w900,
+                color: BlueprintTheme.textSecondary, letterSpacing: 1,
+              )),
+              const SizedBox(height: 4),
+              Text(
+                fmt.format(balance),
+                style: moneyStyle(
+                  color: balance >= 0 ? BlueprintTheme.accentTeal : BlueprintTheme.danger,
+                  fontSize: 32,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Grid de stats — 2 colunas com bordas separando (igual ao web)
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 2.2,
+          children: stats.map((s) => _buildStatCell(
+            label: s['label'] as String,
+            value: fmt.format(s['value'] as double),
+            color: s['color'] as Color,
+          )).toList(),
+        ),
       ],
     );
   }
 
-  Widget _buildMetricCard({required String label, required String value, required Color color, required IconData icon}) {
+  Widget _buildStatCell({required String label, required String value, required Color color}) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BlueprintTheme.border),
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
+        color: BlueprintTheme.background,
+        border: Border(
+          right: BorderSide(color: BlueprintTheme.border, width: 2),
+          bottom: BorderSide(color: BlueprintTheme.border, width: 2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 14),
-              ),
-              const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 0.5)),
+          Row(children: [
+            Container(width: 4, height: 4, color: BlueprintTheme.textSecondary),
+            const SizedBox(width: 4),
+            Expanded(child: Text(label, style: terminalLabel(fontSize: 8), overflow: TextOverflow.ellipsis)),
+          ]),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: color)),
+          Text(value, style: moneyStyle(color: color, fontSize: 15), overflow: TextOverflow.ellipsis),
         ],
       ),
     );

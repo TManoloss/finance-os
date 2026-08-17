@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
 
@@ -15,74 +16,109 @@ class CardsScreen extends ConsumerWidget {
     final fmt = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('CARTÕES')),
+      backgroundColor: BlueprintTheme.background,
+      appBar: AppBar(title: const Text('GESTAO_DE_CREDITO')),
       body: RefreshIndicator(
+        color: BlueprintTheme.accentPurple,
         onRefresh: () async {
           ref.invalidate(installmentsProvider);
           ref.invalidate(subscriptionsProvider);
           ref.invalidate(connectedAccountsProvider);
         },
-        child: SingleChildScrollView(
+        child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- Cartões de Crédito ---
-              const Text('CARTÕES_CONECTADOS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple)),
-              const SizedBox(height: 12),
-              accountsAsync.when(
-                data: (accounts) {
-                  final cards = accounts.where((a) => (a['account_type'] ?? '').toString().toUpperCase().contains('CREDIT')).toList();
-                  if (cards.isEmpty) {
-                    return _buildEmptyState('NENHUM_CARTÃO_DETECTADO', Icons.credit_card_off_rounded);
-                  }
-                  return Column(
-                    children: cards.map((card) => _buildCreditCard(card, fmt)).toList(),
-                  );
-                },
-                loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
-                error: (e, _) => Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontSize: 10)),
-              ),
+          children: [
+            // ── Header ─────────────────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              color: BlueprintTheme.elevated,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(LucideIcons.terminal, size: 12),
+                  const SizedBox(width: 6),
+                  Text('CREDIT_MONITOR_V1.0', style: terminalLabel()),
+                ]),
+                const SizedBox(height: 4),
+                accountsAsync.when(
+                  data: (accs) {
+                    final cnt = accs.where((a) => (a['account_type'] ?? '').toString().toUpperCase().contains('CREDIT')).length;
+                    return Text('CONTAS_MONITORADAS: $cnt', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10));
+                  },
+                  loading: () => Text('CONTAS_MONITORADAS: ...', style: terminalLabel()),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ]),
+            ),
+            Container(height: 2, color: BlueprintTheme.border),
 
-              const SizedBox(height: 32),
+            // ── Cartões ────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Row(children: [
+                Container(width: 8, height: 8, color: BlueprintTheme.textPrimary),
+                const SizedBox(width: 8),
+                Text('CARTOES_ATIVOS', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+              ]),
+            ),
+            accountsAsync.when(
+              data: (accounts) {
+                final cards = accounts.where((a) => (a['account_type'] ?? '').toString().toUpperCase().contains('CREDIT')).toList();
+                if (cards.isEmpty) return _emptyState('NO_CREDIT_LINES_DETECTED', LucideIcons.creditCard);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(children: cards.map((card) => _buildCreditCard(card, fmt)).toList()),
+                );
+              },
+              loading: () => const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontFamily: 'monospace', fontSize: 10))),
+            ),
+            Container(height: 2, color: BlueprintTheme.border, margin: const EdgeInsets.only(top: 16)),
 
-              // --- Parcelamentos Ativos ---
-              const Text('PARCELAMENTOS_ATIVOS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple)),
-              const SizedBox(height: 12),
-              installmentsAsync.when(
-                data: (installments) {
-                  if (installments.isEmpty) {
-                    return _buildEmptyState('NENHUM_PARCELAMENTO_ATIVO', Icons.check_circle_outline_rounded);
-                  }
-                  return Column(
-                    children: installments.map((inst) => _buildInstallmentCard(inst, fmt)).toList(),
-                  );
-                },
-                loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-                error: (e, _) => Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontSize: 10)),
-              ),
+            // ── Parcelamentos ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const Icon(LucideIcons.clock, size: 14),
+                  const SizedBox(width: 8),
+                  Text('COMPRAS_PARCELADAS_EM_ABERTO', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+                ]),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  color: BlueprintTheme.danger,
+                  child: const Text('ALERTA_DE_FLUXO', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 8, color: Colors.white)),
+                ),
+              ]),
+            ),
+            installmentsAsync.when(
+              data: (insts) {
+                if (insts.isEmpty) return _emptyState('NO_INSTALLMENTS_DETECTED', LucideIcons.shieldCheck);
+                return Column(children: insts.map<Widget>((ins) => _buildInstallmentRow(ins, fmt)).toList());
+              },
+              loading: () => const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontFamily: 'monospace', fontSize: 10))),
+            ),
+            Container(height: 2, color: BlueprintTheme.border, margin: const EdgeInsets.only(top: 8)),
 
-              const SizedBox(height: 32),
-
-              // --- Assinaturas Detectadas ---
-              const Text('ASSINATURAS_DETECTADAS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.warning)),
-              const SizedBox(height: 12),
-              subscriptionsAsync.when(
-                data: (subs) {
-                  if (subs.isEmpty) {
-                    return _buildEmptyState('NENHUMA_ASSINATURA_DETECTADA', Icons.subscriptions_outlined);
-                  }
-                  return Column(
-                    children: subs.map((sub) => _buildSubscriptionCard(sub, fmt)).toList(),
-                  );
-                },
-                loading: () => const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
-                error: (e, _) => Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontSize: 10)),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+            // ── Assinaturas ────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: Text('ASSINATURAS_DETECTADAS', style: terminalLabel(color: BlueprintTheme.warning, fontSize: 10)),
+            ),
+            subscriptionsAsync.when(
+              data: (subs) {
+                if (subs.isEmpty) return _emptyState('NENHUMA_ASSINATURA_DETECTADA', LucideIcons.refreshCcw);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(children: subs.map<Widget>((sub) => _buildSubscriptionRow(sub, fmt)).toList()),
+                );
+              },
+              loading: () => const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
@@ -91,176 +127,124 @@ class CardsScreen extends ConsumerWidget {
   Widget _buildCreditCard(Map<String, dynamic> card, NumberFormat fmt) {
     final balance = (card['balance'] as num?)?.toDouble() ?? 0;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: BlueprintTheme.elevated,
+        border: Border.all(color: BlueprintTheme.border, width: 2),
+        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(4, 4))],
+      ),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A2E), Color(0xFF111118)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: BlueprintTheme.accentPurple.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (card['institution_logo'] != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(card['institution_logo'], width: 32, height: 32, fit: BoxFit.contain),
-                ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  (card['institution_name'] ?? 'CARTÃO').toString().toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const Icon(Icons.credit_card_rounded, size: 20, color: BlueprintTheme.textSecondary),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text('SALDO_DEVEDOR', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
-          Text(
-            fmt.format(balance.abs()),
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: balance < 0 ? BlueprintTheme.danger : BlueprintTheme.textPrimary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstallmentCard(Map<String, dynamic> inst, NumberFormat fmt) {
-    final currentInst = (inst['installment_current'] as num?)?.toInt() ?? 0;
-    final totalInst = (inst['installments_total'] as num?)?.toInt() ?? 1;
-    final merchant = (inst['merchant_name'] ?? 'DESCONHECIDO').toString();
-    final amount = (inst['total_amount'] as num?)?.toDouble() ?? 0;
-    final installmentValue = totalInst > 0 ? amount / totalInst : 0.0;
-    final progress = totalInst > 0 ? currentInst / totalInst : 0.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BlueprintTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(merchant.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: BlueprintTheme.accentPurple.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '$currentInst/$totalInst',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: BlueprintTheme.accentPurple, fontFamily: 'monospace'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Parcela: ${fmt.format(installmentValue)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary)),
-              Text('Total: ${fmt.format(amount)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor: BlueprintTheme.elevated,
-              valueColor: const AlwaysStoppedAnimation(BlueprintTheme.accentPurple),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubscriptionCard(Map<String, dynamic> sub, NumberFormat fmt) {
-    final merchant = (sub['merchant'] ?? sub['merchant_name'] ?? '?').toString();
-    final monthlyValue = (sub['monthly_value'] as num?)?.toDouble() ?? (sub['total'] as num?)?.toDouble() ?? 0;
-    final status = (sub['status'] ?? 'active').toString();
-    final isIrregular = status == 'irregular';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isIrregular ? BlueprintTheme.warning.withValues(alpha: 0.5) : BlueprintTheme.border),
-      ),
-      child: Row(
-        children: [
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(
+            (card['institution_name'] ?? 'CARTÃO').toString().toUpperCase(),
+            style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 12),
+          )),
+          const Icon(LucideIcons.creditCard, size: 18),
+        ]),
+        const SizedBox(height: 12),
+        Text('**** **** **** 4521', style: moneyStyle(fontSize: 16)),
+        const SizedBox(height: 12),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('SALDO_DEVEDOR', style: terminalLabel(fontSize: 8)),
+            Text(fmt.format(balance.abs()), style: moneyStyle(color: balance < 0 ? BlueprintTheme.danger : BlueprintTheme.textPrimary, fontSize: 20)),
+          ]),
           Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: (isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.autorenew_rounded,
-              color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal,
-              size: 20,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            color: BlueprintTheme.textPrimary,
+            child: const Text('ACTIVE', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 9, color: BlueprintTheme.surface)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(merchant.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                const SizedBox(height: 2),
-                Text(
-                  isIrregular ? 'STATUS: IRREGULAR' : 'STATUS: ATIVA',
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${fmt.format(monthlyValue)}/mês',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, fontFamily: 'monospace'),
-          ),
-        ],
-      ),
+        ]),
+      ]),
     );
   }
 
-  Widget _buildEmptyState(String label, IconData icon) {
+  Widget _buildInstallmentRow(Map<String, dynamic> ins, NumberFormat fmt) {
+    final current = (ins['installment_current'] as num?)?.toInt() ?? 0;
+    final total = (ins['installments_total'] as num?)?.toInt() ?? 1;
+    final merchant = (ins['merchant_name'] ?? '').toString().toUpperCase();
+    final amount = (ins['total_amount'] as num?)?.toDouble() ?? 0;
+    final instValue = total > 0 ? amount / total : 0.0;
+    final progress = total > 0 ? current / total : 0.0;
+
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: BlueprintTheme.border, width: 1)),
+        color: BlueprintTheme.surface,
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(merchant, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12)),
+          const SizedBox(height: 4),
+          Row(children: [
+            Text('$current/$total', style: terminalLabel(fontSize: 9)),
+            const SizedBox(width: 8),
+            Expanded(child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                border: Border.all(color: BlueprintTheme.border, width: 1),
+                color: BlueprintTheme.background,
+              ),
+              child: FractionallySizedBox(
+                widthFactor: progress.clamp(0.0, 1.0),
+                alignment: Alignment.centerLeft,
+                child: Container(color: BlueprintTheme.accentPurple),
+              ),
+            )),
+          ]),
+        ])),
+        const SizedBox(width: 12),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(fmt.format(instValue), style: moneyStyle(fontSize: 14)),
+          Text('TOTAL: ${fmt.format(amount)}', style: terminalLabel(color: BlueprintTheme.danger, fontSize: 8)),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _buildSubscriptionRow(Map<String, dynamic> sub, NumberFormat fmt) {
+    final merchant = (sub['merchant'] ?? sub['merchant_name'] ?? '?').toString().toUpperCase();
+    final monthlyValue = (sub['monthly_value'] as num?)?.toDouble() ?? 0;
+    final isIrregular = (sub['status'] ?? '') == 'irregular';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: BlueprintTheme.surface,
+        border: Border.all(color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.border, width: 2),
+      ),
+      child: Row(children: [
+        Container(
+          width: 36, height: 36,
+          color: (isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal).withValues(alpha: 0.15),
+          child: Icon(LucideIcons.refreshCcw, color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(merchant, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12)),
+          Text(isIrregular ? 'STATUS: IRREGULAR' : 'STATUS: ATIVA',
+            style: terminalLabel(color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal, fontSize: 8)),
+        ])),
+        Text('${fmt.format(monthlyValue)}/mês', style: moneyStyle(fontSize: 12)),
+      ]),
+    );
+  }
+
+  Widget _emptyState(String label, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BlueprintTheme.border),
+        color: BlueprintTheme.elevated,
+        border: Border.all(color: BlueprintTheme.border, width: 1),
       ),
-      child: Column(
-        children: [
-          Icon(icon, size: 40, color: BlueprintTheme.textSecondary.withValues(alpha: 0.5)),
-          const SizedBox(height: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: BlueprintTheme.textSecondary)),
-        ],
-      ),
+      child: Column(children: [
+        Icon(icon, size: 32, color: BlueprintTheme.textSecondary),
+        const SizedBox(height: 8),
+        Text(label, style: terminalLabel(), textAlign: TextAlign.center),
+      ]),
     );
   }
 }

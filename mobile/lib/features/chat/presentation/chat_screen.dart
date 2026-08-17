@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 
@@ -39,137 +40,109 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
     if (text.isEmpty || _isLoading) return;
-
     setState(() {
       _messages.add(ChatMessage('user', text));
       _inputController.clear();
       _isLoading = true;
     });
     _scrollToBottom();
-
     try {
       final api = ref.read(apiClientProvider);
       final resp = await api.dio.post('/chat', data: {
         'message': text,
         'history': _messages.map((m) => {'role': m.role, 'content': m.content}).toList(),
       });
-      
-      setState(() {
-        _messages.add(ChatMessage('assistant', resp.data['data']['response']));
-      });
-      _scrollToBottom();
-    } catch (e) {
-      setState(() {
-        _messages.add(ChatMessage('assistant', 'ERROR_REF_0xChat: Falha na comunicação com o núcleo de IA.'));
-      });
-      _scrollToBottom();
+      setState(() => _messages.add(ChatMessage('assistant', resp.data['data']['response'])));
+    } catch (_) {
+      setState(() => _messages.add(ChatMessage('assistant', 'ERROR_REF_0xChat: Falha na comunicação com o núcleo de IA.')));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
+      _scrollToBottom();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: BlueprintTheme.background,
       appBar: AppBar(
-        title: const Text('TERMINAL PIERRE'),
+        title: Row(children: [
+          const Icon(LucideIcons.terminal, size: 14),
+          const SizedBox(width: 8),
+          const Text('PIERRE_AI_INTERFACE'),
+        ]),
       ),
       body: Column(
         children: [
+          // Status bar neo-brutal
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: BlueprintTheme.elevated,
+            child: Row(children: [
+              Container(width: 6, height: 6, color: BlueprintTheme.accentTeal),
+              const SizedBox(width: 6),
+              Text('PIERRE_ONLINE // AI_FINANCIAL_CORE', style: terminalLabel(fontSize: 8)),
+            ]),
+          ),
+          Container(height: 2, color: BlueprintTheme.border),
+
+          // Mensagens
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
+              itemBuilder: (_, index) {
                 if (index == _messages.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text(
-                      '> PROCESSANDO_REQUISICAO...', 
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold, 
-                        fontSize: 10, 
-                        color: BlueprintTheme.accentPurple
-                      )
-                    ),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text('> PROCESSANDO_REQUISICAO...', style: terminalLabel(color: BlueprintTheme.accentPurple, fontSize: 10)),
                   );
                 }
-                
                 final msg = _messages[index];
                 final isUser = msg.role == 'user';
-                
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 24),
+                  margin: const EdgeInsets.only(bottom: 20),
                   child: Row(
                     mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!isUser) ...[
+                        // Avatar quadrado neo-brutal
                         Container(
-                          width: 24,
-                          height: 24,
-                          margin: const EdgeInsets.only(top: 4, right: 12),
-                          decoration: BoxDecoration(
-                            color: BlueprintTheme.accentPurple.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: BlueprintTheme.accentPurple, width: 1),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'P', 
-                              style: TextStyle(
-                                color: BlueprintTheme.accentPurple, 
-                                fontSize: 12, 
-                                fontWeight: FontWeight.bold
-                              )
-                            ),
-                          ),
+                          width: 24, height: 24,
+                          margin: const EdgeInsets.only(top: 2, right: 10),
+                          color: BlueprintTheme.accentPurple,
+                          child: const Center(child: Text('P', style: TextStyle(color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12))),
                         ),
                       ],
                       Flexible(
                         child: Column(
                           crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              isUser ? 'VOCÊ' : 'PIERRE_AI', 
-                              style: const TextStyle(
-                                fontSize: 8, 
-                                fontWeight: FontWeight.bold, 
-                                color: BlueprintTheme.textSecondary,
-                                letterSpacing: 1
-                              )
-                            ),
-                            const SizedBox(height: 6),
+                            Text(isUser ? 'VOCÊ' : 'PIERRE_AI', style: terminalLabel(fontSize: 8)),
+                            const SizedBox(height: 4),
+                            // Balão quadrado — neo-brutal
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: isUser ? BlueprintTheme.accentPurple : BlueprintTheme.surface,
-                                borderRadius: BorderRadius.circular(16).copyWith(
-                                  topRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
-                                  topLeft: isUser ? const Radius.circular(16) : const Radius.circular(4),
-                                ),
-                                border: Border.all(
-                                  color: isUser ? BlueprintTheme.accentPurple : BlueprintTheme.border, 
-                                  width: 1
-                                ),
+                                color: isUser ? BlueprintTheme.textPrimary : BlueprintTheme.surface,
+                                border: Border.all(color: BlueprintTheme.border, width: 2),
+                                boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(3, 3))],
                               ),
                               child: MarkdownBody(
                                 data: msg.content,
                                 styleSheet: MarkdownStyleSheet(
                                   p: TextStyle(
-                                    color: isUser ? Colors.white : BlueprintTheme.textPrimary,
-                                    fontSize: 14,
-                                    height: 1.5,
+                                    color: isUser ? BlueprintTheme.surface : BlueprintTheme.textPrimary,
+                                    fontSize: 14, height: 1.5,
                                   ),
-                                  strong: const TextStyle(fontWeight: FontWeight.bold),
+                                  strong: TextStyle(fontWeight: FontWeight.w900, color: isUser ? BlueprintTheme.surface : BlueprintTheme.textPrimary),
                                   code: TextStyle(
-                                    backgroundColor: Colors.black26,
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                    color: isUser ? Colors.white : BlueprintTheme.accentTeal,
+                                    backgroundColor: isUser ? Colors.white12 : BlueprintTheme.elevated,
+                                    fontFamily: 'monospace', fontSize: 12,
+                                    color: isUser ? Colors.white : BlueprintTheme.accentPurple,
                                   ),
                                 ),
                               ),
@@ -183,54 +156,47 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
             ),
           ),
+
+          // Input neo-brutal
           Container(
             padding: EdgeInsets.only(
-              left: 16, 
-              right: 16, 
-              top: 16, 
-              bottom: MediaQuery.of(context).padding.bottom + 16
+              left: 16, right: 16, top: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 12,
             ),
             decoration: const BoxDecoration(
-              color: BlueprintTheme.surface,
-              border: Border(top: BorderSide(color: BlueprintTheme.border, width: 1)),
+              color: BlueprintTheme.elevated,
+              border: Border(top: BorderSide(color: BlueprintTheme.border, width: 2)),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: BlueprintTheme.elevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BlueprintTheme.border, width: 1),
+            child: Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: const BoxDecoration(
+                    color: BlueprintTheme.surface,
+                    border: Border.fromBorderSide(BorderSide(color: BlueprintTheme.border, width: 2)),
+                  ),
+                  child: TextField(
+                    controller: _inputController,
+                    decoration: InputDecoration(
+                      hintText: 'Pergunte ao Pierre...',
+                      border: InputBorder.none,
+                      hintStyle: terminalLabel(fontSize: 12),
                     ),
-                    child: TextField(
-                      controller: _inputController,
-                      decoration: const InputDecoration(
-                        hintText: 'Pergunte ao Pierre...',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary),
-                      ),
-                      style: const TextStyle(fontSize: 14),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
+                    style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _isLoading ? null : _sendMessage,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: BlueprintTheme.accentPurple,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
-                  ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: _isLoading ? null : _sendMessage,
+                child: Container(
+                  width: 48, height: 48,
+                  color: BlueprintTheme.accentPurple,
+                  child: const Icon(LucideIcons.send, color: Colors.white, size: 18),
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
         ],
       ),

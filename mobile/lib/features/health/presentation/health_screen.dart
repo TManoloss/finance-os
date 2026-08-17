@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
 
@@ -12,21 +13,17 @@ class HealthScreen extends ConsumerWidget {
     final healthAsync = ref.watch(healthScoreProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SAÚDE_FINANCEIRA')),
+      backgroundColor: BlueprintTheme.background,
+      appBar: AppBar(title: const Text('HEALTH_DIAGNOSTIC_V1.0')),
       body: healthAsync.when(
         data: (data) {
           if (data.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.health_and_safety_outlined, size: 64, color: BlueprintTheme.textSecondary),
-                  SizedBox(height: 16),
-                  Text('DADOS_INSUFICIENTES', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: BlueprintTheme.textSecondary)),
-                  Text('Sincronize suas contas primeiro', style: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary)),
-                ],
-              ),
-            );
+            return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(LucideIcons.shieldAlert, size: 48, color: BlueprintTheme.textSecondary),
+              const SizedBox(height: 16),
+              Text('DADOS_INSUFICIENTES', style: terminalLabel()),
+              const Text('Sincronize suas contas primeiro', style: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary)),
+            ]));
           }
 
           final score = (data['overall_score'] as num?)?.toDouble() ?? 0;
@@ -34,159 +31,177 @@ class HealthScreen extends ConsumerWidget {
           final recommendations = data['recommendations'] as String? ?? data['analysis'] as String? ?? '';
 
           final dimensions = [
-            _Dimension('FLUXO_DE_CAIXA', (dims['cashflow'] as num?)?.toDouble() ?? 0, Icons.trending_up_rounded, '25%'),
-            _Dimension('PARCELAMENTOS', (dims['installments'] as num?)?.toDouble() ?? 0, Icons.calendar_today_rounded, '20%'),
-            _Dimension('CONSISTÊNCIA', (dims['consistency'] as num?)?.toDouble() ?? 0, Icons.show_chart_rounded, '15%'),
-            _Dimension('ASSINATURAS', (dims['subscriptions'] as num?)?.toDouble() ?? 0, Icons.autorenew_rounded, '15%'),
-            _Dimension('DIVERSIFICAÇÃO', (dims['diversification'] as num?)?.toDouble() ?? 0, Icons.pie_chart_rounded, '15%'),
-            _Dimension('TENDÊNCIA', (dims['trend'] as num?)?.toDouble() ?? 0, Icons.insights_rounded, '10%'),
+            _Dim('FLUXO_DE_CAIXA', (dims['cashflow'] as num?)?.toDouble() ?? 0, '25%'),
+            _Dim('PARCELAMENTOS', (dims['installments'] as num?)?.toDouble() ?? 0, '20%'),
+            _Dim('CONSISTÊNCIA', (dims['consistency'] as num?)?.toDouble() ?? 0, '20%'),
+            _Dim('ASSINATURAS', (dims['subscriptions'] as num?)?.toDouble() ?? 0, '15%'),
+            _Dim('DIVERSIFICAÇÃO', (dims['diversification'] as num?)?.toDouble() ?? 0, '10%'),
+            _Dim('TENDÊNCIA', (dims['trend'] as num?)?.toDouble() ?? 0, '10%'),
           ];
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Score Principal
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        _getScoreColor(score).withValues(alpha: 0.15),
-                        BlueprintTheme.surface,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _getScoreColor(score).withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: 160, height: 160,
-                        child: CustomPaint(
-                          painter: _ScoreGaugePainter(score: score, color: _getScoreColor(score)),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  score.toStringAsFixed(0),
-                                  style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: _getScoreColor(score)),
-                                ),
-                                Text(_getScoreLabel(score), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: BlueprintTheme.textSecondary)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text('SCORE_DE_SAÚDE_FINANCEIRA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
-                    ],
-                  ),
-                ),
+          return ListView(
+            children: [
+              // Header neo-brutal
+              Container(
+                color: BlueprintTheme.elevated,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(LucideIcons.terminal, size: 12),
+                    const SizedBox(width: 6),
+                    Text('HEALTH_DIAGNOSTIC_V1.0', style: terminalLabel()),
+                  ]),
+                  const SizedBox(height: 4),
+                  const Text('SCORE_DE_SAÚDE_FINANCEIRA', style: TextStyle(
+                    fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.w900, color: BlueprintTheme.textPrimary,
+                  )),
+                ]),
+              ),
+              Container(height: 2, color: BlueprintTheme.border),
 
-                const SizedBox(height: 24),
-
-                // Dimensões
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('DIMENSÕES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple)),
-                ),
-                const SizedBox(height: 12),
-                ...dimensions.map((dim) => _buildDimensionCard(dim)),
-
-                // Recomendações
-                if (recommendations.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('ANÁLISE_DO_AGENTE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple)),
-                  ),
-                  const SizedBox(height: 12),
+              // Score central
+              Container(
+                padding: const EdgeInsets.all(32),
+                color: BlueprintTheme.background,
+                child: Row(children: [
+                  // Gauge neo-brutal (quadrado com score)
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    width: 120, height: 120,
                     decoration: BoxDecoration(
-                      color: BlueprintTheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: BlueprintTheme.border),
+                      border: Border.all(color: _scoreColor(score), width: 4),
+                      boxShadow: [BoxShadow(color: _scoreColor(score), offset: const Offset(4, 4))],
                     ),
-                    child: MarkdownBody(
-                      data: recommendations,
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: BlueprintTheme.textPrimary, fontSize: 13, height: 1.5),
-                        strong: const TextStyle(fontWeight: FontWeight.bold, color: BlueprintTheme.accentTeal),
-                      ),
+                    child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text(score.toStringAsFixed(0), style: TextStyle(
+                        fontFamily: 'monospace', fontSize: 40, fontWeight: FontWeight.w900, color: _scoreColor(score),
+                      )),
+                      Text('/100', style: terminalLabel(fontSize: 9)),
+                    ])),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(_scoreLabel(score), style: TextStyle(
+                      fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.w900, color: _scoreColor(score),
+                    )),
+                    const SizedBox(height: 8),
+                    Text('Seu score é baseado em padrões reais dos seus últimos 90 dias.',
+                      style: const TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary, height: 1.4)),
+                  ])),
+                ]),
+              ),
+              Container(height: 2, color: BlueprintTheme.border),
+
+              // Dimensões — grid 2 col
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                child: Row(children: [
+                  const Icon(LucideIcons.zap, size: 14, color: BlueprintTheme.accentPurple),
+                  const SizedBox(width: 8),
+                  Text('DIMENSÕES_DO_SCORE', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+                ]),
+              ),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 1.4,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: dimensions.map((d) => _dimensionCard(d)).toList(),
+              ),
+              const SizedBox(height: 20),
+              Container(height: 2, color: BlueprintTheme.border),
+
+              // Recomendações
+              if (recommendations.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                  child: Row(children: [
+                    const Icon(LucideIcons.zap, size: 14, color: BlueprintTheme.accentPurple),
+                    const SizedBox(width: 8),
+                    Text('RECOMENDAÇÕES_ESTRATÉGICAS', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+                  ]),
+                ),
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: BlueprintTheme.surface,
+                    border: Border.all(color: BlueprintTheme.border, width: 2),
+                    boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(6, 6))],
+                  ),
+                  child: MarkdownBody(
+                    data: recommendations,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(color: BlueprintTheme.textPrimary, fontSize: 14, height: 1.6),
+                      strong: const TextStyle(fontWeight: FontWeight.w900),
+                      h2: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 15, color: BlueprintTheme.accentPurple),
                     ),
                   ),
-                ],
-                const SizedBox(height: 32),
+                ),
               ],
-            ),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(16),
+                color: BlueprintTheme.elevated,
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('HEALTH_SCORE_ENGINE // ONLINE', style: terminalLabel(fontSize: 8)),
+                  Text('PRÓXIMO_CÁLCULO: 24H_CYCLE', style: terminalLabel(fontSize: 8)),
+                ]),
+              ),
+            ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger))),
+        loading: () => const Center(child: CircularProgressIndicator(color: BlueprintTheme.accentPurple)),
+        error: (e, _) => Center(child: Text('ERRO: $e', style: const TextStyle(color: BlueprintTheme.danger, fontFamily: 'monospace'))),
       ),
     );
   }
 
-  Widget _buildDimensionCard(_Dimension dim) {
-    final color = _getScoreColor(dim.score);
+  Widget _dimensionCard(_Dim d) {
+    final color = _scoreColor(d.score);
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: BlueprintTheme.border),
+        border: Border.all(color: BlueprintTheme.border, width: 2),
+        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(3, 3))],
       ),
-      child: Row(
-        children: [
-          Icon(dim.icon, color: color, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(dim.label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                    Text('${dim.score.toStringAsFixed(0)} / 100', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: color)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: (dim.score / 100).clamp(0.0, 1.0),
-                    minHeight: 5,
-                    backgroundColor: BlueprintTheme.elevated,
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                ),
-              ],
-            ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Expanded(child: Text(d.label, style: terminalLabel(fontSize: 8), overflow: TextOverflow.ellipsis)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            color: BlueprintTheme.textPrimary,
+            child: Text('PESO: ${d.weight}', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 7, color: BlueprintTheme.surface)),
           ),
-          const SizedBox(width: 8),
-          Text(dim.weight, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary)),
-        ],
-      ),
+        ]),
+        const Spacer(),
+        Text('${d.score.toStringAsFixed(0)}/100', style: moneyStyle(color: color, fontSize: 22)),
+        const SizedBox(height: 6),
+        // Progress bar com bordas retas
+        Container(
+          height: 6,
+          decoration: BoxDecoration(border: Border.all(color: BlueprintTheme.border, width: 1), color: BlueprintTheme.background),
+          child: FractionallySizedBox(
+            widthFactor: (d.score / 100).clamp(0.0, 1.0),
+            alignment: Alignment.centerLeft,
+            child: Container(color: color),
+          ),
+        ),
+      ]),
     );
   }
 
-  Color _getScoreColor(double score) {
+  Color _scoreColor(double score) {
     if (score >= 80) return BlueprintTheme.accentTeal;
-    if (score >= 60) return BlueprintTheme.success;
-    if (score >= 40) return BlueprintTheme.warning;
+    if (score >= 60) return BlueprintTheme.warning;
     return BlueprintTheme.danger;
   }
 
-  String _getScoreLabel(double score) {
+  String _scoreLabel(double score) {
     if (score >= 80) return 'EXCELENTE';
     if (score >= 60) return 'BOM';
     if (score >= 40) return 'ATENÇÃO';
@@ -194,55 +209,9 @@ class HealthScreen extends ConsumerWidget {
   }
 }
 
-class _Dimension {
+class _Dim {
   final String label;
   final double score;
-  final IconData icon;
   final String weight;
-  _Dimension(this.label, this.score, this.icon, this.weight);
-}
-
-class _ScoreGaugePainter extends CustomPainter {
-  final double score;
-  final Color color;
-  _ScoreGaugePainter({required this.score, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 8;
-
-    // Background arc
-    final bgPaint = Paint()
-      ..color = BlueprintTheme.elevated
-      ..strokeWidth = 10
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      2.3, // start angle
-      4.6, // sweep (270 degrees in radians)
-      false,
-      bgPaint,
-    );
-
-    // Score arc
-    final scorePaint = Paint()
-      ..color = color
-      ..strokeWidth = 10
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      2.3,
-      4.6 * (score / 100).clamp(0.0, 1.0),
-      false,
-      scorePaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  _Dim(this.label, this.score, this.weight);
 }

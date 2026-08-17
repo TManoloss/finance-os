@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
 import 'package:finance_os/features/auth/presentation/auth_provider.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
@@ -249,54 +250,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildAccountCard(Map<String, dynamic> acc, NumberFormat fmt) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BlueprintTheme.border),
+        border: Border.all(color: BlueprintTheme.border, width: 2),
+        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(3, 3))],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: BlueprintTheme.elevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: BlueprintTheme.border),
-            ),
-            child: acc['institution_logo'] != null
-              ? ClipRRect(borderRadius: BorderRadius.circular(11), child: Image.network(acc['institution_logo'], fit: BoxFit.contain))
-              : Center(child: Text((acc['institution_name'] ?? '?').toString().substring(0, 1).toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+      child: Row(children: [
+        // Ícone/logo quadrado
+        Container(
+          width: 44, height: 44,
+          color: BlueprintTheme.elevated,
+          child: acc['institution_logo'] != null
+            ? Image.network(acc['institution_logo'], fit: BoxFit.contain)
+            : Center(child: Text(
+                (acc['institution_name'] ?? '?').toString().substring(0, 1).toUpperCase(),
+                style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 18),
+              )),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(
+            (acc['institution_name'] ?? 'DESCONHECIDO').toString().toUpperCase(),
+            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text((acc['institution_name'] ?? 'DESCONHECIDO').toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('${acc['account_type'] ?? 'N/A'} • ${fmt.format((acc['balance'] as num?)?.toDouble() ?? 0)}',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary)),
-              ],
-            ),
+          const SizedBox(height: 2),
+          Text(
+            '${acc['account_type'] ?? 'N/A'} • ${fmt.format((acc['balance'] as num?)?.toDouble() ?? 0)}',
+            style: terminalLabel(fontSize: 8),
           ),
-          IconButton(
-            icon: const Icon(Icons.sync_rounded, size: 18),
-            color: BlueprintTheme.accentPurple,
-            onPressed: () => _syncAccount(acc['pluggy_item_id'] ?? ''),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            color: BlueprintTheme.danger,
-            onPressed: () => _deleteAccount(acc['id'] ?? ''),
-          ),
-        ],
-      ),
+        ])),
+        IconButton(
+          icon: const Icon(LucideIcons.refreshCcw, size: 16),
+          color: BlueprintTheme.accentPurple,
+          onPressed: () => _syncAccount(acc['pluggy_item_id'] ?? ''),
+        ),
+        IconButton(
+          icon: const Icon(LucideIcons.trash2, size: 16),
+          color: BlueprintTheme.danger,
+          onPressed: () => _deleteAccount(acc['id'] ?? ''),
+        ),
+      ]),
     );
   }
 
   Widget _buildSectionHeader(String title) {
-    return Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple));
+    return Row(children: [
+      Container(width: 4, height: 16, color: BlueprintTheme.accentPurple),
+      const SizedBox(width: 8),
+      Text(title, style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 11)),
+    ]);
   }
 
   Widget _buildInfoCard(List<Widget> children) {
@@ -304,8 +308,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: BlueprintTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: BlueprintTheme.border),
+        border: Border.all(color: BlueprintTheme.border, width: 2),
+        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(4, 4))],
       ),
       child: Column(children: children),
     );
@@ -313,43 +317,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(label, style: terminalLabel(fontSize: 9)),
+        Text(value, style: moneyStyle(fontSize: 12)),
+      ]),
     );
   }
 
   Widget _buildInputField(String label, TextEditingController controller, {bool isPassword = false, String? hintText}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: BlueprintTheme.elevated,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: BlueprintTheme.border),
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPassword,
-            style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: hintText,
-              hintStyle: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary.withValues(alpha: 0.4)),
-            ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: terminalLabel(fontSize: 8)),
+      const SizedBox(height: 6),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: const BoxDecoration(
+          color: BlueprintTheme.surface,
+          border: Border.fromBorderSide(BorderSide(color: BlueprintTheme.border, width: 2)),
+        ),
+        child: TextField(
+          controller: controller,
+          obscureText: isPassword,
+          style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: hintText,
+            hintStyle: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary.withValues(alpha: 0.4)),
           ),
         ),
-      ],
-    );
+      ),
+    ]);
   }
 
   Widget _buildActionButton({required String label, VoidCallback? onTap, required Color color}) {
@@ -357,13 +354,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onTap: onTap,
       child: Container(
         height: 48,
-        decoration: BoxDecoration(
-          color: onTap == null ? color.withValues(alpha: 0.5) : color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 12, letterSpacing: 0.5)),
-        ),
+        color: onTap == null ? color.withValues(alpha: 0.5) : color,
+        child: Center(child: Text(label, style: const TextStyle(
+          fontFamily: 'monospace', fontWeight: FontWeight.w900, color: Colors.white, fontSize: 11, letterSpacing: 1,
+        ))),
       ),
     );
   }

@@ -14,6 +14,8 @@ import 'package:finance_os/features/health/presentation/health_screen.dart';
 import 'package:finance_os/features/merchants/presentation/merchants_screen.dart';
 import 'package:finance_os/features/simulator/presentation/simulator_screen.dart';
 import 'package:finance_os/features/reports/presentation/replay_screen.dart';
+import 'package:finance_os/features/goals/presentation/goals_screen.dart';
+import 'package:finance_os/features/more/presentation/more_screen.dart';
 import 'package:finance_os/core/layout/main_layout.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -31,15 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated
-      final user = authState.user;
-      final isPluggyConfigured = user?.isPluggyConfigured ?? false;
-      final isSettingUpPluggy = state.matchedLocation == '/pluggy-setup';
-
-      if (!isPluggyConfigured) {
-        return isSettingUpPluggy ? null : '/pluggy-setup';
-      }
-
-      if (isLoggingIn || isRegistering || (isSettingUpPluggy && isPluggyConfigured)) {
+      if (isLoggingIn || isRegistering || state.matchedLocation == '/pluggy-setup') {
         return '/dashboard';
       }
 
@@ -87,6 +81,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'replay',
         builder: (context, state) => ReplayScreen(month: state.pathParameters['month'] ?? ''),
       ),
+      GoRoute(
+        path: '/reports',
+        name: 'reports',
+        builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/chat',
+        name: 'chat',
+        builder: (context, state) => const ChatScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainLayout(navigationShell: navigationShell);
@@ -104,15 +108,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/transactions',
-                name: 'transactions',
-                builder: (context, state) => const TransactionsScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/cards',
                 name: 'cards',
                 builder: (context, state) => const CardsScreen(),
@@ -122,18 +117,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                name: 'reports',
-                builder: (context, state) => const ReportsScreen(),
+                path: '/goals',
+                name: 'goals',
+                builder: (context, state) => const GoalsScreen(),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/chat',
-                name: 'chat',
-                builder: (context, state) => const ChatScreen(),
+                path: '/transactions',
+                name: 'transactions',
+                builder: (context, state) => const TransactionsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/more',
+                name: 'more',
+                builder: (context, state) => const MoreScreen(),
               ),
             ],
           ),
