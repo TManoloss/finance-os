@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
+import 'package:finance_os/shared/widgets/premium_page.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -16,9 +17,67 @@ class CardsScreen extends ConsumerWidget {
     final accountsAsync = ref.watch(connectedAccountsProvider);
     final fmt = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
+    return PremiumPage(
+      title: 'Patrimônio',
+      actions: [
+        IconButton(
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () => _addAccount(context, ref))
+      ],
+      children: [
+        const PremiumTitle(
+            title: 'Cartões e compromissos',
+            subtitle: 'Faturas, parcelas e assinaturas em um só lugar.'),
+        accountsAsync.when(
+            data: (accounts) {
+              final cards = accounts
+                  .where((a) => (a['account_type'] ?? '')
+                      .toString()
+                      .toUpperCase()
+                      .contains('CREDIT'))
+                  .toList();
+              return cards.isEmpty
+                  ? _emptyState(
+                      'Nenhum cartão cadastrado', LucideIcons.creditCard)
+                  : Column(
+                      children: cards
+                          .map((card) => _buildCreditCard(card, fmt))
+                          .toList());
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => _emptyState(
+                'Não foi possível carregar cartões', LucideIcons.wifiOff)),
+        const SizedBox(height: 18),
+        const Text('Parcelas',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 10),
+        installmentsAsync.when(
+            data: (items) => items.isEmpty
+                ? _emptyState('Nenhuma parcela em aberto', LucideIcons.check)
+                : Column(
+                    children: items
+                        .map<Widget>((item) => _buildInstallmentRow(item, fmt))
+                        .toList()),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const SizedBox()),
+        const SizedBox(height: 18),
+        const Text('Assinaturas',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        const SizedBox(height: 10),
+        subscriptionsAsync.when(
+            data: (items) => items.isEmpty
+                ? _emptyState(
+                    'Nenhuma assinatura detectada', LucideIcons.refreshCcw)
+                : Column(
+                    children: items
+                        .map<Widget>((item) => _buildSubscriptionRow(item, fmt))
+                        .toList()),
+            loading: () => const SizedBox(),
+            error: (_, __) => const SizedBox()),
+      ],
+    );
+    /*
     return Scaffold(
-      backgroundColor: BlueprintTheme.background,
-      appBar: AppBar(title: const Text('GESTAO_DE_CREDITO'), actions: [IconButton(icon: const Icon(LucideIcons.plus), onPressed: () => _addAccount(context, ref))]),
       body: RefreshIndicator(
         color: BlueprintTheme.accentPurple,
         onRefresh: () async {
@@ -122,38 +181,89 @@ class CardsScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
+    );*/
   }
 
   Future<void> _addAccount(BuildContext context, WidgetRef ref) async {
-    final name = TextEditingController(); final balance = TextEditingController(); var type = 'CREDIT';
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: BlueprintTheme.elevated, builder: (sheet) => Padding(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.viewInsetsOf(sheet).bottom + 24),
-      child: StatefulBuilder(builder: (context, setState) => Column(mainAxisSize: MainAxisSize.min, children: [
-        Text('Nova conta manual', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 14),
-        TextField(controller: name, decoration: const InputDecoration(hintText: 'Nome da conta ou cartão')),
-        const SizedBox(height: 10), TextField(controller: balance, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Saldo inicial em R\$')),
-        const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: type, dropdownColor: BlueprintTheme.elevated, items: const [DropdownMenuItem(value: 'CHECKING', child: Text('Conta corrente')), DropdownMenuItem(value: 'SAVINGS', child: Text('Poupança')), DropdownMenuItem(value: 'CREDIT', child: Text('Cartão de crédito'))], onChanged: (v) => setState(() => type = v!)),
-        const SizedBox(height: 18), ElevatedButton(onPressed: () async { final initial = double.tryParse(balance.text.replaceAll(',', '.')) ?? 0; if (name.text.trim().isEmpty) return; await ref.read(apiClientProvider).dio.post('/accounts', data: {'name': name.text.trim(), 'type': type, 'balance': initial}); ref.invalidate(connectedAccountsProvider); if (context.mounted) Navigator.pop(context); }, child: const Text('Criar conta')),
-      ])),
-    ));
+    final name = TextEditingController();
+    final balance = TextEditingController();
+    var type = 'CREDIT';
+    await showModalBottomSheet<void>(
+        context: context,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        backgroundColor: BlueprintTheme.elevated,
+        builder: (sheet) => Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, 24, 20, MediaQuery.viewInsetsOf(sheet).bottom + 24),
+              child: StatefulBuilder(
+                  builder: (context, setState) =>
+                      Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text('Nova conta manual',
+                            style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 14),
+                        TextField(
+                            controller: name,
+                            decoration: const InputDecoration(
+                                hintText: 'Nome da conta ou cartão')),
+                        const SizedBox(height: 10),
+                        TextField(
+                            controller: balance,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration: const InputDecoration(
+                                hintText: 'Saldo inicial em R\$')),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                            initialValue: type,
+                            dropdownColor: BlueprintTheme.elevated,
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 'CHECKING',
+                                  child: Text('Conta corrente')),
+                              DropdownMenuItem(
+                                  value: 'SAVINGS', child: Text('Poupança')),
+                              DropdownMenuItem(
+                                  value: 'CREDIT',
+                                  child: Text('Cartão de crédito'))
+                            ],
+                            onChanged: (v) => setState(() => type = v!)),
+                        const SizedBox(height: 18),
+                        ElevatedButton(
+                            onPressed: () async {
+                              final initial = double.tryParse(
+                                      balance.text.replaceAll(',', '.')) ??
+                                  0;
+                              if (name.text.trim().isEmpty) return;
+                              await ref
+                                  .read(apiClientProvider)
+                                  .dio
+                                  .post('/accounts', data: {
+                                'name': name.text.trim(),
+                                'type': type,
+                                'balance': initial
+                              });
+                              ref.invalidate(connectedAccountsProvider);
+                              if (context.mounted) Navigator.pop(context);
+                            },
+                            child: const Text('Criar conta')),
+                      ])),
+            ));
   }
 
   Widget _buildCreditCard(Map<String, dynamic> card, NumberFormat fmt) {
     final balance = (card['balance'] as num?)?.toDouble() ?? 0;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: BlueprintTheme.elevated,
-        border: Border.all(color: BlueprintTheme.border, width: 2),
-        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(4, 4))],
-      ),
+      decoration: neoBrutalCard(backgroundColor: BlueprintTheme.elevated),
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text(
+          Expanded(
+              child: Text(
             (card['institution_name'] ?? 'CARTÃO').toString().toUpperCase(),
-            style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 12),
+            style:
+                terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 12),
           )),
           const Icon(LucideIcons.creditCard, size: 18),
         ]),
@@ -163,12 +273,22 @@ class CardsScreen extends ConsumerWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('SALDO_DEVEDOR', style: terminalLabel(fontSize: 8)),
-            Text(fmt.format(balance.abs()), style: moneyStyle(color: balance < 0 ? BlueprintTheme.danger : BlueprintTheme.textPrimary, fontSize: 20)),
+            Text(fmt.format(balance.abs()),
+                style: moneyStyle(
+                    color: balance < 0
+                        ? BlueprintTheme.danger
+                        : BlueprintTheme.textPrimary,
+                    fontSize: 20)),
           ]),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             color: BlueprintTheme.textPrimary,
-            child: const Text('ACTIVE', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 9, color: BlueprintTheme.surface)),
+            child: const Text('ACTIVE',
+                style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 9,
+                    color: BlueprintTheme.surface)),
           ),
         ]),
       ]),
@@ -186,17 +306,25 @@ class CardsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: BlueprintTheme.border, width: 1)),
+        border:
+            Border(bottom: BorderSide(color: BlueprintTheme.border, width: 1)),
         color: BlueprintTheme.surface,
       ),
       child: Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(merchant, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12)),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(merchant,
+              style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12)),
           const SizedBox(height: 4),
           Row(children: [
             Text('$current/$total', style: terminalLabel(fontSize: 9)),
             const SizedBox(width: 8),
-            Expanded(child: Container(
+            Expanded(
+                child: Container(
               height: 6,
               decoration: BoxDecoration(
                 border: Border.all(color: BlueprintTheme.border, width: 1),
@@ -213,14 +341,17 @@ class CardsScreen extends ConsumerWidget {
         const SizedBox(width: 12),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(fmt.format(instValue), style: moneyStyle(fontSize: 14)),
-          Text('TOTAL: ${fmt.format(amount)}', style: terminalLabel(color: BlueprintTheme.danger, fontSize: 8)),
+          Text('TOTAL: ${fmt.format(amount)}',
+              style: terminalLabel(color: BlueprintTheme.danger, fontSize: 8)),
         ]),
       ]),
     );
   }
 
   Widget _buildSubscriptionRow(Map<String, dynamic> sub, NumberFormat fmt) {
-    final merchant = (sub['merchant'] ?? sub['merchant_name'] ?? '?').toString().toUpperCase();
+    final merchant = (sub['merchant'] ?? sub['merchant_name'] ?? '?')
+        .toString()
+        .toUpperCase();
     final monthlyValue = (sub['monthly_value'] as num?)?.toDouble() ?? 0;
     final isIrregular = (sub['status'] ?? '') == 'irregular';
     return Container(
@@ -228,21 +359,41 @@ class CardsScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: BlueprintTheme.surface,
-        border: Border.all(color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.border, width: 2),
+        border: Border.all(
+            color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.border,
+            width: 2),
       ),
       child: Row(children: [
         Container(
-          width: 36, height: 36,
-          color: (isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal).withValues(alpha: 0.15),
-          child: Icon(LucideIcons.refreshCcw, color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal, size: 16),
+          width: 36,
+          height: 36,
+          color:
+              (isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal)
+                  .withValues(alpha: 0.15),
+          child: Icon(LucideIcons.refreshCcw,
+              color: isIrregular
+                  ? BlueprintTheme.warning
+                  : BlueprintTheme.accentTeal,
+              size: 16),
         ),
         const SizedBox(width: 12),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(merchant, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12)),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(merchant,
+              style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12)),
           Text(isIrregular ? 'STATUS: IRREGULAR' : 'STATUS: ATIVA',
-            style: terminalLabel(color: isIrregular ? BlueprintTheme.warning : BlueprintTheme.accentTeal, fontSize: 8)),
+              style: terminalLabel(
+                  color: isIrregular
+                      ? BlueprintTheme.warning
+                      : BlueprintTheme.accentTeal,
+                  fontSize: 8)),
         ])),
-        Text('${fmt.format(monthlyValue)}/mês', style: moneyStyle(fontSize: 12)),
+        Text('${fmt.format(monthlyValue)}/mês',
+            style: moneyStyle(fontSize: 12)),
       ]),
     );
   }

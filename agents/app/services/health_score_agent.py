@@ -90,17 +90,16 @@ class HealthScoreAgent(BaseAgent):
             await conn.close()
 
     async def get_score_recommendations(self, user_id: str, score_data: dict):
-        # Find 2 worst dimensions
         worst = sorted(score_data["dimensions"].items(), key=lambda x: x[1])[:2]
-        
-        prompt = f"""
-        O usuário tem um Health Score financeiro de {score_data['total_score']}/100.
-        As piores dimensões são: {worst[0][0]} ({worst[0][1]:.1f}) e {worst[1][0]} ({worst[1][1]:.1f}).
-        
-        Gere 2 recomendações práticas e curtas em português para melhorar esses pontos específicos.
-        """
-        response = await self.llm.completion(prompt)
-        return response
+        advice = {
+            "cashflow": "Busque encerrar o mês com receitas maiores que despesas.",
+            "installments": "Evite novas parcelas até reduzir os compromissos atuais.",
+            "diversification": "Revise a categoria que concentra a maior parte dos gastos.",
+            "consistency": "Defina um limite semanal e acompanhe-o antes de cada compra.",
+            "subscriptions": "Revise assinaturas recorrentes que não usa com frequência.",
+            "trend": "Compare este mês com o anterior antes de aumentar gastos fixos.",
+        }
+        return "\n".join(f"• {advice.get(name, 'Revise este indicador no próximo mês.')}" for name, _ in worst)
 
     async def save_score_snapshot(self, user_id: str, data: dict):
         conn = await self.get_db_connection()

@@ -4,6 +4,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/settings/presentation/settings_provider.dart';
+import 'package:finance_os/shared/widgets/premium_page.dart';
 
 class HealthScreen extends ConsumerWidget {
   const HealthScreen({super.key});
@@ -13,8 +14,7 @@ class HealthScreen extends ConsumerWidget {
     final healthAsync = ref.watch(healthScoreProvider);
 
     return Scaffold(
-      backgroundColor: BlueprintTheme.background,
-      appBar: AppBar(title: const Text('HEALTH_DIAGNOSTIC_V1.0')),
+      appBar: AppBar(title: const Text('Saúde financeira')),
       body: healthAsync.when(
         data: (data) {
           if (data.isEmpty) {
@@ -41,23 +41,7 @@ class HealthScreen extends ConsumerWidget {
 
           return ListView(
             children: [
-              // Header neo-brutal
-              Container(
-                color: BlueprintTheme.elevated,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    const Icon(LucideIcons.terminal, size: 12),
-                    const SizedBox(width: 6),
-                    Text('HEALTH_DIAGNOSTIC_V1.0', style: terminalLabel()),
-                  ]),
-                  const SizedBox(height: 4),
-                  const Text('SCORE_DE_SAÚDE_FINANCEIRA', style: TextStyle(
-                    fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.w900, color: BlueprintTheme.textPrimary,
-                  )),
-                ]),
-              ),
-              Container(height: 2, color: BlueprintTheme.border),
+              const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 0), child: PremiumTitle(title: 'Seu score financeiro', subtitle: 'Uma leitura do seu comportamento recente.')),
 
               // Score central
               Container(
@@ -67,10 +51,7 @@ class HealthScreen extends ConsumerWidget {
                   // Gauge neo-brutal (quadrado com score)
                   Container(
                     width: 120, height: 120,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _scoreColor(score), width: 4),
-                      boxShadow: [BoxShadow(color: _scoreColor(score), offset: const Offset(4, 4))],
-                    ),
+                    decoration: BoxDecoration(color: _scoreColor(score).withValues(alpha: .12), shape: BoxShape.circle, border: Border.all(color: _scoreColor(score), width: 3)),
                     child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Text(score.toStringAsFixed(0), style: TextStyle(
                         fontFamily: 'monospace', fontSize: 40, fontWeight: FontWeight.w900, color: _scoreColor(score),
@@ -89,7 +70,6 @@ class HealthScreen extends ConsumerWidget {
                   ])),
                 ]),
               ),
-              Container(height: 2, color: BlueprintTheme.border),
 
               // Dimensões — grid 2 col
               Padding(
@@ -97,7 +77,7 @@ class HealthScreen extends ConsumerWidget {
                 child: Row(children: [
                   const Icon(LucideIcons.zap, size: 14, color: BlueprintTheme.accentPurple),
                   const SizedBox(width: 8),
-                  Text('DIMENSÕES_DO_SCORE', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+                  const Text('Dimensões do score', style: TextStyle(fontWeight: FontWeight.w700)),
                 ]),
               ),
               GridView.count(
@@ -120,17 +100,13 @@ class HealthScreen extends ConsumerWidget {
                   child: Row(children: [
                     const Icon(LucideIcons.zap, size: 14, color: BlueprintTheme.accentPurple),
                     const SizedBox(width: 8),
-                    Text('RECOMENDAÇÕES_ESTRATÉGICAS', style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10)),
+                  const Text('Recomendações', style: TextStyle(fontWeight: FontWeight.w700)),
                   ]),
                 ),
                 Container(
                   margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: BlueprintTheme.surface,
-                    border: Border.all(color: BlueprintTheme.border, width: 2),
-                    boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(6, 6))],
-                  ),
+                  decoration: neoBrutalCard(),
                   child: MarkdownBody(
                     data: recommendations,
                     styleSheet: MarkdownStyleSheet(
@@ -142,15 +118,7 @@ class HealthScreen extends ConsumerWidget {
                 ),
               ],
 
-              // Footer
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: BlueprintTheme.elevated,
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('HEALTH_SCORE_ENGINE // ONLINE', style: terminalLabel(fontSize: 8)),
-                  Text('PRÓXIMO_CÁLCULO: 24H_CYCLE', style: terminalLabel(fontSize: 8)),
-                ]),
-              ),
+              const SizedBox(height: 104),
             ],
           );
         },
@@ -164,11 +132,7 @@ class HealthScreen extends ConsumerWidget {
     final color = _scoreColor(d.score);
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: BlueprintTheme.surface,
-        border: Border.all(color: BlueprintTheme.border, width: 2),
-        boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(3, 3))],
-      ),
+      decoration: neoBrutalCard(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Expanded(child: Text(d.label, style: terminalLabel(fontSize: 8), overflow: TextOverflow.ellipsis)),

@@ -35,37 +35,22 @@ class DailyAgent(BaseAgent):
 
             transactions = [dict(r) for r in rows]
             
-            # 2. Gerar Insights via LLM
-            prompt = f"Dados das últimas 24h para o usuário {user_id}:\n{json.dumps(transactions, default=str)}"
-            
-            response_text = await self.llm.completion(prompt, system_prompt=DAILY_PROMPT)
-            
-            if response_text.startswith("ERRO_SISTEMA"):
-                return {"error": response_text}
-
-            # 3. Processar e salvar
-            try:
-                # Tenta encontrar o JSON dentro da resposta
-                start_idx = response_text.find("{")
-                end_idx = response_text.rfind("}")
-                if start_idx == -1 or end_idx == -1:
-                    raise ValueError("JSON não encontrado na resposta")
-                
-                clean_json = response_text[start_idx:end_idx+1]
-                report_data = json.loads(clean_json)
-                
-                await self.save_report(
-                    user_id, 
-                    "daily", 
-                    start_date.date(), 
-                    end_date.date(), 
-                    report_data["summary"], 
-                    json.dumps(report_data.get("insights", []))
-                )
-                return report_data
-            except Exception as e:
-                print(f"Erro ao processar JSON do agente: {e}")
-                return {"error": "Falha ao gerar relatório"}
+            debits = [t for t in transactions if t["direction"] == "debit"]
+            total_spent = sum(float(t["amount"]) for t in debits)
+            by_category = {}
+            for tx in debits:
+                category = tx["category"] or "Outros"
+                by_category[category] = by_category.get(category, 0) + float(tx["amount"])
+            top_category, top_total = max(by_category.items(), key=lambda item: item[1], default=("", 0))
+            insights = ([f"{top_category} representou R$ {top_total:.2f} dos gastos de hoje."] if top_category else [])
+            report_data = {
+                "summary": f"Hoje foram {len(debits)} gastos, somando R$ {total_spent:.2f}.",
+                "alerts": [],
+                "total_spent": total_spent,
+                "insights": insights,
+            }
+            await self.save_report(user_id, "daily", start_date.date(), end_date.date(), report_data["summary"], json.dumps(insights))
+            return report_data
 
         finally:
             await conn.close()

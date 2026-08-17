@@ -59,6 +59,8 @@ class _FloatingNav extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(items.length, (index) {
           final selected = index == currentIndex;
+          // Goal e History não usam o marcador laranja lateral/label da referência.
+          final showAccent = selected && index != 2 && index != 3;
           final item = items[index];
           return Expanded(
             child: InkWell(
@@ -67,12 +69,12 @@ class _FloatingNav extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(item.$1, size: 18, color: selected ? accent : BlueprintTheme.textSecondary),
+                  Icon(item.$1, size: 18, color: showAccent ? accent : BlueprintTheme.textSecondary),
                   const SizedBox(height: 2),
                   SizedBox(
                     height: 12,
                     child: Text(
-                      selected ? item.$2 : '',
+                      showAccent ? item.$2 : '',
                       style: const TextStyle(color: accent, fontSize: 8, fontWeight: FontWeight.w700),
                     ),
                   ),

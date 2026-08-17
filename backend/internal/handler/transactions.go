@@ -97,9 +97,12 @@ func (h *TransactionsHandler) UpdateCategory(c echo.Context) error {
 func (h *TransactionsHandler) CreateManual(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 	var req struct {
-		AccountID, Description, Direction, Date string
-		Amount                                  float64 `json:"amount"`
-		CategoryID                              string  `json:"category_id"`
+		AccountID   string  `json:"account_id"`
+		Description string  `json:"description"`
+		Direction   string  `json:"direction"`
+		Date        string  `json:"date"`
+		Amount      float64 `json:"amount"`
+		CategoryID  string  `json:"category_id"`
 	}
 	if err := c.Bind(&req); err != nil || req.AccountID == "" || req.Description == "" || req.Amount <= 0 || (req.Direction != "credit" && req.Direction != "debit") {
 		return response.Error(c, http.StatusBadRequest, "conta, descrição, valor e tipo válidos são obrigatórios")

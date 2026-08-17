@@ -1,0 +1,105 @@
+2026/05/22 17:27:34 Conectado ao PostgreSQL com sucesso!
+2026/05/22 17:27:34 Executando migrações automáticas...
+2026/05/22 17:27:34 Migrações executadas com sucesso!
+2026/05/22 17:27:34 Scheduler iniciado com sucesso!
+2026/05/22 17:27:34 [KeepAlive] SELF_URL não definida, ignorando keep-alive
+2026/05/22 17:27:34 Rota registrada: PATCH /api/v1/accounts/:id/settings
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/stress-score
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/survival-mode
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/lifestyle-drift
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/merchants
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/merchants/*
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/internal/sync/status
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/auth/refresh
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/accounts/*
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/invisible-spending
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/personal-inflation
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/merchants/:name
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/reports
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/reports/*
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/monthly-replay
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/auth/register
+2026/05/22 17:27:34 Rota registrada: PATCH /api/v1/transactions/:id/category
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/cashflow
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/convenience-index
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/ticket-analysis
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/cards/invoice/:account_id
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/*
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/accounts/llm-keys
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/micro-spending
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/installment-timeline
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/cards
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/accounts
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/projection
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/narrative
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/monthly-weeks
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/compensation-pattern
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/loyalty
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/merchants
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/feed
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/auth/login
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/accounts/connect-token
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/transactions
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/transactions/summary
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/categories
+2026/05/22 17:27:34 Rota registrada: DELETE /api/v1/accounts/:id
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/transactions
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/transactions/*
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/goals/*
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/upcoming-expenses
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/gamification
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/cards/installments
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/feed/*
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/goals
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/behavioral
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/comparison
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/impulse-radar
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/weekday-weekend
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/impulse
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/dependency-map
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/simulator/purchase
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/simulator/cut-subscription
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/behavioral-prediction
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/spending-heatmap
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/cards/subscriptions
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/goals/suggest
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/me
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/salary-plan
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/silent-growth
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/weekly-profile
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/reports/trigger/:type
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/chat
+2026/05/22 17:27:34 Rota registrada: PATCH /api/v1/feed/read-all
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/goals
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/health-score
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/cards/*
+2026/05/22 17:27:34 Rota registrada: PATCH /api/v1/feed/:id/read
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/simulator/*
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/accounts/sync
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/financial-memory
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/salary-effect
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/meal-cost
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/feed
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/feed/unread-count
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/simulator
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/accounts
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/accounts/keys
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/timeline
+2026/05/22 17:27:34 Rota registrada: GET /api/v1/reports/dangerous-days
+2026/05/22 17:27:34 Rota registrada: echo_route_not_found /api/v1/goals
+2026/05/22 17:27:34 Rota registrada: POST /api/v1/internal/sync
+
+   ____    __
+  / __/___/ /  ___
+ / _// __/ _ \/ _ \
+/___/\__/_//_/\___/ v4.15.2
+High performance, minimalist Go web framework
+https://echo.labstack.com
+____________________________________O/_______
+                                    O\
+⇨ http server started on [::]:8080
+{"time":"2026-05-22T17:27:43.744702398-03:00","id":"FADKLviQobpikYftbSsoAeCxIWgawQPZ","remote_ip":"::1","host":"localhost:8080","method":"GET","uri":"/health","user_agent":"curl/8.20.0","status":200,"error":"","latency":92617,"latency_human":"92.617µs","bytes_in":0,"bytes_out":74}
+{"time":"2026-05-22T17:28:04.804192253-03:00","id":"qHHmCVkOJefbYYoxoMnIoyGlyTvjyOHx","remote_ip":"::1","host":"localhost:8080","method":"POST","uri":"/api/v1/internal/sync","user_agent":"curl/8.20.0","status":401,"error":"","latency":97078,"latency_human":"97.078µs","bytes_in":0,"bytes_out":50}
+2026/05/22 17:30:00 [KeepAlive] Erro ao pingar agentes: Get "http://localhost:8000/health": dial tcp [::1]:8000: connect: connection refused

@@ -66,12 +66,18 @@ func (s *ClassifierService) Classify(ctx context.Context, userID, merchantName, 
 
 	// 3. Chamar serviço Python de IA
 	log.Printf("[Classifier] Chamando IA para: %s / %s", merchantClean, descriptionClean)
-	
+
 	categoryID, err = s.classifyWithIA(ctx, merchantClean, descriptionClean, amount, direction)
 	if err == nil && categoryID != "" {
 		var realID string
 		s.db.QueryRow(ctx, "SELECT id FROM categories WHERE name ILIKE $1 AND user_id IS NULL", categoryID).Scan(&realID)
 		if realID != "" {
+			// Aprende o resultado para que o mesmo estabelecimento não consuma IA no próximo sync.
+			if merchantClean != "" {
+				if err := s.CreateRule(ctx, userID, merchantClean, realID); err != nil {
+					log.Printf("[Classifier] Não foi possível salvar regra aprendida: %v", err)
+				}
+			}
 			return realID, nil
 		}
 	}

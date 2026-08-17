@@ -93,16 +93,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: Container(
                     width: 64,
                     height: 64,
-                    decoration: BoxDecoration(
-                      color: BlueprintTheme.accentTeal,
-                      border: Border.all(color: BlueprintTheme.border, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: BlueprintTheme.border,
-                          offset: Offset(4, 4),
-                        ),
-                      ],
-                    ),
+                    decoration: const BoxDecoration(color: BlueprintTheme.accentTeal, shape: BoxShape.circle),
                     child: const Center(
                       child: Icon(LucideIcons.userPlus, color: Colors.white, size: 28),
                     ),
@@ -110,19 +101,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'NOVO_OPERADOR',
+                  'Crie sua conta',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
                     letterSpacing: -1,
                     color: BlueprintTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'CRIAR_ACESSO_AO_NÚCLEO',
+                  'Comece a organizar sua vida financeira.',
                   textAlign: TextAlign.center,
                   style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
                 ),
@@ -131,26 +121,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 // Form Container
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: BlueprintTheme.surface,
-                    border: Border.all(color: BlueprintTheme.border, width: 2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: BlueprintTheme.border,
-                        offset: Offset(6, 6),
-                      ),
-                    ],
-                  ),
+                  decoration: BoxDecoration(color: BlueprintTheme.surface, borderRadius: BorderRadius.circular(20)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildField('NOME_COMPLETO', _nameController, false, LucideIcons.user),
+                      _buildField('Nome completo', _nameController, false, LucideIcons.user),
                       const SizedBox(height: 14),
-                      _buildField('EMAIL_ADDRESS', _emailController, false, LucideIcons.mail),
+                      _buildField('E-mail', _emailController, false, LucideIcons.mail),
                       const SizedBox(height: 14),
-                      _buildField('PASSWORD_KEY', _passwordController, true, LucideIcons.lock),
+                      _buildField('Senha', _passwordController, true, LucideIcons.lock),
                       const SizedBox(height: 14),
-                      _buildField('CONFIRM_PASSWORD', _confirmController, true, LucideIcons.checkSquare),
+                      _buildField('Confirmar senha', _confirmController, true, LucideIcons.checkSquare),
                       
                       if (_error != null) ...[
                         const SizedBox(height: 16),
@@ -174,18 +155,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onTap: _isLoading ? null : _handleRegister,
                         child: Container(
                           height: 52,
-                          decoration: BoxDecoration(
-                            color: BlueprintTheme.accentTeal,
-                            border: Border.all(color: BlueprintTheme.border, width: 2),
-                            boxShadow: _isLoading
-                                ? null
-                                : const [
-                                    BoxShadow(
-                                      color: BlueprintTheme.border,
-                                      offset: Offset(3, 3),
-                                    ),
-                                  ],
-                          ),
+                          decoration: BoxDecoration(color: BlueprintTheme.accentTeal, borderRadius: BorderRadius.circular(14)),
                           child: Center(
                             child: _isLoading
                                 ? const SizedBox(
@@ -197,11 +167,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     ),
                                   )
                                 : const Text(
-                                    'REGISTRAR_OPERADOR',
+                                    'Criar conta',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
                                       color: Colors.white,
-                                      fontFamily: 'monospace',
                                       fontSize: 11,
                                       letterSpacing: 1,
                                     ),
@@ -217,7 +186,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextButton(
                   onPressed: () => context.go('/login'),
                   child: Text(
-                    'JÁ POSSUI ACESSO? AUTENTICAR',
+                    'Já tem conta? Entrar',
                     style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
                   ),
                 ),
@@ -247,13 +216,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: BlueprintTheme.elevated,
-            border: Border.all(color: BlueprintTheme.border, width: 2),
+            color: BlueprintTheme.elevated, borderRadius: BorderRadius.circular(12),
           ),
           child: TextField(
             controller: controller,
             obscureText: isPassword,
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+            style: const TextStyle(fontSize: 12),
             decoration: const InputDecoration(
               border: InputBorder.none,
               isDense: true,

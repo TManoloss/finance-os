@@ -39,13 +39,23 @@ class BehavioralAgent(BaseAgent):
 			"lifestyle_inflation": lifestyle
 		}
 		
-		prompt = BEHAVIORAL_INSIGHTS_PROMPT.format(patterns_json=json.dumps(patterns))
-		response = await self.llm.completion(prompt)
-		
-		try:
-			return json.loads(response)
-		except:
-			return {"error": "Falha ao processar insights comportamentais", "raw": response}
+		insights = []
+		for peak in emotional.get("peak_days", []):
+			if peak["vs_avg"] > 0:
+				insights.append({
+					"title": f"Gastos maiores às {peak['day']}",
+					"description": f"Seus gastos nesse dia ficaram {peak['vs_avg']:.1f}% acima da média.",
+					"impact_monthly": 0.0, "impact_annual": 0.0,
+					"type": "pattern", "severity": "info",
+				})
+		for item in lifestyle.get("items", []):
+			insights.append({
+				"title": f"Aumento em {item['category']}",
+				"description": f"A categoria cresceu {item['increase_pct']:.1f}% no período analisado.",
+				"impact_monthly": item["monthly_diff"], "impact_annual": item["monthly_diff"] * 12,
+				"type": "warning", "severity": "medium",
+			})
+		return {"insights": insights[:3], "summary": "Padrões calculados a partir dos últimos lançamentos."}
 
 	async def analyze_emotional_spending(self, user_id: str):
 		conn = await self.get_db_connection()

@@ -50,32 +50,26 @@ class WeeklyAgent(BaseAgent):
                 "previous_week_total_debit": float(prev_total or 0)
             }
             
-            # 4. Gerar Insights via LLM
-            prompt = f"Resumo semanal para o usuário {user_id}:\n{json.dumps(context_data, default=str)}"
-            response_text = await self.llm.completion(prompt, system_prompt=WEEKLY_PROMPT)
-            
-            if response_text.startswith("ERRO_SISTEMA"):
-                return {"error": response_text}
-
-            # 5. Processar e salvar
-            try:
-                start_idx = response_text.find("{")
-                end_idx = response_text.rfind("}")
-                clean_json = response_text[start_idx:end_idx+1]
-                report_data = json.loads(clean_json)
-                
-                await self.save_report(
-                    user_id, 
-                    "weekly", 
-                    start_date.date(), 
-                    end_date.date(), 
-                    report_data["summary"], 
-                    json.dumps(report_data.get("insights", []))
-                )
-                return report_data
-            except Exception as e:
-                print(f"Erro ao processar JSON do agente semanal: {e}")
-                return {"error": "Falha ao gerar relatório semanal"}
+            debits = [t for t in transactions if t["direction"] == "debit"]
+            current_total = sum(float(t["amount"]) for t in debits)
+            by_category = {}
+            for tx in debits:
+                category = tx["category"] or "Outros"
+                by_category[category] = by_category.get(category, 0) + float(tx["amount"])
+            top_categories = [{"name": name, "total": total} for name, total in sorted(by_category.items(), key=lambda item: item[1], reverse=True)[:3]]
+            previous_total = float(prev_total or 0)
+            change = ((current_total - previous_total) / previous_total * 100) if previous_total else 0
+            direction = "aumentaram" if change > 0 else "diminuíram" if change < 0 else "ficaram estáveis"
+            insights = [f"Seus gastos {direction} {abs(change):.1f}% em relação à semana anterior."] if previous_total else []
+            report_data = {
+                "summary": f"Você gastou R$ {current_total:.2f} nesta semana.",
+                "alerts": [],
+                "top_categories": top_categories,
+                "vs_previous_week_percent": change,
+                "insights": insights,
+            }
+            await self.save_report(user_id, "weekly", start_date.date(), end_date.date(), report_data["summary"], json.dumps(insights))
+            return report_data
 
         finally:
             await conn.close()

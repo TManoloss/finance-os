@@ -88,16 +88,16 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SIMULADOR'),
+        title: const Text('Simulador'),
         bottom: TabBar(
           controller: _tabController,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           indicatorColor: BlueprintTheme.accentPurple,
           labelColor: BlueprintTheme.accentPurple,
           unselectedLabelColor: BlueprintTheme.textSecondary,
           tabs: const [
-            Tab(text: 'SIMULAR_COMPRA'),
-            Tab(text: 'SIMULAR_CORTE'),
+            Tab(text: 'Compra'),
+            Tab(text: 'Economia'),
           ],
         ),
       ),
@@ -117,15 +117,15 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('QUANTO CUSTA ESSA COMPRA?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+          const Text('Quanto custa essa compra?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           const Text('Simule o impacto real no seu orçamento', style: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary)),
           const SizedBox(height: 24),
-          _buildInput('VALOR_DA_COMPRA (R\$)', _amountController, keyboardType: TextInputType.number),
+          _buildInput('Valor da compra (R\$)', _amountController, keyboardType: TextInputType.number),
           const SizedBox(height: 16),
-          _buildInput('PARCELAS', _installmentsController, keyboardType: TextInputType.number),
+          _buildInput('Parcelas', _installmentsController, keyboardType: TextInputType.number),
           const SizedBox(height: 24),
-          _buildActionButton('SIMULAR_IMPACTO', _loading ? null : _simulatePurchase),
+          _buildActionButton('Simular impacto', _loading ? null : _simulatePurchase),
           if (_result != null) ...[
             const SizedBox(height: 24),
             _buildResultCard(fmt),
@@ -141,15 +141,15 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('E SE VOCÊ CORTASSE ESSE GASTO?', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+          const Text('E se você cortasse esse gasto?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           const Text('Veja quanto você economizaria ao longo do tempo', style: TextStyle(fontSize: 12, color: BlueprintTheme.textSecondary)),
           const SizedBox(height: 24),
-          _buildInput('NOME_DO_GASTO', _cutNameController),
+          _buildInput('Nome do gasto', _cutNameController),
           const SizedBox(height: 16),
-          _buildInput('VALOR_MENSAL (R\$)', _cutAmountController, keyboardType: TextInputType.number),
+          _buildInput('Valor mensal (R\$)', _cutAmountController, keyboardType: TextInputType.number),
           const SizedBox(height: 24),
-          _buildActionButton('SIMULAR_ECONOMIA', _loading ? null : _simulateCut),
+          _buildActionButton('Simular economia', _loading ? null : _simulateCut),
           if (_result != null) ...[
             const SizedBox(height: 24),
             _buildResultCard(fmt),
@@ -171,18 +171,18 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('RESULTADO_DA_SIMULAÇÃO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, color: BlueprintTheme.accentPurple)),
+          const Text('Resultado da simulação', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: BlueprintTheme.accentPurple)),
           const SizedBox(height: 16),
           if (_result!['message'] != null)
             Text(_result!['message'].toString(), style: const TextStyle(fontSize: 14, height: 1.5)),
           if (_result!['monthly_impact'] != null) ...[
             const SizedBox(height: 12),
-            _buildResultRow('IMPACTO_MENSAL', fmt.format(_result!['monthly_impact'])),
+            _buildResultRow('Impacto mensal', fmt.format(_result!['monthly_impact'])),
           ],
           if (_result!['yearly_savings'] != null)
-            _buildResultRow('ECONOMIA_ANUAL', fmt.format(_result!['yearly_savings'])),
+            _buildResultRow('Economia anual', fmt.format(_result!['yearly_savings'])),
           if (_result!['commitment_after'] != null)
-            _buildResultRow('COMPROMETIMENTO', '${(_result!['commitment_after'] as num).toStringAsFixed(1)}%'),
+            _buildResultRow('Comprometimento', '${(_result!['commitment_after'] as num).toStringAsFixed(1)}%'),
           if (_result!['verdict'] != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -205,8 +205,8 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary)),
-          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: BlueprintTheme.textSecondary)),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -216,7 +216,7 @@ class _SimulatorScreenState extends ConsumerState<SimulatorScreen> with SingleTi
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: BlueprintTheme.textSecondary, letterSpacing: 1)),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: BlueprintTheme.textSecondary)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),

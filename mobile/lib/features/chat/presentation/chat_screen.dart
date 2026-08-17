@@ -66,26 +66,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: BlueprintTheme.background,
       appBar: AppBar(
-        title: Row(children: [
-          const Icon(LucideIcons.terminal, size: 14),
-          const SizedBox(width: 8),
-          const Text('PIERRE_AI_INTERFACE'),
-        ]),
+        title: const Text('Pierre'),
       ),
       body: Column(
         children: [
-          // Status bar neo-brutal
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: BlueprintTheme.elevated,
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            decoration: BoxDecoration(color: BlueprintTheme.elevated, borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
               Container(width: 6, height: 6, color: BlueprintTheme.accentTeal),
               const SizedBox(width: 6),
-              Text('PIERRE_ONLINE // AI_FINANCIAL_CORE', style: terminalLabel(fontSize: 8)),
+              Text('Pierre está online', style: terminalLabel(fontSize: 11)),
             ]),
           ),
-          Container(height: 2, color: BlueprintTheme.border),
 
           // Mensagens
           Expanded(
@@ -109,27 +104,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!isUser) ...[
-                        // Avatar quadrado neo-brutal
-                        Container(
-                          width: 24, height: 24,
-                          margin: const EdgeInsets.only(top: 2, right: 10),
-                          color: BlueprintTheme.accentPurple,
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, right: 10),
+                          child: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: BlueprintTheme.accentPurple,
                           child: const Center(child: Text('P', style: TextStyle(color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 12))),
-                        ),
+                        )),
                       ],
                       Flexible(
                         child: Column(
                           crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                           children: [
-                            Text(isUser ? 'VOCÊ' : 'PIERRE_AI', style: terminalLabel(fontSize: 8)),
+                            Text(isUser ? 'Você' : 'Pierre', style: terminalLabel(fontSize: 10)),
                             const SizedBox(height: 4),
-                            // Balão quadrado — neo-brutal
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: isUser ? BlueprintTheme.textPrimary : BlueprintTheme.surface,
-                                border: Border.all(color: BlueprintTheme.border, width: 2),
-                                boxShadow: const [BoxShadow(color: BlueprintTheme.border, offset: Offset(3, 3))],
+                                color: isUser ? BlueprintTheme.accentPurple : BlueprintTheme.surface,
+                                borderRadius: BorderRadius.circular(16),
                               ),
                               child: MarkdownBody(
                                 data: msg.content,
@@ -163,18 +156,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               left: 16, right: 16, top: 12,
               bottom: MediaQuery.of(context).padding.bottom + 12,
             ),
-            decoration: const BoxDecoration(
-              color: BlueprintTheme.elevated,
-              border: Border(top: BorderSide(color: BlueprintTheme.border, width: 2)),
-            ),
+            decoration: const BoxDecoration(color: BlueprintTheme.background),
             child: Row(children: [
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: const BoxDecoration(
-                    color: BlueprintTheme.surface,
-                    border: Border.fromBorderSide(BorderSide(color: BlueprintTheme.border, width: 2)),
-                  ),
+                  decoration: BoxDecoration(color: BlueprintTheme.elevated, borderRadius: BorderRadius.circular(14)),
                   child: TextField(
                     controller: _inputController,
                     decoration: InputDecoration(
@@ -182,7 +169,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       border: InputBorder.none,
                       hintStyle: terminalLabel(fontSize: 12),
                     ),
-                    style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                    style: const TextStyle(fontSize: 14),
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
@@ -192,7 +179,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onTap: _isLoading ? null : _sendMessage,
                 child: Container(
                   width: 48, height: 48,
-                  color: BlueprintTheme.accentPurple,
+                  decoration: BoxDecoration(color: BlueprintTheme.accentPurple, borderRadius: BorderRadius.circular(14)),
                   child: const Icon(LucideIcons.send, color: Colors.white, size: 18),
                 ),
               ),

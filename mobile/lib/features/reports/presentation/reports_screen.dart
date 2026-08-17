@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_os/core/theme/blueprint_theme.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_provider.dart';
+import 'package:finance_os/shared/widgets/premium_page.dart';
 
 // --- RIVERPOD PROVIDERS ---
 
@@ -165,10 +166,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     return Scaffold(
       backgroundColor: BlueprintTheme.background,
       appBar: AppBar(
-        title: Text(
-          'IA_COGNITIVA_REPORTS',
-          style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 13),
-        ),
+        title: const Text('Relatórios'),
         bottom: TabBar(
           controller: _tabController,
           dividerColor: BlueprintTheme.border,
@@ -178,10 +176,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           unselectedLabelColor: BlueprintTheme.textSecondary,
           isScrollable: true,
           tabs: const [
-            Tab(text: '🤖 PIERRE_REPORTS'),
-            Tab(text: '📊 MÉTRICAS_IA'),
-            Tab(text: '🎮 MISSÕES_&_PLANOS'),
-            Tab(text: '📅 CRONOGRAMA'),
+            Tab(text: 'Pierre'), Tab(text: 'Insights'), Tab(text: 'Metas'), Tab(text: 'Cronograma'),
           ],
         ),
       ),
@@ -210,18 +205,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
             padding: const EdgeInsets.all(16),
             children: [
               // Botões de Ação Brutalistas para Disparar Agentes
-              Container(
+              PremiumCard(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: BlueprintTheme.elevated,
-                  border: Border.all(color: BlueprintTheme.border, width: 2),
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'SOLICITAR_ATUALIZAÇÃO_AO_PIERRE',
-                      style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 9),
+                      'Atualizar análises', style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -253,22 +243,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                 ...reports.map((report) {
                   final agentType = (report['agent_type'] ?? 'daily').toString().toUpperCase();
                   final summary = (report['summary_markdown'] ?? '').toString();
-                  final insights = report['insights'] as List<dynamic>? ?? [];
+                  final insights = report['insights'] is List ? report['insights'] as List<dynamic> : const [];
                   final rawDate = report['created_at'] != null ? DateTime.tryParse(report['created_at'].toString()) : null;
                   final formattedDate = rawDate != null ? DateFormat("dd/MM/yyyy HH:mm").format(rawDate) : 'DATA_INDISPONÍVEL';
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: BlueprintTheme.surface,
-                      border: Border.all(color: BlueprintTheme.border, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: BlueprintTheme.border,
-                          offset: Offset(4, 4),
-                        ),
-                      ],
-                    ),
+                  return Padding(padding: const EdgeInsets.only(bottom: 16), child: PremiumCard(
                     child: ExpansionTile(
                       collapsedBackgroundColor: BlueprintTheme.surface,
                       backgroundColor: BlueprintTheme.surface,
@@ -290,8 +269,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'RELATÓRIO_$agentType',
-                                  style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 10),
+                                  'Relatório $agentType', style: const TextStyle(fontWeight: FontWeight.w700),
                                 ),
                                 Text(
                                   formattedDate,
@@ -311,16 +289,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                               // Resumo
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: BlueprintTheme.elevated,
-                                  border: Border.all(color: BlueprintTheme.border, width: 1),
-                                ),
+                                decoration: neoBrutalCard(backgroundColor: BlueprintTheme.elevated),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'RESUMO_EXECUTIVO',
-                                      style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 8),
+                                      'Resumo executivo', style: terminalLabel(fontSize: 10),
                                     ),
                                     const SizedBox(height: 8),
                                     MarkdownBody(
@@ -371,7 +345,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                         ),
                       ],
                     ),
-                  );
+                  ));
                 }),
             ],
           ),

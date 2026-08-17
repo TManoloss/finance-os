@@ -16,6 +16,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -31,7 +32,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PREENCHA TODOS OS CAMPOS', style: terminalLabel(color: Colors.white)),
+          content: Text('PREENCHA TODOS OS CAMPOS',
+              style: terminalLabel(color: Colors.white)),
           backgroundColor: BlueprintTheme.danger,
         ),
       );
@@ -41,11 +43,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await ref.read(authProvider.notifier).login(email, password);
+      final success =
+          await ref.read(authProvider.notifier).login(email, password);
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ERRO: CREDENCIAIS INVÁLIDAS', style: terminalLabel(color: Colors.white)),
+            content: Text('ERRO: CREDENCIAIS INVÁLIDAS',
+                style: terminalLabel(color: Colors.white)),
             backgroundColor: BlueprintTheme.danger,
           ),
         );
@@ -54,7 +58,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ERRO_SISTEMA: $e', style: terminalLabel(color: Colors.white)),
+            content: Text('ERRO_SISTEMA: $e',
+                style: terminalLabel(color: Colors.white)),
             backgroundColor: BlueprintTheme.danger,
           ),
         );
@@ -69,154 +74,105 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: BlueprintTheme.background,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo Neo-Brutalist
-                Center(
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: BlueprintTheme.accentPurple,
-                      border: Border.all(color: BlueprintTheme.border, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: BlueprintTheme.border,
-                          offset: Offset(4, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'F',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'FINANCE_OS',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'monospace',
-                    letterSpacing: -1,
-                    color: BlueprintTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'OPERATIONAL_SYSTEM_V1.1',
-                  textAlign: TextAlign.center,
-                  style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 9),
-                ),
-                const SizedBox(height: 48),
-
-                // Form Container Neo-Brutalist
-                Container(
-                  padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: BlueprintTheme.surface,
-                    border: Border.all(color: BlueprintTheme.border, width: 2),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: BlueprintTheme.border,
-                        offset: Offset(6, 6),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.circular(17),
+                    gradient: const LinearGradient(colors: [
+                      BlueprintTheme.accentPurple,
+                      Color(0xFFB195FF)
+                    ]),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildField('EMAIL_ADDRESS', _emailController, false, LucideIcons.mail),
-                      const SizedBox(height: 20),
-                      _buildField('PASSWORD_KEY', _passwordController, true, LucideIcons.lock),
-                      const SizedBox(height: 28),
-
-                      // Login Button
-                      GestureDetector(
-                        onTap: _isLoading ? null : _handleLogin,
-                        child: Container(
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: BlueprintTheme.accentPurple,
-                            border: Border.all(color: BlueprintTheme.border, width: 2),
-                            boxShadow: _isLoading
-                                ? null
-                                : const [
-                                    BoxShadow(
-                                      color: BlueprintTheme.border,
-                                      offset: Offset(3, 3),
-                                    ),
-                                  ],
-                          ),
-                          child: Center(
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text(
-                                    'AUTENTICAR',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Center(
+                      child: Text('F',
+                          style: TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white))),
                 ),
-
-                const SizedBox(height: 36),
-                
-                // Solicitar acesso
-                Center(
-                  child: GestureDetector(
-                    onTap: () => context.go('/register'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: BlueprintTheme.elevated,
-                        border: Border.all(color: BlueprintTheme.border, width: 2),
+              ),
+              const SizedBox(height: 36),
+              const Text('Bem-vindo de volta',
+                  style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1)),
+              const SizedBox(height: 8),
+              Text('Entre para acompanhar sua vida financeira.',
+                  style: TextStyle(
+                      color: BlueprintTheme.textSecondary.withValues(alpha: .9),
+                      fontSize: 15)),
+              const SizedBox(height: 34),
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: BlueprintTheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: BlueprintTheme.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildField(
+                        'E-mail', _emailController, false, LucideIcons.mail),
+                    const SizedBox(height: 18),
+                    _buildField(
+                        'Senha', _passwordController, true, LucideIcons.lock),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        backgroundColor: BlueprintTheme.accentPurple,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: Text(
-                        'SOLICITAR_NOVO_ACESSO',
-                        style: terminalLabel(color: BlueprintTheme.textPrimary, fontSize: 9),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Text('Entrar',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 16)),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Ainda não tem uma conta?',
+                      style: TextStyle(color: BlueprintTheme.textSecondary)),
+                  TextButton(
+                      onPressed: () => context.go('/register'),
+                      child: const Text('Criar conta')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Sua sessão fica salva com segurança neste dispositivo.',
+                  textAlign: TextAlign.center,
+                  style: terminalLabel(
+                      color: BlueprintTheme.textSecondary, fontSize: 10)),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, bool isPassword, IconData icon) {
+  Widget _buildField(String label, TextEditingController controller,
+      bool isPassword, IconData icon) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -226,7 +182,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(width: 6),
             Text(
               label,
-              style: terminalLabel(color: BlueprintTheme.textSecondary, fontSize: 8),
+              style: terminalLabel(
+                  color: BlueprintTheme.textSecondary, fontSize: 8),
             ),
           ],
         ),
@@ -235,16 +192,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: BlueprintTheme.elevated,
-            border: Border.all(color: BlueprintTheme.border, width: 2),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: TextField(
             controller: controller,
-            obscureText: isPassword,
-            style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-            decoration: const InputDecoration(
+            autofillHints: isPassword
+                ? const [AutofillHints.password]
+                : const [AutofillHints.username, AutofillHints.email],
+            keyboardType: isPassword
+                ? TextInputType.visiblePassword
+                : TextInputType.emailAddress,
+            textInputAction:
+                isPassword ? TextInputAction.done : TextInputAction.next,
+            onSubmitted: isPassword ? (_) => _handleLogin() : null,
+            obscureText: isPassword && _obscurePassword,
+            style: const TextStyle(fontSize: 13),
+            decoration: InputDecoration(
               border: InputBorder.none,
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 14),
+              hintText: isPassword ? 'Digite sua senha' : 'voce@exemplo.com',
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                          _obscurePassword
+                              ? LucideIcons.eye
+                              : LucideIcons.eyeOff,
+                          size: 18),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
         ),

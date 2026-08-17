@@ -2,11 +2,11 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finance_os/features/auth/presentation/login_screen.dart';
 import 'package:finance_os/features/auth/presentation/register_screen.dart';
-import 'package:finance_os/features/auth/presentation/pluggy_setup_screen.dart';
 import 'package:finance_os/features/auth/presentation/auth_provider.dart';
 import 'package:finance_os/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:finance_os/features/transactions/presentation/transactions_screen.dart';
 import 'package:finance_os/features/cards/presentation/cards_screen.dart';
+import 'package:finance_os/features/cards/presentation/pluggy_connect_screen.dart';
 import 'package:finance_os/features/reports/presentation/reports_screen.dart';
 import 'package:finance_os/features/chat/presentation/chat_screen.dart';
 import 'package:finance_os/features/settings/presentation/settings_screen.dart';
@@ -33,7 +33,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If authenticated
-      if (isLoggingIn || isRegistering || state.matchedLocation == '/pluggy-setup') {
+      if (isLoggingIn ||
+          isRegistering ||
+          state.matchedLocation == '/pluggy-setup') {
         return '/dashboard';
       }
 
@@ -50,16 +52,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/pluggy-setup',
-        name: 'pluggy-setup',
-        builder: (context, state) => const PluggySetupScreen(),
-      ),
       // Rotas protegidas que não são parte da shell (settings, health, merchants, simulator, replay)
       GoRoute(
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/pluggy-connect',
+        name: 'pluggy-connect',
+        builder: (context, state) =>
+            PluggyConnectScreen(connectToken: state.extra! as String),
       ),
       GoRoute(
         path: '/health',
@@ -79,7 +82,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/replay/:month',
         name: 'replay',
-        builder: (context, state) => ReplayScreen(month: state.pathParameters['month'] ?? ''),
+        builder: (context, state) =>
+            ReplayScreen(month: state.pathParameters['month'] ?? ''),
       ),
       GoRoute(
         path: '/reports',

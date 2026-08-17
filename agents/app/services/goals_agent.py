@@ -26,21 +26,23 @@ class GoalsAgent(BaseAgent):
                 WHERE a.user_id = $1
             """, user_id)
             
-            suggestions_data = {
-                "top_categories": [{"name": c['name'], "total": float(c['total'])} for c in top_cats],
-                "total_installments": float(inst_sum or 0)
-            }
-
-            prompt = f"""
-            Com base nos dados financeiros do usuário:
-            {json.dumps(suggestions_data)}
-            
-            Sugira 3 metas financeiras inteligentes e realistas para ele começar agora.
-            Gere a resposta em português como uma lista de objetos JSON com 'name', 'goal_type', 'target_amount' e 'reason'.
-            Tipos permitidos: 'savings', 'debt_payoff', 'spending_limit', 'income_target'.
-            """
-            response = await self.llm.completion(prompt)
-            return json.loads(response)
+            suggestions = []
+            for category in top_cats[:2]:
+                total = float(category['total'])
+                suggestions.append({
+                    "name": f"Reduzir gastos com {category['name']}",
+                    "goal_type": "spending_limit",
+                    "target_amount": round(total * 0.9, 2),
+                    "reason": f"Um limite 10% menor que os R$ {total:.2f} dos últimos 30 dias.",
+                })
+            installments_total = float(inst_sum or 0)
+            if installments_total:
+                suggestions.append({
+                    "name": "Reservar para parcelas", "goal_type": "savings",
+                    "target_amount": round(installments_total, 2),
+                    "reason": "Cobrir os compromissos mensais já assumidos.",
+                })
+            return suggestions
         except:
             return []
         finally:

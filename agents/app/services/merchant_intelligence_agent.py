@@ -56,16 +56,7 @@ class MerchantIntelligenceAgent(BaseAgent):
 			total = sum(float(h['amount']) for h in history)
 			count = len(history)
 			
-			# Insights da IA sobre este merchant
-			prompt = f"""
-			Analise o histórico de gastos do usuário no estabelecimento '{merchant_name}':
-			Total gasto: R$ {total:.2f}
-			Frequência: {count} vezes
-			Ticket médio: R$ {(total/count):.2f}
-			
-			Gere um insight curto em português sobre este relacionamento financeiro.
-			"""
-			insight = await self.llm.completion(prompt)
+			insight = f"Foram {count} compras, totalizando R$ {total:.2f}, com ticket médio de R$ {total / count:.2f}."
 
 			return {
 				"merchant": merchant_name,

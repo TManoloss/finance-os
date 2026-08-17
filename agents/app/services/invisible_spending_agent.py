@@ -12,16 +12,11 @@ class InvisibleSpendingAgent(BaseAgent):
                              sum(d['amount'] for d in duplicates) + \
                              sum(i['monthly_increase'] for i in increases)
 
-        summary_prompt = f"""
-        Analise os seguintes gastos invisíveis encontrados para o usuário:
-        Assinaturas possivelmente esquecidas: {json.dumps(forgotten)}
-        Cobranças duplicadas: {json.dumps(duplicates)}
-        Aumentos de preços detectados: {json.dumps(increases)}
-        Total desperdiçado mensalmente: R$ {total_waste_monthly:.2f}
-
-        Gere um parágrafo curto e direto em português alertando o usuário sobre quanto ele está perdendo e onde deve focar para economizar.
-        """
-        summary = await self.llm.completion(summary_prompt)
+        findings = len(forgotten) + len(duplicates) + len(increases)
+        summary = (
+            f"Encontramos {findings} possível(is) gasto(s) para revisar, com impacto mensal estimado de R$ {total_waste_monthly:.2f}."
+            if findings else "Nenhum gasto invisível relevante foi encontrado neste período."
+        )
 
         return {
             "forgotten_subscriptions": forgotten,

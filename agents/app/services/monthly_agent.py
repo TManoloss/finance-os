@@ -51,32 +51,28 @@ class MonthlyAgent(BaseAgent):
                 "future_installments": [dict(r) for r in installments]
             }
             
-            # 4. Gerar Insights via LLM
-            prompt = f"Fechamento mensal para o usuário {user_id}:\n{json.dumps(context_data, default=str)}"
-            response_text = await self.llm.completion(prompt, system_prompt=MONTHLY_PROMPT)
-            
-            if response_text.startswith("ERRO_SISTEMA"):
-                return {"error": response_text}
-
-            # 5. Processar e salvar
-            try:
-                start_idx = response_text.find("{")
-                end_idx = response_text.rfind("}")
-                clean_json = response_text[start_idx:end_idx+1]
-                report_data = json.loads(clean_json)
-                
-                await self.save_report(
-                    user_id, 
-                    "monthly", 
-                    start_date.date(), 
-                    end_date.date(), 
-                    report_data["summary"], 
-                    json.dumps(report_data.get("insights", []))
-                )
-                return report_data
-            except Exception as e:
-                print(f"Erro ao processar JSON do agente mensal: {e}")
-                return {"error": "Falha ao gerar fechamento mensal"}
+            debits = [t for t in transactions if t["direction"] == "debit"]
+            credits = [t for t in transactions if t["direction"] == "credit"]
+            spent = sum(float(t["amount"]) for t in debits)
+            income = sum(float(t["amount"]) for t in credits)
+            by_merchant = {}
+            for tx in debits:
+                merchant = tx["description"] or "Sem identificação"
+                by_merchant[merchant] = by_merchant.get(merchant, 0) + float(tx["amount"])
+            top_merchants = [{"name": name, "total": total} for name, total in sorted(by_merchant.items(), key=lambda item: item[1], reverse=True)[:3]]
+            days_elapsed = max(end_date.day, 1)
+            projected_spent = spent / days_elapsed * 30
+            commitment = sum(float(item["part_amount"] or 0) for item in installments)
+            insights = [f"Há R$ {commitment:.2f} em parcelas futuras."] if commitment else []
+            report_data = {
+                "summary": f"No mês, entraram R$ {income:.2f} e saíram R$ {spent:.2f}.",
+                "top_merchants": top_merchants,
+                "health_score": round(max(0, min(100, ((income - spent) / income * 100) if income else 0))),
+                "projections": {"next_month_estimated_spent": projected_spent},
+                "insights": insights,
+            }
+            await self.save_report(user_id, "monthly", start_date.date(), end_date.date(), report_data["summary"], json.dumps(insights))
+            return report_data
 
         finally:
             await conn.close()
