@@ -96,7 +96,7 @@ Esta é uma auditoria estática do repositório, não uma validação de produç
 | Cadastro, login e refresh token | `real` | handlers de auth e testes de serviço | `validada` após contrato e restauração mobile/web |
 | Sessão persistida mobile | `real` | `AuthNotifier._checkAuthStatus` | `validada` após fechar/reabrir em dispositivo |
 | Credenciais Pluggy por usuário | `real` | validação, criptografia e persistência em `accounts.go` | `validada` após cenário real e erros operacionais |
-| Widget e Conexão Pluggy | `parcial` | connect token e `PluggyConnectScreen` | comprovante completo de importação |
+| Widget e Conexão Pluggy | `real` | onboarding mobile validado no SM-S948B abriu o widget oficial com token emitido pelo backend | comprovante completo de importação com conexão concluída |
 | Conta manual | `real` | `POST /accounts` | aceite mobile com independência de Conexões |
 | Listar/configurar/excluir Conta | `real` | rotas de accounts com filtro de usuário | aceite incluindo cascata e reconexão |
 | Sincronização agendada | `parcial` | cron 00:30 e sync interno com texto de status divergente | um agendamento e status coerente |
@@ -330,8 +330,13 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 2 — Entrada e primeiro acesso
 
-- [ ] FOS-201 a FOS-206 implementados.
-- [ ] Onboarding Pluggy e manual aceitos em dispositivo.
+- [ ] FOS-201: implementado; opções Pluggy/manual e formulário manual renderizados no dispositivo, falta aceite com novo Usuário.
+- [ ] FOS-202: validação de credenciais e widget real implementados; widget abriu no dispositivo, faltam cenários inválido/indisponível/incompleto.
+- [ ] FOS-203: endpoint e tela de comprovante implementados; falta concluir uma nova Conexão e validar os números importados.
+- [ ] FOS-204: gerenciamento por Conexão implementado com reconexão, sync, nome PF/PJ e revogação na Pluggy; falta aceite destrutivo controlado.
+- [ ] FOS-205: pendente resultado estruturado de sincronização parcial.
+- [x] FOS-206: restauração básica de sessão validada no dispositivo.
+- [ ] Onboarding Pluggy e manual aceitos de ponta a ponta em dispositivo.
 - [ ] Comprovante e falhas parciais validados.
 
 ### Fase 3 — Núcleo diário
@@ -422,6 +427,30 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Web build | passou | Next 16 compilou, tipou e gerou as páginas; Simulador/Saúde redirecionam |
 | Web lint | falhou por baseline | 169 ocorrências preexistentes fora do escopo principal desta fase |
 | `go test ./...` | bloqueado por baseline | utilitários `package main` duplicados na raiz de `backend/`; pacotes de produto passam isoladamente |
+
+### Execução parcial da Fase 2 — 2026-08-18
+
+**Backend:** commits `43f529b`, `c9f885a` e `7f7a3e4` enviados a `origin/main`; Render respondeu `200` em `/health`.
+**Dispositivo:** Samsung SM-S948B, Android 16/API 36.
+**APK:** debug mais recente, SHA-256 `cae1f7544d4f738c57918c5e53b0ac9511654607e36f39056311ada91ab0ae8f`.
+
+| Verificação | Resultado | Evidência observada |
+| --- | --- | --- |
+| Testes backend | passou | `GOCACHE=/tmp/financeos-go-cache go test ./internal/... ./cmd/...`; teste do estado do comprovante incluído |
+| Testes mobile | passou | 4 testes aprovados, incluindo presença das opções Pluggy/manual |
+| Analyze mobile | gate legado pendente | 25 avisos informativos preexistentes; nenhum erro de compilação ou aviso novo do onboarding |
+| Build e instalação | passou | APK debug gerado e reinstalado via ADB no SM-S948B |
+| Sessão existente | passou | após reinstalação e `force-stop`, aplicativo restaurou diretamente a sessão autenticada |
+| Entrada pela Pluggy | passou no escopo executado | opção recomendada abriu o widget oficial da Pluggy com credenciais já configuradas |
+| Entrada manual | passou visualmente | formulário de nome, saldo e tipo renderizou integralmente; criação não foi enviada para evitar alterar dados do Usuário |
+| Comprovante | implementação aprovada, aceite pendente | `GET /accounts/import-summary` combina Usuário + `item_id` e retorna contas, Transações, período, revisões e atualização reais |
+| Conexões PF/PJ | passou no dispositivo | duas conexões Nubank agrupadas por `pluggy_item_id`; após sincronização exibiram finais distintos `14-8` e `17-6`; rótulo editável oferece `Nubank PF`/`Nubank PJ` |
+| Revogação de Conexão | implementação aprovada, execução destrutiva não realizada | confirmação explícita, propriedade por Usuário e `DELETE /items/{id}` na Pluggy antes da remoção local |
+| Falha silenciosa em Contas | corrigida no APK | erro de `/accounts` deixou de virar lista vazia; a UI agora exibe falha de carregamento |
+| Migração no Render | passou após correção | imagem Docker não copiava `schema.sql`; commit `7f7a3e4` foi confirmado como live e `/accounts` voltou a responder com os campos novos |
+| Sincronização por Conexão | passou no cenário executado | ações das duas conexões foram disparadas separadamente e preencheram seus identificadores sem duplicar os cartões na interface |
+| Ambiente Pluggy | atenção | widget aberto identifica a aplicação Pluggy como demo; produção exige credenciais/ambiente de produção |
+| Logs do dispositivo | passou | nenhuma exceção Flutter ou crash do FinanceOS; apenas mensagens do sistema/Google Play Services |
 
 ### Cenários de aceite ponta a ponta
 
