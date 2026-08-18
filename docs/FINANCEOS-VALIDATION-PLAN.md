@@ -111,9 +111,9 @@ Esta é uma auditoria estática do repositório, não uma validação de produç
 | Alertas adaptativos | `parcial` | serviço usa limites fixos para renda, gasto alto e saldo | regras adaptativas e testes de histórico curto |
 | Parcelas e assinaturas | `parcial` | endpoints de cards e detecção em sync | linha temporal em Planejar e origem navegável |
 | Metas | `parcial` | listar/criar/sugerir; apenas dois modos recalculados | ciclo completo, quatro modos e ajustes auditáveis |
-| Simulação de compra | `oculta` (`mock`) | saldo, meses e alerta fixos; rotas de UI removidas/redirecionadas | projeção real antes de reexpor |
-| Simulação de corte | `oculta` (`mock`) | retorno fictício; contrato mobile corrigido e rota de UI oculta | economia mensal/anual/acumulada antes de reexpor |
-| Saúde financeira | `oculta` (`parcial`) | endpoint e snapshots, com três dimensões fixas; UI redirecionada/oculta | todas dimensões calculadas e metadados de qualidade |
+| Simulação de compra | `oculta` | UI removida/redirecionada e endpoint responde `503`, sem projeção fictícia | projeção real antes de reexpor |
+| Simulação de corte | `oculta` | contrato mobile corrigido; UI oculta e endpoint responde `503` | economia mensal/anual/acumulada antes de reexpor |
+| Saúde financeira | `oculta` | UI redirecionada/oculta e backend responde `503` enquanto dimensões forem fixas | todas dimensões calculadas e metadados de qualidade |
 | Análises especializadas | `parcial` | endpoints Go/Python e telas web/mobile | grupos consolidados, lazy load e fallback |
 | Pierre | `parcial` | chat e fallback Groq/Gemini | somente perguntas abertas/explicações, sem bloquear produto |
 | Replay web | `parcial` | endpoint e tela com mês fixo na entrada de relatórios | dados do período escolhido e aceite mensal |
@@ -318,7 +318,7 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 1 — Verdade e segurança
 
-- [ ] FOS-101: mocks seguem no backend por compatibilidade, sem entrada na UI.
+- [x] FOS-101: números fictícios removidos da UI e endpoints incompletos bloqueados com `503`.
 - [x] FOS-102: Simulador, Saúde incompleta e Replay mobile ocultos.
 - [x] FOS-103: ações bancárias e módulo de investimentos inexistentes removidos da UI.
 - [ ] FOS-104/FOS-105: implementados; falta teste de integração com dois Usuários e dados reais.
@@ -488,6 +488,7 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-105 | Correção de Categoria — implementação | Codex | PATCH usa Usuário; SQL conclui revisão, define confiança e grava Regra atomicamente | 2026-08-18 | teste real pendente |
 | FOS-106 | Sincronização 00:30 — implementação | Codex | scheduler/status em São Paulo e `TestNextDailySync` | 2026-08-18 | passou em teste unitário; status autenticado no Render pendente |
 | FOS-107 | Compatibilidade web — nova rodada | Codex | build Next 16 passou; endpoints backend preservados | 2026-08-18 | parcial: regressão funcional/lint pendentes |
+| FOS-101 | Bloqueio de respostas fictícias | Codex | endpoints de Simulador e Saúde preservados, mas respondem `503` sem números mockados | 2026-08-18 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
