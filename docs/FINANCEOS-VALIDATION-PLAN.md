@@ -454,11 +454,11 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Execução da FOS-205 e diagnóstico Pluggy — 2026-08-18
 
-**Backend:** commits `ab793b8`, `1233cf8`, `6c3ffd5` e `f33ba61` enviados a `origin/main`; Render respondeu `200` em `/health`.
+**Backend:** commits `ab793b8`, `1233cf8`, `6c3ffd5`, `f33ba61` e `e9035ff` enviados a `origin/main`; Render respondeu `200` em `/health`.
 
 **Dispositivo:** Samsung SM-S948B, Android 16/API 36.
 
-**APK:** debug, SHA-256 `6a4996c61084b625a42f96d2c36c34371021906a2d532573a33b26e4101c16e7`.
+**APK:** debug final, SHA-256 `f3c23d9feaa4996845e41d8e726ea38f3e15199b4c0369555cd255314a2d74cd`.
 
 | Verificação | Resultado | Evidência observada |
 | --- | --- | --- |
@@ -466,7 +466,7 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Zero novas Transações | passou semanticamente | as duas execuções retornaram zero inserts novos e preservaram os totais existentes de 151 e 92 Transações |
 | Motivo da parcial | diagnosticado | Pluggy respondeu `400: MeuPluggy item can't be updated`; o app exibiu o motivo real em vez de erro genérico |
 | Horário de atualização | corrigido | `updated_at` passou a usar `lastUpdatedAt` da Pluggy; leitura de cache não grava mais `NOW()` como se a instituição tivesse atualizado |
-| Reconexão | corrigida, aceite humano pendente | mobile passa `updateItem` ao widget e importa o resultado com `force=false`, sem repetir `PATCH /items/{id}` após o sucesso do widget |
+| Reconexão | passou até o consentimento | mobile passou `updateItem` e abriu a tela MeuPluggy da conta final `17-6`; o aceite humano em “Continuar” ficou pendente por conter autorização pessoal |
 | Distinção PF/PJ | passou estruturalmente | Conexões mostram finais `14-8` e `17-6`; extrato recebe rótulo da Conexão ou fallback curto `Conta • final ...` |
 | Dados recentes | presentes no snapshot | extrato exibiu compras datadas de 18/08/2026; nova coleta da instituição depende de atualizar/recriar o Item Pluggy atual |
 | Testes | passou | pacotes Go do produto e 4 testes Flutter aprovados; analyze permaneceu com 25 avisos informativos preexistentes |
