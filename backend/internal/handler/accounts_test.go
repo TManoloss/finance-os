@@ -35,3 +35,10 @@ func TestSyncRunStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestSyncForceDefaultsToTrue(t *testing.T) {
+	disabled := false
+	if !syncForce(nil) || syncForce(&disabled) {
+		t.Fatal("force deve ser verdadeiro por padrão e aceitar desativação explícita")
+	}
+}

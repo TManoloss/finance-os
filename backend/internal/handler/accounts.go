@@ -300,6 +300,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 
 	var req struct {
 		ItemID string `json:"item_id"`
+		Force  *bool  `json:"force"`
 	}
 	_ = c.Bind(&req)
 
@@ -338,7 +339,7 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		var err error
 
 		if req.ItemID != "" {
-			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient, true)
+			saved, err = h.syncService.SyncItem(ctx, userID, req.ItemID, pluggyClient, syncForce(req.Force))
 		} else {
 			saved, err = h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, true)
 		}
@@ -382,6 +383,10 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		"run_id":  runID,
 		"status":  "running",
 	})
+}
+
+func syncForce(force *bool) bool {
+	return force == nil || *force
 }
 
 func syncRunStatus(err error) string {

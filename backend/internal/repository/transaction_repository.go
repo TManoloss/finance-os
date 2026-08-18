@@ -102,7 +102,8 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 		SELECT 
 			t.id, t.amount, t.direction, t.description, t.merchant_name, t.date, t.is_recurring,
 			c.id as category_id, c.name as category_name, c.color as category_color,
-			acc.institution_name as account_name
+			COALESCE(NULLIF(acc.connection_label, ''), acc.institution_name ||
+				COALESCE(' • final ' || NULLIF(acc.account_number_last4, ''), '')) as account_name
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		LEFT JOIN categories c ON t.category_id = c.id
