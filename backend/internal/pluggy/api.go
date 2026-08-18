@@ -72,6 +72,19 @@ func (c *Client) ForceUpdateItem(itemID string) (*Item, error) {
 	return &res, nil
 }
 
+// DeleteItem revoga o consentimento e remove a conexão na Pluggy.
+func (c *Client) DeleteItem(itemID string) error {
+	resp, err := c.doRequest(http.MethodDelete, fmt.Sprintf("/items/%s", itemID), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("erro ao excluir item: status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 // GetConnector busca detalhes de um conector (instituição).
 func (c *Client) GetConnector(connectorID int) (*Connector, error) {
 	path := fmt.Sprintf("/connectors/%d", connectorID)

@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS connected_accounts (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     pluggy_item_id TEXT, -- ID da conexão (um item pode ter várias contas)
     pluggy_account_id TEXT, -- ID da conta na Pluggy, único dentro do Usuário
+    account_name TEXT,
+    account_number_last4 TEXT,
+    connection_label TEXT,
     institution_name TEXT NOT NULL,
     institution_logo TEXT,
     institution_color TEXT,
@@ -30,6 +33,10 @@ CREATE TABLE IF NOT EXISTS connected_accounts (
     last_synced_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE connected_accounts ADD COLUMN IF NOT EXISTS account_name TEXT;
+ALTER TABLE connected_accounts ADD COLUMN IF NOT EXISTS account_number_last4 TEXT;
+ALTER TABLE connected_accounts ADD COLUMN IF NOT EXISTS connection_label TEXT;
 
 CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

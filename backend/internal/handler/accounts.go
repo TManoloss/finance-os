@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/finance-os/backend/internal/config"
@@ -150,7 +151,11 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 			balance, 
 			currency, 
 			last_synced_at, 
-			pluggy_item_id, 
+			pluggy_item_id,
+			account_name,
+			account_number_last4,
+			connection_label,
+			subtype,
 			close_day, 
 			due_day 
 		FROM connected_accounts 
@@ -169,6 +174,8 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 		var (
 			id, instName, accType, currency string
 			instLogo, instColor, pluggyID   *string
+			accountName, accountLast4       *string
+			connectionLabel, subtype        *string
 			balance                         float64
 			lastSynced                      *time.Time
 			closeDay, dueDay                *int
@@ -177,7 +184,8 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 		err := rows.Scan(
 			&id, &instName, &instLogo, &instColor,
 			&accType, &balance, &currency, &lastSynced,
-			&pluggyID, &closeDay, &dueDay,
+			&pluggyID, &accountName, &accountLast4, &connectionLabel, &subtype,
+			&closeDay, &dueDay,
 		)
 		if err != nil {
 			log.Printf("[Accounts] Erro ao escanear linha para user %s: %v", userID, err)
@@ -205,6 +213,10 @@ func (h *AccountsHandler) ListAccounts(c echo.Context) error {
 			"currency":          currency,
 			"last_synced_at":    lastSynced,
 			"pluggy_item_id":    pluggyID,
+			"account_name":      accountName,
+			"account_last4":     accountLast4,
+			"connection_label":  connectionLabel,
+			"subtype":           subtype,
 			"close_day":         closeDay,
 			"due_day":           dueDay,
 		})
@@ -423,6 +435,65 @@ func (h *AccountsHandler) DeleteAccount(c echo.Context) error {
 	return response.Success(c, http.StatusOK, map[string]string{
 		"message": "conta desconectada com sucesso",
 	})
+}
+
+// DeleteConnection revoga uma conexão Pluggy e remove apenas as Contas importadas por ela.
+func (h *AccountsHandler) DeleteConnection(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	itemID := c.Param("item_id")
+	var exists bool
+	if err := h.db.QueryRow(c.Request().Context(), `
+		SELECT EXISTS(
+			SELECT 1 FROM connected_accounts
+			WHERE user_id = $1 AND pluggy_item_id = $2
+		)
+	`, userID, itemID).Scan(&exists); err != nil || !exists {
+		return response.Error(c, http.StatusNotFound, "conexão não encontrada")
+	}
+
+	client, err := h.getPluggyClientForUser(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, err.Error())
+	}
+	if err := client.DeleteItem(itemID); err != nil {
+		log.Printf("[Accounts] Falha ao revogar conexão %s do user %s: %v", itemID, userID, err)
+		return response.Error(c, http.StatusBadGateway, "não foi possível revogar a conexão na Pluggy")
+	}
+	if _, err := h.db.Exec(c.Request().Context(), `
+		DELETE FROM connected_accounts WHERE user_id = $1 AND pluggy_item_id = $2
+	`, userID, itemID); err != nil {
+		return response.Error(c, http.StatusInternalServerError, "conexão revogada, mas os dados locais não puderam ser removidos")
+	}
+	return response.Success(c, http.StatusOK, map[string]string{
+		"message": "conexão removida com sucesso",
+	})
+}
+
+// UpdateConnectionLabel permite diferenciar Conexões da mesma instituição, como PF e PJ.
+func (h *AccountsHandler) UpdateConnectionLabel(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	itemID := c.Param("item_id")
+	var req struct {
+		Label string `json:"label"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "formato de requisição inválido")
+	}
+	req.Label = strings.TrimSpace(req.Label)
+	if len([]rune(req.Label)) > 50 {
+		return response.Error(c, http.StatusBadRequest, "o nome da conexão deve ter no máximo 50 caracteres")
+	}
+	result, err := h.db.Exec(c.Request().Context(), `
+		UPDATE connected_accounts SET connection_label = NULLIF($1, '')
+		WHERE user_id = $2 AND pluggy_item_id = $3
+	`, req.Label, userID, itemID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao nomear conexão")
+	}
+	if result.RowsAffected() == 0 {
+		return response.Error(c, http.StatusNotFound, "conexão não encontrada")
+	}
+	return response.Success(c, http.StatusOK, map[string]string{"label": req.Label})
 }
 
 func (h *AccountsHandler) getPluggyClientForUser(ctx context.Context, userID string) (*pluggy.Client, error) {

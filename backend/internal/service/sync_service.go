@@ -204,8 +204,8 @@ func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa plugg
 	var id string
 
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO connected_accounts (id, user_id, pluggy_item_id, pluggy_account_id, institution_name, institution_logo, institution_color, account_type, subtype, balance, currency)
-		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO connected_accounts (id, user_id, pluggy_item_id, pluggy_account_id, institution_name, institution_logo, institution_color, account_type, subtype, balance, currency, account_name, account_number_last4)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, ''), NULLIF($12, ''))
 		ON CONFLICT (user_id, pluggy_account_id) DO UPDATE SET
 			pluggy_item_id = EXCLUDED.pluggy_item_id,
 			institution_name = EXCLUDED.institution_name,
@@ -215,10 +215,19 @@ func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa plugg
 			subtype = EXCLUDED.subtype,
 			balance = EXCLUDED.balance,
 			currency = EXCLUDED.currency,
+			account_name = EXCLUDED.account_name,
+			account_number_last4 = EXCLUDED.account_number_last4,
 			last_synced_at = NOW()
 		RETURNING id`,
-		userID, pa.ItemID, pa.ID, pa.MarketingName, logo, color, pa.Type, pa.Subtype, pa.Balance, pa.CurrencyCode).Scan(&id)
+		userID, pa.ItemID, pa.ID, pa.MarketingName, logo, color, pa.Type, pa.Subtype, pa.Balance, pa.CurrencyCode, pa.Name, lastFour(pa.Number)).Scan(&id)
 	return id, err
+}
+
+func lastFour(value string) string {
+	if len(value) <= 4 {
+		return value
+	}
+	return value[len(value)-4:]
 }
 
 // saveTransactionsAndReturn salva as transações e retorna as que foram inseridas/identificadas.

@@ -80,6 +80,8 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	accounts.GET("/import-summary", accountsH.ImportSummary)
 	accounts.POST("/keys", accountsH.SavePluggyKeys)
 	accounts.POST("/llm-keys", accountsH.SaveLLMKeys)
+	accounts.DELETE("/connections/:item_id", accountsH.DeleteConnection)
+	accounts.PATCH("/connections/:item_id", accountsH.UpdateConnectionLabel)
 	accounts.PATCH("/:id/settings", accountsH.UpdateAccountSettings)
 	accounts.DELETE("/:id", accountsH.DeleteAccount)
 
