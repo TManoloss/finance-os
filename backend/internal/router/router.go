@@ -77,6 +77,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	accounts.POST("", accountsH.CreateManual)
 	accounts.POST("/connect-token", accountsH.ConnectToken)
 	accounts.POST("/sync", accountsH.Sync)
+	accounts.GET("/sync/:run_id", accountsH.SyncStatus)
 	accounts.GET("/import-summary", accountsH.ImportSummary)
 	accounts.POST("/keys", accountsH.SavePluggyKeys)
 	accounts.POST("/llm-keys", accountsH.SaveLLMKeys)

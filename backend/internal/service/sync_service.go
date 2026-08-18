@@ -2,14 +2,18 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/finance-os/backend/internal/pluggy"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrPartialSync = errors.New("sincronização parcial")
 
 // SyncService coordena a sincronização de dados da Pluggy para o banco local.
 type SyncService struct {
@@ -32,12 +36,14 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 // SyncItem sincroniza os dados de um item específico na Pluggy para o nosso banco.
 // Retorna o número de novas transações identificadas/salvas.
 func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, pluggyClient *pluggy.Client, force bool) (int, error) {
+	failures := 0
 	// Se for uma sincronização manual forçada, avisa a Pluggy para buscar novos dados no banco
 	if force {
 		log.Printf("[SyncItem] Forçando atualização do item %s na Pluggy...", itemID)
 		_, err := pluggyClient.ForceUpdateItem(itemID)
 		if err != nil {
 			log.Printf("[SyncItem] Falha ao forçar update do item %s: %v", itemID, err)
+			failures++
 			// Não retornamos erro fatal aqui, vamos tentar prosseguir com os dados existentes
 		} else {
 			// Espera 2 segundos para o item entrar em estado UPDATING na Pluggy
@@ -123,6 +129,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		accountID, err := s.upsertAccount(ctx, userID, pa, logo, color)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao sincronizar conta %s: %v", pa.ID, err)
+			failures++
 			continue
 		}
 
@@ -134,6 +141,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		transactions, err := pluggyClient.GetTransactions(pa.ID, from, to)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao buscar transações da conta %s: %v", pa.ID, err)
+			failures++
 			continue
 		}
 
@@ -143,6 +151,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		savedTxs, err := s.saveTransactionsAndReturn(ctx, userID, accountID, transactions)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao salvar transações da conta %s: %v", pa.ID, err)
+			failures++
 		}
 
 		totalSaved += len(savedTxs)
@@ -163,10 +172,15 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		}
 
 		// 9. Atualizar last_synced_at
-		s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID)
+		if _, err := s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID); err != nil {
+			failures++
+		}
 	}
 
 	log.Printf("[SyncItem] Sync completo: item %s, user %s, total %d transações salvas", itemID, userID, totalSaved)
+	if failures > 0 {
+		return totalSaved, fmt.Errorf("%w: %d etapa(s) não concluída(s)", ErrPartialSync, failures)
+	}
 	return totalSaved, nil
 }
 
@@ -187,15 +201,20 @@ func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, plugg
 	}
 
 	totalSaved := 0
+	failures := 0
 	for _, itemID := range itemIDs {
 		saved, err := s.SyncItem(ctx, userID, itemID, pluggyClient, force)
+		totalSaved += saved
 		if err != nil {
 			log.Printf("Erro ao sincronizar item %s do usuário %s: %v", itemID, userID, err)
+			failures++
 			continue
 		}
-		totalSaved += saved
 	}
 
+	if failures > 0 {
+		return totalSaved, fmt.Errorf("%w: %d conexão(ões) com erro", ErrPartialSync, failures)
+	}
 	return totalSaved, nil
 }
 
@@ -285,6 +304,8 @@ func (s *SyncService) saveTransactionsAndReturn(ctx context.Context, userID, acc
 				txData["installments_count"] = tx.CreditCardMetadata.InstallmentsCount
 			}
 			saved = append(saved, txData)
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return saved, fmt.Errorf("erro ao salvar transação: %w", err)
 		}
 	}
 

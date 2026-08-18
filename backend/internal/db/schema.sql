@@ -307,7 +307,10 @@ CREATE INDEX IF NOT EXISTS idx_financial_timeline_user_date ON financial_timelin
 -- sync_logs: Registro de execuções do sistema de sincronização
 CREATE TABLE IF NOT EXISTS sync_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    item_id TEXT,
     triggered_by TEXT NOT NULL, -- "cron", "manual", "keepalive"
+    status TEXT NOT NULL DEFAULT 'completed',
     synced_users INT DEFAULT 0,
     transactions_imported INT DEFAULT 0,
     errors_count INT DEFAULT 0,
@@ -316,4 +319,8 @@ CREATE TABLE IF NOT EXISTS sync_logs (
     started_at TIMESTAMPTZ DEFAULT NOW(),
     finished_at TIMESTAMPTZ
 );
+ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS item_id TEXT;
+ALTER TABLE sync_logs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed';
 CREATE INDEX IF NOT EXISTS idx_sync_logs_started_at ON sync_logs(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sync_logs_user_started_at ON sync_logs(user_id, started_at DESC);

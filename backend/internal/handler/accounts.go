@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/finance-os/backend/internal/repository"
 	"github.com/finance-os/backend/internal/response"
 	"github.com/finance-os/backend/internal/service"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 )
@@ -318,6 +320,15 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
+	var runID string
+	if err := h.db.QueryRow(c.Request().Context(), `
+		INSERT INTO sync_logs (user_id, item_id, triggered_by, status, started_at)
+		VALUES ($1, NULLIF($2, ''), 'manual', 'running', NOW())
+		RETURNING id
+	`, userID, req.ItemID).Scan(&runID); err != nil {
+		return response.Error(c, http.StatusInternalServerError, "não foi possível registrar a sincronização")
+	}
+
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
@@ -351,9 +362,11 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 		}
 
 		_, dbErr := h.db.Exec(context.Background(), `
-			INSERT INTO sync_logs (triggered_by, synced_users, transactions_imported, errors_count, errors_detail, duration_ms, started_at, finished_at)
-			VALUES ('manual', 1, $1, $2, $3::jsonb, $4, $5, NOW())
-		`, saved, errorsCount, errorsDetail, duration, start)
+			UPDATE sync_logs SET synced_users = 1, transactions_imported = $1,
+				errors_count = $2, errors_detail = $3::jsonb, duration_ms = $4,
+				status = $5, finished_at = NOW()
+			WHERE id = $6 AND user_id = $7
+		`, saved, errorsCount, errorsDetail, duration, syncRunStatus(err), runID, userID)
 
 		if dbErr != nil {
 			log.Printf("Erro ao salvar log de sync_logs: %v", dbErr)
@@ -366,6 +379,53 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 
 	return response.Success(c, http.StatusAccepted, map[string]interface{}{
 		"message": "sincronização iniciada com sucesso",
+		"run_id":  runID,
+		"status":  "running",
+	})
+}
+
+func syncRunStatus(err error) string {
+	if err == nil {
+		return "completed"
+	}
+	if errors.Is(err, service.ErrPartialSync) {
+		return "partial"
+	}
+	return "failed"
+}
+
+// SyncStatus retorna uma execução manual pertencente ao Usuário autenticado.
+func (h *AccountsHandler) SyncStatus(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	runID := c.Param("run_id")
+	var itemID, errorMessage *string
+	var status string
+	var transactions, errorsCount int
+	var startedAt time.Time
+	var finishedAt *time.Time
+	err := h.db.QueryRow(c.Request().Context(), `
+		SELECT item_id, status, transactions_imported, errors_count,
+		       errors_detail->0->>'error', started_at, finished_at
+		FROM sync_logs WHERE id = $1 AND user_id = $2 AND triggered_by = 'manual'
+	`, runID, userID).Scan(
+		&itemID, &status, &transactions, &errorsCount,
+		&errorMessage, &startedAt, &finishedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return response.Error(c, http.StatusNotFound, "sincronização não encontrada")
+	}
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao consultar sincronização")
+	}
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"id":                    runID,
+		"item_id":               itemID,
+		"status":                status,
+		"transactions_imported": transactions,
+		"errors_count":          errorsCount,
+		"error":                 errorMessage,
+		"started_at":            startedAt,
+		"finished_at":           finishedAt,
 	})
 }
 
