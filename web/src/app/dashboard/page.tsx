@@ -423,9 +423,9 @@ export default async function DashboardPage({
       </div>
 
 
-      {/* New Section: Top Merchants & Investments Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 bg-background border-t-2 border-black">
-        <div className="p-4 md:p-8 border-b-2 lg:border-b-0 lg:border-r-2 border-black">
+      {/* Top merchants */}
+      <div className="bg-background border-t-2 border-black">
+        <div className="p-4 md:p-8">
            <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-6 md:mb-8 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
               PRINCIPAIS_DESTINOS_DE_GASTOS
@@ -448,22 +448,6 @@ export default async function DashboardPage({
            </div>
         </div>
 
-        <div className="p-4 md:p-8">
-           <div className="flex justify-between items-center mb-6 md:mb-8">
-              <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                CENTRO_DE_INVESTIMENTOS
-              </h3>
-              <Link href="/dashboard/investments" className="text-[10px] font-black underline">FULL</Link>
-           </div>
-           <div className="p-8 md:p-12 border-2 border-black bg-elevated flex flex-col items-center justify-center text-center">
-              <TrendingUp className="w-8 h-8 md:w-12 md:h-12 mb-4 text-accent-secondary opacity-50" />
-              <div className="font-black uppercase text-xs md:text-sm mb-2">MODULO_EM_DESENVOLVIMENTO</div>
-              <p className="text-[8px] md:text-[10px] font-bold text-text-secondary max-w-xs leading-tight">
-                Acompanhe o crescimento do seu patrimonio, dividendos e performance de ativos em tempo real.
-              </p>
-           </div>
-        </div>
       </div>
 
       {/* Phase 11: Projections & Seasonality */}

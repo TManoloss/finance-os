@@ -363,16 +363,10 @@ export default async function ReportsPage() {
       {/* Visual Premium Section */}
       {(spendingHeatmap || dependencyMap) && (
         <div className="p-8 md:p-12 bg-background border-b-2 border-black space-y-12">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <div className="flex items-center gap-2 text-accent-primary font-black text-[10px] uppercase tracking-[0.3em]">
               <Target className="w-4 h-4" /> VISUAL_PREMIUM_V1.0
             </div>
-            <a 
-              href="/dashboard/reports/replay/2026-05" 
-              className="text-xs font-bold uppercase border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-colors"
-            >
-              Replay Financeiro (Abril 2026)
-            </a>
           </div>
           
           <div className="grid grid-cols-1 gap-12">

@@ -12,8 +12,6 @@ import {
   Menu,
   X,
   ShoppingBag,
-  Activity,
-  Zap,
   FileText,
   LogOut,
   Terminal,
@@ -59,8 +57,6 @@ export default function BottomNav() {
       icon: Cpu,
       items: [
         { name: "ESTABELECIMENTOS", href: "/dashboard/merchants", icon: ShoppingBag },
-        { name: "SAUDE", href: "/dashboard/health", icon: Activity },
-        { name: "SIMULADOR", href: "/dashboard/simulator", icon: Zap },
         { name: "RELATORIOS", href: "/dashboard/reports", icon: FileText },
         { name: "CHAT", href: "/dashboard/chat", icon: MessageCircle },
       ]

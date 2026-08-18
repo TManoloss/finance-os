@@ -15,8 +15,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  Activity,
-  Zap,
   ShoppingBag,
   Terminal,
   Cpu,
@@ -56,8 +54,6 @@ export default function Sidebar() {
       icon: Cpu,
       items: [
         { name: "ESTABELECIMENTOS", href: "/dashboard/merchants", icon: ShoppingBag },
-        { name: "SAUDE", href: "/dashboard/health", icon: Activity },
-        { name: "SIMULADOR", href: "/dashboard/simulator", icon: Zap },
         { name: "RELATORIOS", href: "/dashboard/reports", icon: FileText },
         { name: "CHAT", href: "/dashboard/chat", icon: MessageCircle },
       ]
