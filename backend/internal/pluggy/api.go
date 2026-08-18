@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // GetAccounts busca todas as contas vinculadas a um item (conexão).
@@ -61,7 +62,7 @@ func (c *Client) ForceUpdateItem(itemID string) (*Item, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return nil, fmt.Errorf("erro ao forçar atualização do item: status %d", resp.StatusCode)
+		return nil, responseError("Pluggy recusou a atualização", resp)
 	}
 
 	var res Item
@@ -70,6 +71,26 @@ func (c *Client) ForceUpdateItem(itemID string) (*Item, error) {
 	}
 
 	return &res, nil
+}
+
+func responseError(operation string, resp *http.Response) error {
+	var payload struct {
+		Code    string `json:"codeDescription"`
+		Message string `json:"message"`
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&payload)
+	details := make([]string, 0, 2)
+	if payload.Code != "" {
+		details = append(details, payload.Code)
+	}
+	if payload.Message != "" {
+		details = append(details, payload.Message)
+	}
+	detail := strings.Join(details, ": ")
+	if detail == "" {
+		return fmt.Errorf("%s: status %d", operation, resp.StatusCode)
+	}
+	return fmt.Errorf("%s: status %d (%s)", operation, resp.StatusCode, detail)
 }
 
 // DeleteItem revoga o consentimento e remove a conexão na Pluggy.

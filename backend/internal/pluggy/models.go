@@ -17,11 +17,12 @@ type AuthResponse struct {
 
 // Item representa uma conexão com uma instituição financeira.
 type Item struct {
-	ID          string    `json:"id"`
-	ConnectorID int       `json:"connectorId"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID            string     `json:"id"`
+	ConnectorID   int        `json:"connectorId"`
+	Status        string     `json:"status"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	LastUpdatedAt *time.Time `json:"lastUpdatedAt"`
 }
 
 // Account representa uma conta bancária vinculada a um Item.
@@ -53,7 +54,7 @@ type Transaction struct {
 
 type CreditCardMetadata struct {
 	InstallmentNumber int `json:"installmentNumber"`
-	InstallmentsCount  int `json:"installmentsCount"`
+	InstallmentsCount int `json:"installmentsCount"`
 }
 
 // Connector representa uma instituição financeira suportada pela Pluggy.

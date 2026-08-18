@@ -36,14 +36,14 @@ func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, c
 // SyncItem sincroniza os dados de um item específico na Pluggy para o nosso banco.
 // Retorna o número de novas transações identificadas/salvas.
 func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, pluggyClient *pluggy.Client, force bool) (int, error) {
-	failures := 0
+	var failures []string
 	// Se for uma sincronização manual forçada, avisa a Pluggy para buscar novos dados no banco
 	if force {
 		log.Printf("[SyncItem] Forçando atualização do item %s na Pluggy...", itemID)
 		_, err := pluggyClient.ForceUpdateItem(itemID)
 		if err != nil {
 			log.Printf("[SyncItem] Falha ao forçar update do item %s: %v", itemID, err)
-			failures++
+			failures = append(failures, err.Error())
 			// Não retornamos erro fatal aqui, vamos tentar prosseguir com os dados existentes
 		} else {
 			// Espera 2 segundos para o item entrar em estado UPDATING na Pluggy
@@ -126,10 +126,10 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		log.Printf("[SyncItem] Processando conta %s (%s/%s) - saldo: %.2f", pa.ID, pa.Name, pa.Type, pa.Balance)
 
 		// 4. Upsert da conta no nosso banco com logo e cor
-		accountID, err := s.upsertAccount(ctx, userID, pa, logo, color)
+		accountID, err := s.upsertAccount(ctx, userID, pa, logo, color, item.LastUpdatedAt)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao sincronizar conta %s: %v", pa.ID, err)
-			failures++
+			failures = append(failures, fmt.Sprintf("conta %s: %v", pa.ID, err))
 			continue
 		}
 
@@ -141,7 +141,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		transactions, err := pluggyClient.GetTransactions(pa.ID, from, to)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao buscar transações da conta %s: %v", pa.ID, err)
-			failures++
+			failures = append(failures, fmt.Sprintf("transações da conta %s: %v", pa.ID, err))
 			continue
 		}
 
@@ -151,7 +151,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		savedTxs, err := s.saveTransactionsAndReturn(ctx, userID, accountID, transactions)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao salvar transações da conta %s: %v", pa.ID, err)
-			failures++
+			failures = append(failures, fmt.Sprintf("persistência da conta %s: %v", pa.ID, err))
 		}
 
 		totalSaved += len(savedTxs)
@@ -171,15 +171,11 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 			}
 		}
 
-		// 9. Atualizar last_synced_at
-		if _, err := s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID); err != nil {
-			failures++
-		}
 	}
 
 	log.Printf("[SyncItem] Sync completo: item %s, user %s, total %d transações salvas", itemID, userID, totalSaved)
-	if failures > 0 {
-		return totalSaved, fmt.Errorf("%w: %d etapa(s) não concluída(s)", ErrPartialSync, failures)
+	if len(failures) > 0 {
+		return totalSaved, fmt.Errorf("%w: %s", ErrPartialSync, strings.Join(failures, "; "))
 	}
 	return totalSaved, nil
 }
@@ -219,12 +215,12 @@ func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, plugg
 }
 
 // upsertAccount insere ou atualiza uma conta conectada.
-func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa pluggy.Account, logo, color string) (string, error) {
+func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa pluggy.Account, logo, color string, syncedAt *time.Time) (string, error) {
 	var id string
 
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO connected_accounts (id, user_id, pluggy_item_id, pluggy_account_id, institution_name, institution_logo, institution_color, account_type, subtype, balance, currency, account_name, account_number_last4)
-		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, ''), NULLIF($12, ''))
+		INSERT INTO connected_accounts (id, user_id, pluggy_item_id, pluggy_account_id, institution_name, institution_logo, institution_color, account_type, subtype, balance, currency, account_name, account_number_last4, last_synced_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NULLIF($11, ''), NULLIF($12, ''), $13)
 		ON CONFLICT (user_id, pluggy_account_id) DO UPDATE SET
 			pluggy_item_id = EXCLUDED.pluggy_item_id,
 			institution_name = EXCLUDED.institution_name,
@@ -236,9 +232,9 @@ func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa plugg
 			currency = EXCLUDED.currency,
 			account_name = EXCLUDED.account_name,
 			account_number_last4 = EXCLUDED.account_number_last4,
-			last_synced_at = NOW()
+			last_synced_at = COALESCE(EXCLUDED.last_synced_at, connected_accounts.last_synced_at)
 		RETURNING id`,
-		userID, pa.ItemID, pa.ID, pa.MarketingName, logo, color, pa.Type, pa.Subtype, pa.Balance, pa.CurrencyCode, pa.Name, lastFour(pa.Number)).Scan(&id)
+		userID, pa.ItemID, pa.ID, pa.MarketingName, logo, color, pa.Type, pa.Subtype, pa.Balance, pa.CurrencyCode, pa.Name, lastFour(pa.Number), syncedAt).Scan(&id)
 	return id, err
 }
 
