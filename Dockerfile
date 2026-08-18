@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copia o binário do Go
 COPY --from=go-builder /app/backend/server /app/backend/server
+COPY backend/internal/db/schema.sql /app/backend/internal/db/schema.sql
 
 # Copia o serviço de Agentes Python e instala dependências
 COPY agents/ /app/agents/
