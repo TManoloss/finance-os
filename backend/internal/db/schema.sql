@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS connected_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     pluggy_item_id TEXT, -- ID da conexão (um item pode ter várias contas)
-    pluggy_account_id TEXT UNIQUE, -- ID único da conta na Pluggy
+    pluggy_account_id TEXT, -- ID da conta na Pluggy, único dentro do Usuário
     institution_name TEXT NOT NULL,
     institution_logo TEXT,
     institution_color TEXT,
@@ -42,11 +42,14 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE INDEX IF NOT EXISTS idx_connected_accounts_user_id ON connected_accounts(user_id);
+ALTER TABLE connected_accounts DROP CONSTRAINT IF EXISTS connected_accounts_pluggy_account_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_connected_accounts_user_pluggy_account
+    ON connected_accounts(user_id, pluggy_account_id);
 
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID NOT NULL REFERENCES connected_accounts(id) ON DELETE CASCADE,
-    pluggy_transaction_id TEXT UNIQUE,
+    pluggy_transaction_id TEXT,
     amount NUMERIC(12,2) NOT NULL,
     direction TEXT NOT NULL CHECK (direction IN ('debit', 'credit')),
     description TEXT NOT NULL,
@@ -61,6 +64,9 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_account_id_date ON transactions(account_id, date);
+ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_pluggy_transaction_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_account_pluggy_transaction
+    ON transactions(account_id, pluggy_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_merchant_name ON transactions(merchant_name);
 

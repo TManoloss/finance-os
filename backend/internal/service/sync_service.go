@@ -57,12 +57,12 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		item, err = pluggyClient.GetItem(itemID)
 		if err != nil {
 			log.Printf("[SyncItem] Tentativa %d/%d: erro ao buscar item %s: %v", attempt, maxAttempts, itemID, err)
-			
+
 			// Se o item não for encontrado (404), não adianta tentar novamente
 			if strings.Contains(err.Error(), "status 404") {
 				return 0, fmt.Errorf("item %s não foi encontrado na Pluggy (possivelmente desconectado).", itemID)
 			}
-			
+
 			if attempt == maxAttempts {
 				return 0, fmt.Errorf("item %s não encontrado na Pluggy após %d tentativas: %w", itemID, maxAttempts, err)
 			}
@@ -130,7 +130,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 		// Adicionamos 1 dia ao 'to' para garantir que transações de hoje não sejam cortadas por fuso horário.
 		to := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 		from := time.Now().AddDate(0, 0, -90).Format("2006-01-02")
-		
+
 		transactions, err := pluggyClient.GetTransactions(pa.ID, from, to)
 		if err != nil {
 			log.Printf("[SyncItem] Erro ao buscar transações da conta %s: %v", pa.ID, err)
@@ -161,7 +161,7 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 				log.Printf("[SyncItem] Erro ao gerar eventos no feed: %v", err)
 			}
 		}
-		
+
 		// 9. Atualizar last_synced_at
 		s.db.Exec(ctx, "UPDATE connected_accounts SET last_synced_at = NOW() WHERE id = $1", accountID)
 	}
@@ -202,41 +202,35 @@ func (s *SyncService) SyncUserAccounts(ctx context.Context, userID string, plugg
 // upsertAccount insere ou atualiza uma conta conectada.
 func (s *SyncService) upsertAccount(ctx context.Context, userID string, pa pluggy.Account, logo, color string) (string, error) {
 	var id string
-	
+
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO connected_accounts (id, user_id, pluggy_item_id, pluggy_account_id, institution_name, institution_logo, institution_color, account_type, subtype, balance, currency)
 		VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT (pluggy_account_id) DO NOTHING
-		RETURNING id`, 
+		ON CONFLICT (user_id, pluggy_account_id) DO UPDATE SET
+			pluggy_item_id = EXCLUDED.pluggy_item_id,
+			institution_name = EXCLUDED.institution_name,
+			institution_logo = EXCLUDED.institution_logo,
+			institution_color = EXCLUDED.institution_color,
+			account_type = EXCLUDED.account_type,
+			subtype = EXCLUDED.subtype,
+			balance = EXCLUDED.balance,
+			currency = EXCLUDED.currency,
+			last_synced_at = NOW()
+		RETURNING id`,
 		userID, pa.ItemID, pa.ID, pa.MarketingName, logo, color, pa.Type, pa.Subtype, pa.Balance, pa.CurrencyCode).Scan(&id)
-
-	if err != nil {
-		// Se já existe ou conflito, buscamos o ID
-		err = s.db.QueryRow(ctx, "SELECT id FROM connected_accounts WHERE pluggy_account_id = $1", pa.ID).Scan(&id)
-		if err != nil {
-			return "", err
-		}
-		// Atualiza o saldo e metadados (importante atualizar user_id caso a conta tenha mudado de dono no nosso sistema)
-		s.db.Exec(ctx, `
-			UPDATE connected_accounts 
-			SET user_id = $1, balance = $2, account_type = $3, subtype = $4, institution_logo = $5, institution_color = $6, last_synced_at = NOW() 
-			WHERE id = $7`, 
-			userID, pa.Balance, pa.Type, pa.Subtype, logo, color, id)
-	}
-
-	return id, nil
+	return id, err
 }
 
 // saveTransactionsAndReturn salva as transações e retorna as que foram inseridas/identificadas.
 func (s *SyncService) saveTransactionsAndReturn(ctx context.Context, userID, accountID string, txs []pluggy.Transaction) ([]map[string]interface{}, error) {
 	var saved []map[string]interface{}
-	
+
 	for _, tx := range txs {
 		direction := "debit"
 		if tx.Type == "CREDIT" {
 			direction = "credit"
 		}
-		
+
 		amount := tx.Amount
 		if amount < 0 {
 			amount = -amount
@@ -257,18 +251,18 @@ func (s *SyncService) saveTransactionsAndReturn(ctx context.Context, userID, acc
 			err = s.db.QueryRow(ctx, `
 				INSERT INTO transactions (account_id, pluggy_transaction_id, amount, direction, description, merchant_name, date, category_id, created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-				ON CONFLICT (pluggy_transaction_id) DO NOTHING
+				ON CONFLICT (account_id, pluggy_transaction_id) DO NOTHING
 				RETURNING id`,
 				accountID, tx.ID, amount, direction, tx.Description, tx.Description, tx.Date, categoryID).Scan(&id)
 		} else {
 			err = s.db.QueryRow(ctx, `
 				INSERT INTO transactions (account_id, pluggy_transaction_id, amount, direction, description, merchant_name, date, created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-				ON CONFLICT (pluggy_transaction_id) DO NOTHING
+				ON CONFLICT (account_id, pluggy_transaction_id) DO NOTHING
 				RETURNING id`,
 				accountID, tx.ID, amount, direction, tx.Description, tx.Description, tx.Date).Scan(&id)
 		}
-		
+
 		if err == nil {
 			txData := map[string]interface{}{
 				"id":          id,

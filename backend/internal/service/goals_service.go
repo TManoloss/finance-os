@@ -17,17 +17,17 @@ const (
 )
 
 type FinancialGoal struct {
-	ID            string    `json:"id"`
-	UserID        string    `json:"user_id"`
-	Name          string    `json:"name"`
-	GoalType      GoalType  `json:"goal_type"`
-	TargetAmount  float64   `json:"target_amount"`
-	CurrentAmount float64   `json:"current_amount"`
-	StartDate     time.Time `json:"start_date"`
+	ID            string     `json:"id"`
+	UserID        string     `json:"user_id"`
+	Name          string     `json:"name"`
+	GoalType      GoalType   `json:"goal_type"`
+	TargetAmount  float64    `json:"target_amount"`
+	CurrentAmount float64    `json:"current_amount"`
+	StartDate     time.Time  `json:"start_date"`
 	TargetDate    *time.Time `json:"target_date"`
-	CategoryID    *string   `json:"category_id"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
+	CategoryID    *string    `json:"category_id"`
+	Status        string     `json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
 }
 
 type GoalsService struct {
@@ -111,7 +111,7 @@ func (s *GoalsService) UpdateGoalProgress(ctx context.Context, userID string) er
 			status = "completed"
 		}
 
-		s.db.Exec(ctx, "UPDATE financial_goals SET current_amount = $1, status = $2 WHERE id = $3", currentAmount, status, g.ID)
+		s.db.Exec(ctx, "UPDATE financial_goals SET current_amount = $1, status = $2 WHERE id = $3 AND user_id = $4", currentAmount, status, g.ID, userID)
 	}
 
 	return nil

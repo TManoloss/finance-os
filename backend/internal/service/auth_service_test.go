@@ -59,6 +59,11 @@ func (m *MockUserRepository) UpdatePluggyCredentials(ctx context.Context, userID
 	return args.Error(0)
 }
 
+func (m *MockUserRepository) UpdateLLMCredentials(ctx context.Context, userID, groqEncrypted, geminiEncrypted string) error {
+	args := m.Called(ctx, userID, groqEncrypted, geminiEncrypted)
+	return args.Error(0)
+}
+
 func (m *MockUserRepository) GetPluggyCredentials(ctx context.Context, userID string) (string, string, error) {
 	args := m.Called(ctx, userID)
 	return args.String(0), args.String(1), args.Error(2)

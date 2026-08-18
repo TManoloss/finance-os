@@ -72,14 +72,14 @@ func (h *SyncHandler) SyncAll(c echo.Context) error {
 	// 3. Sync em paralelo com semáforo (máx 3 goroutines)
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 3)
-	
+
 	results := struct {
-		SyncedUsers      int `json:"synced_users"`
-		TotalImported    int `json:"total_transactions_imported"`
-		ErrorsCount      int `json:"errors_count"`
-		Errors           []map[string]string `json:"errors"`
-		DurationMS       int64 `json:"duration_ms"`
-		TriggeredAt      string `json:"triggered_at"`
+		SyncedUsers   int                 `json:"synced_users"`
+		TotalImported int                 `json:"total_transactions_imported"`
+		ErrorsCount   int                 `json:"errors_count"`
+		Errors        []map[string]string `json:"errors"`
+		DurationMS    int64               `json:"duration_ms"`
+		TriggeredAt   string              `json:"triggered_at"`
 	}{
 		SyncedUsers: len(userIDs),
 		TriggeredAt: start.Format(time.RFC3339),
@@ -112,7 +112,7 @@ func (h *SyncHandler) SyncAll(c echo.Context) error {
 
 			// Sincronizar
 			count, err := h.syncService.SyncUserAccounts(ctx, userID, pluggyClient, false)
-			
+
 			resultsMu.Lock()
 			if err != nil {
 				results.ErrorsCount++
@@ -138,7 +138,7 @@ func (h *SyncHandler) SyncAll(c echo.Context) error {
 		log.Printf("[SyncInternal] Erro ao salvar sync_log: %v", err)
 	}
 
-	log.Printf("[SyncInternal] Sincronização global finalizada em %dms. Usuários: %d, Transações: %d, Erros: %d", 
+	log.Printf("[SyncInternal] Sincronização global finalizada em %dms. Usuários: %d, Transações: %d, Erros: %d",
 		results.DurationMS, results.SyncedUsers, results.TotalImported, results.ErrorsCount)
 
 	return response.Success(c, http.StatusOK, results)
@@ -164,7 +164,7 @@ func (h *SyncHandler) Status(c echo.Context) error {
 		FROM sync_logs 
 		WHERE triggered_by = 'cron'
 		ORDER BY started_at DESC LIMIT 1`
-	
+
 	err := h.db.QueryRow(c.Request().Context(), query).Scan(
 		&res.LastSyncAt, &res.LastSyncDurationMS, &res.LastSyncUsers, &res.LastSyncTransactions,
 	)
@@ -172,10 +172,22 @@ func (h *SyncHandler) Status(c echo.Context) error {
 		return response.Error(c, http.StatusNotFound, "nenhum log de sincronização encontrado")
 	}
 
-	// Estimativa simples para o próximo sync (assumindo horários fixos do cron-job.org)
-	res.NextScheduledSync = "Próximo horário agendado (07:00, 13:00, 19:00 ou 23:30)"
+	res.NextScheduledSync = nextDailySync(time.Now()).Format(time.RFC3339)
 
 	return response.Success(c, http.StatusOK, res)
+}
+
+func nextDailySync(now time.Time) time.Time {
+	loc, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		loc = time.UTC
+	}
+	localNow := now.In(loc)
+	next := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 30, 0, 0, loc)
+	if !next.After(localNow) {
+		next = next.AddDate(0, 0, 1)
+	}
+	return next
 }
 
 func (h *SyncHandler) getPluggyClientForUser(ctx context.Context, userID string) (*pluggy.Client, error) {

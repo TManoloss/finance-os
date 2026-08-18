@@ -62,7 +62,7 @@ type MerchantSummary struct {
 type TransactionRepository interface {
 	GetTransactions(ctx context.Context, filters TransactionFilters) ([]map[string]interface{}, int, error)
 	GetSummary(ctx context.Context, userID string, from, to time.Time) (*TransactionSummary, error)
-	UpdateCategory(ctx context.Context, txID, categoryID string) error
+	UpdateCategory(ctx context.Context, userID, txID, categoryID string) (bool, error)
 	CreateManual(ctx context.Context, userID, accountID, description, direction, categoryID string, amount float64, date time.Time) (string, error)
 }
 
@@ -204,10 +204,30 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	return transactions, total, nil
 }
 
-func (r *pgTransactionRepository) UpdateCategory(ctx context.Context, txID, categoryID string) error {
-	query := `UPDATE transactions SET category_id = $1 WHERE id = $2`
-	_, err := r.db.Exec(ctx, query, categoryID, txID)
-	return err
+func (r *pgTransactionRepository) UpdateCategory(ctx context.Context, userID, txID, categoryID string) (bool, error) {
+	result, err := r.db.Exec(ctx, `
+		WITH updated AS (
+			UPDATE transactions t
+			SET category_id = $1, needs_review = false, confidence_score = 1
+			FROM connected_accounts a
+			WHERE t.id = $2
+			  AND t.account_id = a.id
+			  AND a.user_id = $3
+			  AND EXISTS (
+				SELECT 1 FROM categories c
+				WHERE c.id = $1 AND (c.user_id IS NULL OR c.user_id = $3)
+			  )
+			RETURNING COALESCE(NULLIF(t.merchant_name, ''), t.description) AS merchant_pattern
+		)
+		INSERT INTO category_rules (user_id, merchant_pattern, category_id, priority)
+		SELECT $3, merchant_pattern, $1, 1 FROM updated
+		ON CONFLICT (user_id, merchant_pattern)
+		DO UPDATE SET category_id = EXCLUDED.category_id
+	`, categoryID, txID, userID)
+	if err != nil {
+		return false, err
+	}
+	return result.RowsAffected() == 1, nil
 }
 
 func (r *pgTransactionRepository) GetSummary(ctx context.Context, userID string, from, to time.Time) (*TransactionSummary, error) {

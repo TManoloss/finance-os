@@ -70,6 +70,7 @@ func (h *TransactionsHandler) ListTransactions(c echo.Context) error {
 
 // UpdateCategory atualiza a categoria de uma transação.
 func (h *TransactionsHandler) UpdateCategory(c echo.Context) error {
+	userID := c.Get("user_id").(string)
 	txID := c.Param("id")
 
 	var req struct {
@@ -83,9 +84,12 @@ func (h *TransactionsHandler) UpdateCategory(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "a categoria é obrigatória")
 	}
 
-	err := h.repo.UpdateCategory(c.Request().Context(), txID, req.CategoryID)
+	updated, err := h.repo.UpdateCategory(c.Request().Context(), userID, txID, req.CategoryID)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao atualizar categoria")
+	}
+	if !updated {
+		return response.Error(c, http.StatusNotFound, "transação ou categoria não encontrada")
 	}
 
 	return response.Success(c, http.StatusOK, map[string]string{
