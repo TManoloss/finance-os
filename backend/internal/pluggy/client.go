@@ -126,9 +126,7 @@ func (c *Client) CreateConnectToken(itemID *string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		var errRes map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errRes)
-		return "", fmt.Errorf("erro ao gerar connect token: status %d, %v", resp.StatusCode, errRes)
+		return "", responseError("Pluggy recusou o token de conexão", resp)
 	}
 
 	var res ConnectTokenResponse

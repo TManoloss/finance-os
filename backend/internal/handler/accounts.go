@@ -286,7 +286,7 @@ func (h *AccountsHandler) ConnectToken(c echo.Context) error {
 	token, err := pluggyClient.CreateConnectToken(&req.ItemID)
 	if err != nil {
 		log.Printf("[ConnectToken] Falha ao gerar connect token para user %s: %v", userID, err)
-		return response.Error(c, http.StatusBadGateway, "Falha ao conectar com a Pluggy. Suas credenciais podem estar expiradas ou inválidas. Atualize-as nas Configurações.")
+		return response.Error(c, http.StatusBadGateway, err.Error())
 	}
 
 	return response.Success(c, http.StatusOK, map[string]string{
