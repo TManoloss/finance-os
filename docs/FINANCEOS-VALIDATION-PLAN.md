@@ -334,10 +334,10 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 - [ ] FOS-202: validação de credenciais e widget real implementados; widget abriu no dispositivo, faltam cenários inválido/indisponível/incompleto.
 - [ ] FOS-203: endpoint e tela de comprovante implementados; falta concluir uma nova Conexão e validar os números importados.
 - [ ] FOS-204: gerenciamento por Conexão implementado com reconexão, sync, nome PF/PJ e revogação na Pluggy; falta aceite destrutivo controlado.
-- [ ] FOS-205: pendente resultado estruturado de sincronização parcial.
+- [x] FOS-205: execução manual retorna `running/completed/partial/failed`, quantidade nova real e motivo operacional; parcial validada no dispositivo.
 - [x] FOS-206: restauração básica de sessão validada no dispositivo.
 - [ ] Onboarding Pluggy e manual aceitos de ponta a ponta em dispositivo.
-- [ ] Comprovante e falhas parciais validados.
+- [x] Comprovante e falhas parciais validados no SM-S948B; atualização da fonte permanece bloqueada pelo Item MeuPluggy atual.
 
 ### Fase 3 — Núcleo diário
 
@@ -451,6 +451,25 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Sincronização por Conexão | passou no cenário executado | ações das duas conexões foram disparadas separadamente e preencheram seus identificadores sem duplicar os cartões na interface |
 | Ambiente Pluggy | atenção | widget aberto identifica a aplicação Pluggy como demo; produção exige credenciais/ambiente de produção |
 | Logs do dispositivo | passou | nenhuma exceção Flutter ou crash do FinanceOS; apenas mensagens do sistema/Google Play Services |
+
+### Execução da FOS-205 e diagnóstico Pluggy — 2026-08-18
+
+**Backend:** commits `ab793b8`, `1233cf8`, `6c3ffd5` e `f33ba61` enviados a `origin/main`; Render respondeu `200` em `/health`.
+
+**Dispositivo:** Samsung SM-S948B, Android 16/API 36.
+
+**APK:** debug, SHA-256 `6a4996c61084b625a42f96d2c36c34371021906a2d532573a33b26e4101c16e7`.
+
+| Verificação | Resultado | Evidência observada |
+| --- | --- | --- |
+| Resultado estruturado | passou | `POST /accounts/sync` devolveu `run_id`; comprovante consultou `GET /accounts/sync/:run_id` e exibiu andamento e parcial sem sucesso falso |
+| Zero novas Transações | passou semanticamente | as duas execuções retornaram zero inserts novos e preservaram os totais existentes de 151 e 92 Transações |
+| Motivo da parcial | diagnosticado | Pluggy respondeu `400: MeuPluggy item can't be updated`; o app exibiu o motivo real em vez de erro genérico |
+| Horário de atualização | corrigido | `updated_at` passou a usar `lastUpdatedAt` da Pluggy; leitura de cache não grava mais `NOW()` como se a instituição tivesse atualizado |
+| Reconexão | corrigida, aceite humano pendente | mobile passa `updateItem` ao widget e importa o resultado com `force=false`, sem repetir `PATCH /items/{id}` após o sucesso do widget |
+| Distinção PF/PJ | passou estruturalmente | Conexões mostram finais `14-8` e `17-6`; extrato recebe rótulo da Conexão ou fallback curto `Conta • final ...` |
+| Dados recentes | presentes no snapshot | extrato exibiu compras datadas de 18/08/2026; nova coleta da instituição depende de atualizar/recriar o Item Pluggy atual |
+| Testes | passou | pacotes Go do produto e 4 testes Flutter aprovados; analyze permaneceu com 25 avisos informativos preexistentes |
 
 ### Cenários de aceite ponta a ponta
 
