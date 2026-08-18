@@ -67,7 +67,7 @@ func (h *ReportsHandler) TriggerAgent(c echo.Context) error {
 
 	client := &http.Client{}
 	url := fmt.Sprintf("%s/agents/%s/%s", h.cfg.AgentsServiceURL, agentType, userID)
-	
+
 	resp, err := client.Post(url, "application/json", nil)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
@@ -213,22 +213,7 @@ func (h *ReportsHandler) GetProjections(c echo.Context) error {
 
 // GetHealthScore retorna o score de saúde financeira e recomendações.
 func (h *ReportsHandler) GetHealthScore(c echo.Context) error {
-	userID := c.Get("user_id").(string)
-
-	url := fmt.Sprintf("%s/reports/health-score/%s", h.cfg.AgentsServiceURL, userID)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
-	}
-	defer resp.Body.Close()
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
-	}
-
-	return response.Success(c, http.StatusOK, result)
+	return response.Error(c, http.StatusServiceUnavailable, "saúde financeira indisponível até todas as dimensões usarem dados reais")
 }
 
 // GetTopMerchants retorna a lista de principais estabelecimentos.
@@ -442,7 +427,7 @@ func (h *ReportsHandler) GetComparison(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "todos os parâmetros de período (a_start, a_end, b_start, b_end) são obrigatórios")
 	}
 
-	url := fmt.Sprintf("%s/reports/comparison/%s?a_start=%s&a_end=%s&b_start=%s&b_end=%s", 
+	url := fmt.Sprintf("%s/reports/comparison/%s?a_start=%s&a_end=%s&b_start=%s&b_end=%s",
 		h.cfg.AgentsServiceURL, userID, aStart, aEnd, bStart, bEnd)
 
 	resp, err := http.Get(url)
@@ -606,12 +591,12 @@ func (h *ReportsHandler) getCachedOrTrigger(c echo.Context, reportType string, p
 // GetDependencyMap retorna o mapa de dependência do usuário.
 func (h *ReportsHandler) GetDependencyMap(c echo.Context) error {
 	userID := c.Get("user_id").(string)
-	
+
 	result, err := h.visualReportsService.GetDependencyMap(userID)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao obter dependency map")
 	}
-	
+
 	return response.Success(c, http.StatusOK, result)
 }
 
@@ -622,24 +607,23 @@ func (h *ReportsHandler) GetMonthlyReplay(c echo.Context) error {
 	if month == "" {
 		month = time.Now().Format("2006-01")
 	}
-	
+
 	result, err := h.visualReportsService.GetMonthlyReplay(userID, month)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao obter monthly replay")
 	}
-	
+
 	return response.Success(c, http.StatusOK, result)
 }
 
 // GetSpendingHeatmap retorna o heatmap de gastos do usuário.
 func (h *ReportsHandler) GetSpendingHeatmap(c echo.Context) error {
 	userID := c.Get("user_id").(string)
-	
+
 	result, err := h.visualReportsService.GetSpendingHeatmap(userID)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao obter heatmap")
 	}
-	
+
 	return response.Success(c, http.StatusOK, result)
 }
-
