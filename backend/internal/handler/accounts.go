@@ -357,6 +357,49 @@ func (h *AccountsHandler) Sync(c echo.Context) error {
 	})
 }
 
+// ImportSummary retorna o comprovante real da importação de uma conexão Pluggy.
+func (h *AccountsHandler) ImportSummary(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+	itemID := c.QueryParam("item_id")
+	if itemID == "" {
+		return response.Error(c, http.StatusBadRequest, "item_id é obrigatório")
+	}
+
+	var accounts, transactions, needsReview int
+	var fromDate, toDate *time.Time
+	var lastSynced *time.Time
+	err := h.db.QueryRow(c.Request().Context(), `
+		SELECT COUNT(DISTINCT a.id), COUNT(t.id), MIN(t.date), MAX(t.date),
+		       COUNT(t.id) FILTER (WHERE t.needs_review), MAX(a.last_synced_at)
+		FROM connected_accounts a
+		LEFT JOIN transactions t ON t.account_id = a.id
+		WHERE a.user_id = $1 AND a.pluggy_item_id = $2
+	`, userID, itemID).Scan(
+		&accounts, &transactions, &fromDate, &toDate, &needsReview, &lastSynced,
+	)
+	if err != nil {
+		log.Printf("[ImportSummary] Erro ao montar comprovante para user %s: %v", userID, err)
+		return response.Error(c, http.StatusInternalServerError, "erro ao consultar a importação")
+	}
+
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"status":                importStatus(lastSynced),
+		"accounts_found":        accounts,
+		"transactions_imported": transactions,
+		"period_from":           fromDate,
+		"period_to":             toDate,
+		"needs_review":          needsReview,
+		"updated_at":            lastSynced,
+	})
+}
+
+func importStatus(lastSynced *time.Time) string {
+	if lastSynced == nil {
+		return "processing"
+	}
+	return "completed"
+}
+
 // DeleteAccount desconecta e remove uma conta e todos os seus dados associados.
 func (h *AccountsHandler) DeleteAccount(c echo.Context) error {
 	userID := c.Get("user_id").(string)
