@@ -91,7 +91,7 @@ func (h *OverviewHandler) Get(c echo.Context) error {
 		},
 		"needs_review_count":  needsReview,
 		"main_alert":          selectMainAlert(events),
-		"next_commitment":     selectNextCommitment(installments, subscriptions),
+		"next_commitment":     selectNextCommitment(installments, subscriptions, now),
 		"recent_transactions": recent,
 	})
 }
@@ -132,10 +132,14 @@ func selectMainAlert(events []service.FeedEvent) *service.FeedEvent {
 	return selected
 }
 
-func selectNextCommitment(installments []service.ActiveInstallment, subscriptions []service.Subscription) *overviewCommitment {
+func selectNextCommitment(installments []service.ActiveInstallment, subscriptions []service.Subscription, now time.Time) *overviewCommitment {
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	var selected *overviewCommitment
 	for _, installment := range installments {
 		candidate := overviewCommitment{Kind: "installment", Title: installment.MerchantName, Amount: installment.Amount, DueDate: installment.NextDueDate}
+		if candidate.DueDate.IsZero() || candidate.DueDate.Before(today) {
+			continue
+		}
 		if selected == nil || candidate.DueDate.Before(selected.DueDate) {
 			selected = &candidate
 		}
@@ -145,6 +149,12 @@ func selectNextCommitment(installments []service.ActiveInstallment, subscription
 			continue
 		}
 		candidate := overviewCommitment{Kind: "subscription", Title: subscription.MerchantName, Amount: subscription.Amount, DueDate: subscription.NextEstimate}
+		if candidate.DueDate.IsZero() {
+			continue
+		}
+		for candidate.DueDate.Before(today) {
+			candidate.DueDate = candidate.DueDate.AddDate(0, 1, 0)
+		}
 		if selected == nil || candidate.DueDate.Before(selected.DueDate) {
 			selected = &candidate
 		}
