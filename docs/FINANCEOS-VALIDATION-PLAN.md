@@ -341,8 +341,12 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 3 — Núcleo diário
 
-- [ ] FOS-301 a FOS-305 implementados.
-- [ ] Cinco abas e aliases testados.
+- [x] FOS-301: cinco destinos canônicos e aliases antigos implementados.
+- [ ] FOS-302: `GET /overview` pendente.
+- [ ] FOS-303: Hoje ainda consome endpoints separados.
+- [x] FOS-304: `+` restrito a Movimentações; Meta usa ação textual própria.
+- [ ] FOS-305: saldo abre Contas; Alerta/Feed ainda pendente.
+- [x] Cinco abas e aliases cobertos por teste; cinco abas validadas no dispositivo.
 - [ ] `/overview` validado por contrato.
 
 ### Fase 4 — Movimentações e Alertas
@@ -483,6 +487,23 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Evidência de Movimentações novas | passou | `A ESTUDANTIL LIVRARIA` (R$ 44,50) e `MORANGO SUL LTDA` (R$ 25,00), ambas identificadas como `Nubank PJ` |
 | Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` encontrado após a navegação |
 
+### Execução parcial da Fase 3 — 2026-08-20
+
+**Dispositivo:** Samsung SM-S948B, Android 16/API 36, sessão preservada.
+
+**APK:** debug, SHA-256 `5cb26bb5d61b9b3fc219ecb1153b32c804b669a397799fef754c7b3a9409e3e5`.
+
+| Verificação | Resultado | Evidência observada |
+| --- | --- | --- |
+| Navegação canônica | passou | `Hoje`, `Movimentações`, `Planejar`, `Análises` e `Mais` abriram no aparelho; aliases antigos permanecem no roteador |
+| Ação `+` | passou | botão flutuante aparece somente em Movimentações; Planejar oferece `Nova meta` na barra superior |
+| Origem do saldo | passou | toque no saldo da Hoje abriu Contas com saldo real e duas contas Nubank |
+| Distinção PF/PJ | passou | Movimentações recentes exibiram `Nubank PJ`; Open Finance mantém `Nubank PF` e `Nubank PJ` por Conexão |
+| Análises | passou após correção | cast do contrato `{ timeline: [...] }` foi reproduzido por teste, corrigido e validado nas abas Pierre e Cronograma |
+| Agente de parcelas | corrigido e publicado | `datetime` ausente impedia gravar o cache; commit `2ed4a2f` enviado à `main` para deploy no Render |
+| Testes e build | passou | 5 testes Flutter, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
+| Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` após navegar pelas cinco abas |
+
 ### Cenários de aceite ponta a ponta
 
 1. Primeiro acesso com Pluggy.
@@ -549,6 +570,9 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-106 | Sincronização 00:30 — implementação | Codex | scheduler/status em São Paulo e `TestNextDailySync` | 2026-08-18 | passou em teste unitário; status autenticado no Render pendente |
 | FOS-107 | Compatibilidade web — nova rodada | Codex | build Next 16 passou; endpoints backend preservados | 2026-08-18 | parcial: regressão funcional/lint pendentes |
 | FOS-101 | Bloqueio de respostas fictícias | Codex | endpoints de Simulador e Saúde preservados, mas respondem `503` sem números mockados | 2026-08-18 | passou |
+| FOS-301 | Navegação canônica — nova rodada | Codex | teste Flutter e execução das cinco abas no SM-S948B; aliases preservados no roteador | 2026-08-20 | passou |
+| FOS-304 | `+` somente em Movimentações — nova rodada | Codex | busca estática, teste Flutter e inspeção no SM-S948B | 2026-08-20 | passou |
+| FOS-305 | Origem do saldo e Alerta | Codex | saldo da Hoje abriu Contas no SM-S948B; navegação por Alerta ainda ausente | 2026-08-20 | parcial |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
