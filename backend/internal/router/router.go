@@ -49,7 +49,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	goalsH := handler.NewGoalsHandler(goalsService, cfg)
 	simulatorH := handler.NewSimulatorHandler()
 	syncH := handler.NewSyncHandler(db, syncService, userRepo, encryptionService, cfg)
-	overviewH := handler.NewOverviewHandler(db, txRepo, feedService, installmentService, subscriptionService)
+	overviewH := handler.NewOverviewHandler(db, txRepo, feedService, installmentService)
 
 	// Grupo API v1
 	v1 := e.Group("/api/v1")

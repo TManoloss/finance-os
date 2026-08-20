@@ -13,11 +13,10 @@ import (
 )
 
 type OverviewHandler struct {
-	db            *pgxpool.Pool
-	transactions  repository.TransactionRepository
-	feed          *service.FeedService
-	installments  *service.InstallmentsService
-	subscriptions *service.SubscriptionService
+	db           *pgxpool.Pool
+	transactions repository.TransactionRepository
+	feed         *service.FeedService
+	installments *service.InstallmentsService
 }
 
 type overviewCommitment struct {
@@ -27,8 +26,8 @@ type overviewCommitment struct {
 	DueDate time.Time `json:"due_date"`
 }
 
-func NewOverviewHandler(db *pgxpool.Pool, transactions repository.TransactionRepository, feed *service.FeedService, installments *service.InstallmentsService, subscriptions *service.SubscriptionService) *OverviewHandler {
-	return &OverviewHandler{db: db, transactions: transactions, feed: feed, installments: installments, subscriptions: subscriptions}
+func NewOverviewHandler(db *pgxpool.Pool, transactions repository.TransactionRepository, feed *service.FeedService, installments *service.InstallmentsService) *OverviewHandler {
+	return &OverviewHandler{db: db, transactions: transactions, feed: feed, installments: installments}
 }
 
 func (h *OverviewHandler) Get(c echo.Context) error {
@@ -62,11 +61,6 @@ func (h *OverviewHandler) Get(c echo.Context) error {
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao buscar compromissos")
 	}
-	subscriptions, err := h.subscriptions.DetectSubscriptions(ctx, userID)
-	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao buscar compromissos")
-	}
-
 	elapsedDays := float64(now.Day())
 	weeklyProjected := summary.WeeklySpent
 	if summary.TotalSpent > 0 {
@@ -91,7 +85,7 @@ func (h *OverviewHandler) Get(c echo.Context) error {
 		},
 		"needs_review_count":  needsReview,
 		"main_alert":          selectMainAlert(events),
-		"next_commitment":     selectNextCommitment(installments, subscriptions, now),
+		"next_commitment":     selectNextCommitment(installments, nil, now),
 		"recent_transactions": recent,
 	})
 }
@@ -132,28 +126,14 @@ func selectMainAlert(events []service.FeedEvent) *service.FeedEvent {
 	return selected
 }
 
-func selectNextCommitment(installments []service.ActiveInstallment, subscriptions []service.Subscription, now time.Time) *overviewCommitment {
+// Recorrências inferidas não são compromissos até serem confirmadas pelo Usuário.
+func selectNextCommitment(installments []service.ActiveInstallment, _ []service.Subscription, now time.Time) *overviewCommitment {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	var selected *overviewCommitment
 	for _, installment := range installments {
 		candidate := overviewCommitment{Kind: "installment", Title: installment.MerchantName, Amount: installment.Amount, DueDate: installment.NextDueDate}
 		if candidate.DueDate.IsZero() || candidate.DueDate.Before(today) {
 			continue
-		}
-		if selected == nil || candidate.DueDate.Before(selected.DueDate) {
-			selected = &candidate
-		}
-	}
-	for _, subscription := range subscriptions {
-		if subscription.Status != "active" {
-			continue
-		}
-		candidate := overviewCommitment{Kind: "subscription", Title: subscription.MerchantName, Amount: subscription.Amount, DueDate: subscription.NextEstimate}
-		if candidate.DueDate.IsZero() {
-			continue
-		}
-		for candidate.DueDate.Before(today) {
-			candidate.DueDate = candidate.DueDate.AddDate(0, 1, 0)
 		}
 		if selected == nil || candidate.DueDate.Before(selected.DueDate) {
 			selected = &candidate
