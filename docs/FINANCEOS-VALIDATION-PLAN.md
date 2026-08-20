@@ -471,6 +471,18 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Dados recentes | presentes no snapshot | extrato exibiu compras datadas de 18/08/2026; nova coleta da instituição depende de atualizar/recriar o Item Pluggy atual |
 | Testes | passou | pacotes Go do produto e 4 testes Flutter aprovados; analyze permaneceu com 25 avisos informativos preexistentes |
 
+### Revalidação das Conexões PF/PJ — 2026-08-20
+
+**Dispositivo:** Samsung SM-S948B, Android 16/API 36, com a sessão preservada.
+
+| Verificação | Resultado | Evidência observada |
+| --- | --- | --- |
+| Identidade das Conexões | passou | final `14-8` aparece como `Nubank PF` e final `17-6` como `Nubank PJ` em Open Finance |
+| Origem no extrato | passou | cada Movimentação mostra o rótulo da Conexão; lançamentos recentes exibiram `Nubank PJ` |
+| Atualização dos dados | passou | saldo consolidado mudou para R$ 472,88 e o extrato passou a conter Movimentações da PJ em 19/08/2026 |
+| Evidência de Movimentações novas | passou | `A ESTUDANTIL LIVRARIA` (R$ 44,50) e `MORANGO SUL LTDA` (R$ 25,00), ambas identificadas como `Nubank PJ` |
+| Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` encontrado após a navegação |
+
 ### Cenários de aceite ponta a ponta
 
 1. Primeiro acesso com Pluggy.
