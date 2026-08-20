@@ -343,9 +343,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 - [x] FOS-301: cinco destinos canônicos e aliases antigos implementados.
 - [x] FOS-302: `GET /overview` consolidado, publicado e validado com sessão real.
-- [ ] FOS-303: Hoje usa o overview real; falta estado vazio explícito para Alerta e Compromisso ausentes.
+- [x] FOS-303: Hoje usa o overview real e explicita Alerta/Compromisso ausentes.
 - [x] FOS-304: `+` restrito a Movimentações; Meta usa ação textual própria.
-- [ ] FOS-305: saldo abre Contas e Alerta abre Movimentações; filtro pela origem exata ainda pendente.
+- [x] FOS-305: saldo e Alerta abrem a origem; alertas com IDs filtram as Movimentações relacionadas.
 - [x] Cinco abas e aliases cobertos por teste; cinco abas validadas no dispositivo.
 - [x] `/overview` validado por contrato Go ↔ Flutter e no SM-S948B.
 
@@ -491,7 +491,7 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 **Dispositivo:** Samsung SM-S948B, Android 16/API 36, sessão preservada.
 
-**APK:** debug final, SHA-256 `32f4125527f9d10e08adafe5481029813139fe8376e605c0a875919b1bc577ad`.
+**APK:** debug final, SHA-256 `36d25f2a723a2cb8b11ebd0be9e0496273cfe6b048d5f17bbd936f0c4b32a72e`.
 
 | Verificação | Resultado | Evidência observada |
 | --- | --- | --- |
@@ -504,7 +504,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Overview autenticado | passou | uma chamada trouxe saldo disponível de R$ 472,88, atualização 20/08 00:07, ritmo semanal, contagem de revisão, Alerta e Movimentações recentes reais |
 | Origem do Alerta | parcial | `Saldo em nível crítico` abriu Movimentações; filtro direto pelas Transações relacionadas permanece pendente |
 | Verdade dos Compromissos | passou | vencimento 10/08 foi bloqueado; compra recorrente em sorveteria deixou de ser promovida a Compromisso sem confirmação; commits `77f3e37` e `d9a45e1` live no Render |
-| Testes e build | passou | 6 testes Flutter, suíte dos pacotes Go, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
+| Estados vazios | passou | Hoje exibiu `Nenhum compromisso confirmado`; ausência de Alerta usa estado explícito equivalente |
+| Origem exata do Alerta | passou | `low_balance` abriu Contas no SM-S948B; alertas com `related_tx_ids` usam filtro autenticado de Movimentações coberto por testes Go/Flutter; commit `108118b` |
+| Testes e build | passou | 7 testes Flutter, suíte dos pacotes Go, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
 | Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` após navegar pelas cinco abas |
 
 ### Cenários de aceite ponta a ponta
@@ -579,6 +581,8 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-302 | Overview consolidado | Codex | commit `3d099b7`, contrato Go/Flutter, resposta autenticada do Render e tela Hoje no SM-S948B | 2026-08-20 | passou |
 | FOS-303 | Hoje com dados reais | Codex | saldo, sync, ritmo, Alerta e recentes vindos do overview; Compromisso heurístico rejeitado | 2026-08-20 | parcial: vazios explícitos pendentes |
 | FOS-305 | Origem do saldo e Alerta — nova rodada | Codex | saldo abriu Contas e Alerta abriu Movimentações no SM-S948B | 2026-08-20 | parcial: origem exata do Alerta pendente |
+| FOS-303 | Hoje com estados completos — rodada final | Codex | APK `36d25f2...` no SM-S948B exibiu dados reais e vazio explícito de Compromisso | 2026-08-20 | passou |
+| FOS-305 | Origem do saldo e Alerta — rodada final | Codex | `low_balance` abriu Contas; IDs relacionados cobertos no backend e roteador Flutter | 2026-08-20 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
