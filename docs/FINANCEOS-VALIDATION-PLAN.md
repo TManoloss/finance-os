@@ -342,12 +342,12 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 ### Fase 3 — Núcleo diário
 
 - [x] FOS-301: cinco destinos canônicos e aliases antigos implementados.
-- [ ] FOS-302: `GET /overview` pendente.
-- [ ] FOS-303: Hoje ainda consome endpoints separados.
+- [x] FOS-302: `GET /overview` consolidado, publicado e validado com sessão real.
+- [ ] FOS-303: Hoje usa o overview real; falta estado vazio explícito para Alerta e Compromisso ausentes.
 - [x] FOS-304: `+` restrito a Movimentações; Meta usa ação textual própria.
-- [ ] FOS-305: saldo abre Contas; Alerta/Feed ainda pendente.
+- [ ] FOS-305: saldo abre Contas e Alerta abre Movimentações; filtro pela origem exata ainda pendente.
 - [x] Cinco abas e aliases cobertos por teste; cinco abas validadas no dispositivo.
-- [ ] `/overview` validado por contrato.
+- [x] `/overview` validado por contrato Go ↔ Flutter e no SM-S948B.
 
 ### Fase 4 — Movimentações e Alertas
 
@@ -491,7 +491,7 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 **Dispositivo:** Samsung SM-S948B, Android 16/API 36, sessão preservada.
 
-**APK:** debug, SHA-256 `5cb26bb5d61b9b3fc219ecb1153b32c804b669a397799fef754c7b3a9409e3e5`.
+**APK:** debug final, SHA-256 `32f4125527f9d10e08adafe5481029813139fe8376e605c0a875919b1bc577ad`.
 
 | Verificação | Resultado | Evidência observada |
 | --- | --- | --- |
@@ -501,7 +501,10 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Distinção PF/PJ | passou | Movimentações recentes exibiram `Nubank PJ`; Open Finance mantém `Nubank PF` e `Nubank PJ` por Conexão |
 | Análises | passou após correção | cast do contrato `{ timeline: [...] }` foi reproduzido por teste, corrigido e validado nas abas Pierre e Cronograma |
 | Agente de parcelas | corrigido e publicado | `datetime` ausente impedia gravar o cache; commit `2ed4a2f` enviado à `main` para deploy no Render |
-| Testes e build | passou | 5 testes Flutter, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
+| Overview autenticado | passou | uma chamada trouxe saldo disponível de R$ 472,88, atualização 20/08 00:07, ritmo semanal, contagem de revisão, Alerta e Movimentações recentes reais |
+| Origem do Alerta | parcial | `Saldo em nível crítico` abriu Movimentações; filtro direto pelas Transações relacionadas permanece pendente |
+| Verdade dos Compromissos | passou | vencimento 10/08 foi bloqueado; compra recorrente em sorveteria deixou de ser promovida a Compromisso sem confirmação; commits `77f3e37` e `d9a45e1` live no Render |
+| Testes e build | passou | 6 testes Flutter, suíte dos pacotes Go, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
 | Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` após navegar pelas cinco abas |
 
 ### Cenários de aceite ponta a ponta
@@ -573,6 +576,9 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-301 | Navegação canônica — nova rodada | Codex | teste Flutter e execução das cinco abas no SM-S948B; aliases preservados no roteador | 2026-08-20 | passou |
 | FOS-304 | `+` somente em Movimentações — nova rodada | Codex | busca estática, teste Flutter e inspeção no SM-S948B | 2026-08-20 | passou |
 | FOS-305 | Origem do saldo e Alerta | Codex | saldo da Hoje abriu Contas no SM-S948B; navegação por Alerta ainda ausente | 2026-08-20 | parcial |
+| FOS-302 | Overview consolidado | Codex | commit `3d099b7`, contrato Go/Flutter, resposta autenticada do Render e tela Hoje no SM-S948B | 2026-08-20 | passou |
+| FOS-303 | Hoje com dados reais | Codex | saldo, sync, ritmo, Alerta e recentes vindos do overview; Compromisso heurístico rejeitado | 2026-08-20 | parcial: vazios explícitos pendentes |
+| FOS-305 | Origem do saldo e Alerta — nova rodada | Codex | saldo abriu Contas e Alerta abriu Movimentações no SM-S948B | 2026-08-20 | parcial: origem exata do Alerta pendente |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
