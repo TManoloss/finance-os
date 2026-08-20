@@ -13,8 +13,9 @@ import (
 )
 
 type categoryUpdateRepo struct {
-	userID string
-	allow  bool
+	userID  string
+	allow   bool
+	filters repository.TransactionFilters
 }
 
 func (r *categoryUpdateRepo) UpdateCategory(_ context.Context, userID, _, _ string) (bool, error) {
@@ -22,7 +23,8 @@ func (r *categoryUpdateRepo) UpdateCategory(_ context.Context, userID, _, _ stri
 	return r.allow, nil
 }
 
-func (*categoryUpdateRepo) GetTransactions(context.Context, repository.TransactionFilters) ([]map[string]interface{}, int, error) {
+func (r *categoryUpdateRepo) GetTransactions(_ context.Context, filters repository.TransactionFilters) ([]map[string]interface{}, int, error) {
+	r.filters = filters
 	return nil, 0, nil
 }
 
@@ -54,5 +56,22 @@ func TestUpdateCategoryUsesAuthenticatedUser(t *testing.T) {
 	}
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for an unowned transaction/category, got %d", rec.Code)
+	}
+}
+
+func TestListTransactionsReadsRelatedIDs(t *testing.T) {
+	repo := &categoryUpdateRepo{}
+	handler := NewTransactionsHandler(repo, nil)
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/transactions?ids=tx-1,tx-2", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("user_id", "owner")
+
+	if err := handler.ListTransactions(c); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(repo.filters.IDs, ",") != "tx-1,tx-2" {
+		t.Fatalf("ids relacionados = %#v", repo.filters.IDs)
 	}
 }

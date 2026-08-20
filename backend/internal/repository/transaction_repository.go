@@ -12,6 +12,7 @@ import (
 // TransactionFilters define os filtros para listagem de transações.
 type TransactionFilters struct {
 	UserID     string
+	IDs        []string
 	AccountID  string
 	CategoryID string
 	FromDate   time.Time
@@ -112,6 +113,11 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	`
 	args := []interface{}{f.UserID}
 	argCount := 2
+	if len(f.IDs) > 0 {
+		query += fmt.Sprintf(" AND t.id::text = ANY($%d)", argCount)
+		args = append(args, f.IDs)
+		argCount++
+	}
 
 	if f.AccountID != "" {
 		query += fmt.Sprintf(" AND t.account_id = $%d", argCount)

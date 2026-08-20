@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/finance-os/backend/internal/repository"
@@ -43,6 +44,13 @@ func (h *TransactionsHandler) ListTransactions(c echo.Context) error {
 		Direction:  c.QueryParam("direction"),
 		Page:       page,
 		PageSize:   pageSize,
+	}
+	if rawIDs := c.QueryParam("ids"); rawIDs != "" {
+		for _, id := range strings.Split(rawIDs, ",") {
+			if id = strings.TrimSpace(id); id != "" && len(filters.IDs) < 50 {
+				filters.IDs = append(filters.IDs, id)
+			}
+		}
 	}
 
 	if from := c.QueryParam("from_date"); from != "" {
