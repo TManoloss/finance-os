@@ -351,7 +351,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 4 — Movimentações e Alertas
 
-- [ ] FOS-401 a FOS-406 implementados.
+- [x] FOS-401: contrato Flutter tipado e validado com resposta real no SM-S948B.
+- [x] FOS-402: busca, filtros combináveis e paginação publicados no `GET /transactions`.
+- [ ] FOS-403 a FOS-406 implementados.
 - [ ] Fórmulas adaptativas testadas com e sem histórico.
 - [ ] Origem de todo Alerta navegável quando existente.
 
@@ -508,6 +510,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Origem exata do Alerta | passou | `low_balance` abriu Contas no SM-S948B; alertas com `related_tx_ids` usam filtro autenticado de Movimentações coberto por testes Go/Flutter; commit `108118b` |
 | Testes e build | passou | 7 testes Flutter, suíte dos pacotes Go, compilação Python, APK debug e instalação `adb -r`; analyze sem erro e com 22 avisos informativos preexistentes |
 | Logs do dispositivo | passou | nenhum `FATAL EXCEPTION`, `E/flutter` ou `Unhandled Exception` após navegar pelas cinco abas |
+| Contrato de Movimentações | passou | Conta, Categoria, recorrência, confiança e revisão tipadas; parser Flutter testado e dados reais carregados no SM-S948B |
+| Busca, filtros e paginação | passou | commit `ed7074c` live no Render; testes Go cobrem busca, período, Conta, Categoria, tipo, revisão e metadados de página |
+| Distinção PF/PJ no extrato | passou | a resposta real exibiu lançamentos de `Nubank PJ` e `Nubank PF` no mesmo extrato sem perder a origem |
 
 ### Cenários de aceite ponta a ponta
 
@@ -583,6 +588,8 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-305 | Origem do saldo e Alerta — nova rodada | Codex | saldo abriu Contas e Alerta abriu Movimentações no SM-S948B | 2026-08-20 | parcial: origem exata do Alerta pendente |
 | FOS-303 | Hoje com estados completos — rodada final | Codex | APK `36d25f2...` no SM-S948B exibiu dados reais e vazio explícito de Compromisso | 2026-08-20 | passou |
 | FOS-305 | Origem do saldo e Alerta — rodada final | Codex | `low_balance` abriu Contas; IDs relacionados cobertos no backend e roteador Flutter | 2026-08-20 | passou |
+| FOS-401 | Contrato tipado de Movimentação | Codex | testes Flutter, APK `a06ab210...` e extrato real carregado no SM-S948B | 2026-08-21 | passou |
+| FOS-402 | Busca, filtros e paginação | Codex | suíte Go, commit `ed7074c` live no Render e compatibilidade mobile validada | 2026-08-21 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
