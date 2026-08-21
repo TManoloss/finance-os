@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,16 +26,16 @@ const (
 )
 
 type FeedEvent struct {
-	ID          string         `json:"id"`
-	UserID      string         `json:"user_id"`
-	Type        FeedEventType  `json:"type"`
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	Amount      *float64       `json:"amount"`
-	Severity    string         `json:"severity"` // info, warning, alert
-	RelatedTx   []string       `json:"related_tx_ids"`
-	ReadAt      *time.Time     `json:"read_at"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID          string        `json:"id"`
+	UserID      string        `json:"user_id"`
+	Type        FeedEventType `json:"type"`
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	Amount      *float64      `json:"amount"`
+	Severity    string        `json:"severity"` // info, warning, alert
+	RelatedTx   []string      `json:"related_tx_ids"`
+	ReadAt      *time.Time    `json:"read_at"`
+	CreatedAt   time.Time     `json:"created_at"`
 }
 
 type FeedService struct {
@@ -96,6 +98,15 @@ func (s *FeedService) GetUnreadCount(ctx context.Context, userID string) (int, e
 // GenerateEvents analisa transações e gera eventos no feed.
 // Esta função deve ser chamada após uma sincronização.
 func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []map[string]interface{}) error {
+	var medianDebit float64
+	_ = s.db.QueryRow(ctx, `
+		SELECT COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY t.amount), 0)
+		FROM transactions t
+		JOIN connected_accounts a ON t.account_id = a.id
+		WHERE a.user_id = $1 AND t.direction = 'debit' AND t.date >= CURRENT_DATE - INTERVAL '90 days'
+	`, userID).Scan(&medianDebit)
+	highSpendingThreshold := unusualSpendingThreshold(medianDebit)
+
 	for _, tx := range txs {
 		amount := tx["amount"].(float64)
 		direction := tx["direction"].(string)
@@ -103,10 +114,25 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 		txID := tx["id"].(string)
 
 		// 1. Detect Salary
-		if direction == "credit" && amount >= 2000 {
+		isSalary := false
+		if direction == "credit" {
+			isSalary = isSalaryDescription(description)
+			if !isSalary {
+				_ = s.db.QueryRow(ctx, `
+					SELECT COUNT(DISTINCT DATE_TRUNC('month', t.date)) >= 2
+						AND COALESCE((MAX(t.amount) - MIN(t.amount)) / NULLIF(AVG(t.amount), 0), 1) <= 0.20
+					FROM transactions t
+					JOIN connected_accounts a ON t.account_id = a.id
+					WHERE a.user_id = $1 AND t.direction = 'credit'
+					  AND LOWER(COALESCE(NULLIF(t.merchant_name, ''), t.description)) = LOWER($2)
+					  AND t.date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+				`, userID, description).Scan(&isSalary)
+			}
+		}
+		if isSalary {
 			title := "Salário detectado! 💰"
 			desc := "Recebemos um crédito de R$ " + formatAmount(amount) + " que parece ser sua renda principal."
-			
+
 			var exists bool
 			s.db.QueryRow(ctx, `
 				SELECT EXISTS(
@@ -121,7 +147,7 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 		}
 
 		// 2. Detect Large Unusual Spending
-		if direction == "debit" && amount > 1000 {
+		if direction == "debit" && amount > highSpendingThreshold {
 			title := "Gasto elevado detectado ⚠️"
 			desc := "Você teve um gasto de R$ " + formatAmount(amount) + " em " + description + ". Isso está acima do seu padrão habitual."
 			s.CreateEvent(ctx, userID, EventUnusualSpending, title, desc, &amount, "warning", []string{txID})
@@ -158,18 +184,18 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 			SELECT t.id FROM transactions t
 			JOIN connected_accounts a ON t.account_id = a.id
 			WHERE a.user_id = $1 
-			  AND (t.merchant_name = $2 OR t.description = $2) 
+			  AND t.direction = 'debit'
+			  AND LOWER(COALESCE(NULLIF(t.merchant_name, ''), t.description)) = LOWER($2)
 			  AND t.amount = $3 
 			  AND t.id != $4
-			  AND t.date >= (CAST($5 AS DATE) - INTERVAL '2 days')
-			  AND t.date <= (CAST($5 AS DATE) + INTERVAL '2 days')
+			  AND ABS(t.date - CAST($5 AS DATE)) <= 2
 			LIMIT 1
 		`, userID, description, amount, txID, tx["date"]).Scan(&dupID)
 
 		if dupID != "" {
 			title := "Possível cobrança duplicada 🔍"
 			desc := "Detectamos dois gastos idênticos em " + description + " com valores de R$ " + formatAmount(amount) + " em datas próximas."
-			
+
 			var exists bool
 			s.db.QueryRow(ctx, `
 				SELECT EXISTS(
@@ -188,10 +214,55 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 	var totalBalance float64
 	s.db.QueryRow(ctx, "SELECT SUM(balance) FROM connected_accounts WHERE user_id = $1", userID).Scan(&totalBalance)
 
-	if totalBalance < 500 {
+	var nextIncome *time.Time
+	var commitments float64
+	_ = s.db.QueryRow(ctx, `
+		WITH recurring_income AS (
+			SELECT MAX(t.date) + INTERVAL '1 month' AS next_date
+			FROM transactions t
+			JOIN connected_accounts a ON t.account_id = a.id
+			WHERE a.user_id = $1 AND t.direction = 'credit'
+			  AND t.date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '2 months'
+			GROUP BY LOWER(COALESCE(NULLIF(t.merchant_name, ''), t.description))
+			HAVING BOOL_OR(LOWER(t.description) ~ '(sal[aá]rio|folha de pagamento|pr[oó][ -]?labore)')
+			   OR (COUNT(DISTINCT DATE_TRUNC('month', t.date)) >= 2
+			       AND COALESCE((MAX(t.amount) - MIN(t.amount)) / NULLIF(AVG(t.amount), 0), 1) <= 0.20)
+			ORDER BY MAX(t.date) DESC
+			LIMIT 1
+		), recurring_debits AS (
+			SELECT AVG(t.amount) AS amount
+			FROM transactions t
+			JOIN connected_accounts a ON t.account_id = a.id
+			CROSS JOIN recurring_income r
+			WHERE a.user_id = $1 AND t.direction = 'debit' AND t.date >= CURRENT_DATE - INTERVAL '90 days'
+			GROUP BY LOWER(COALESCE(NULLIF(t.merchant_name, ''), t.description)), r.next_date
+			HAVING COUNT(*) >= 2
+			   AND (MAX(t.date) - MIN(t.date)) / NULLIF(COUNT(*) - 1, 0) BETWEEN 25 AND 35
+			   AND COALESCE((MAX(t.amount) - MIN(t.amount)) / NULLIF(AVG(t.amount), 0), 1) <= 0.20
+			   AND MAX(t.date) + ROUND((MAX(t.date) - MIN(t.date))::numeric / NULLIF(COUNT(*) - 1, 0))::int
+			       BETWEEN CURRENT_DATE AND r.next_date
+		), installment_commitments AS (
+			SELECT COALESCE(SUM(i.total_amount / NULLIF(i.installments_total, 0)), 0) AS amount
+			FROM installments i
+			JOIN connected_accounts a ON i.account_id = a.id
+			CROSS JOIN recurring_income r
+			WHERE a.user_id = $1 AND i.next_due_date BETWEEN CURRENT_DATE AND r.next_date
+		)
+		SELECT r.next_date, COALESCE((SELECT SUM(amount) FROM recurring_debits), 0) + i.amount
+		FROM recurring_income r CROSS JOIN installment_commitments i
+	`, userID).Scan(&nextIncome, &commitments)
+
+	criticalBalance := nextIncome == nil && totalBalance < 500
+	if nextIncome != nil {
+		criticalBalance = totalBalance < commitments
+	}
+	if criticalBalance {
 		title := "Saldo em nível crítico 🚨"
-		desc := "Seu saldo total consolidado está abaixo de R$ 500,00. Fique atento aos próximos compromissos."
-		
+		desc := "Seu saldo disponível está abaixo dos compromissos previstos até a próxima renda."
+		if nextIncome == nil {
+			desc = "Seu saldo total consolidado está abaixo de R$ 500,00; ainda não há histórico suficiente para projetar a próxima renda."
+		}
+
 		var exists bool
 		s.db.QueryRow(ctx, `
 			SELECT EXISTS(
@@ -206,6 +277,20 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 	}
 
 	return nil
+}
+
+func unusualSpendingThreshold(medianDebit float64) float64 {
+	return math.Max(1000, medianDebit*3)
+}
+
+func isSalaryDescription(description string) bool {
+	description = strings.ToLower(description)
+	for _, term := range []string{"salário", "salario", "folha de pagamento", "pró-labore", "pro-labore", "pro labore"} {
+		if strings.Contains(description, term) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *FeedService) CreateEvent(ctx context.Context, userID string, eventType FeedEventType, title, description string, amount *float64, severity string, relatedTx []string) error {
