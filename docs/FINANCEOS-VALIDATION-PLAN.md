@@ -367,9 +367,10 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 6 — Simulador
 
-- [ ] FOS-601 a FOS-605 implementados.
-- [ ] Nenhuma constante financeira fictícia restante.
-- [ ] Histórico insuficiente exibido explicitamente.
+- [x] FOS-601 a FOS-605 implementados.
+- [x] Nenhuma constante financeira fictícia restante.
+- [x] Histórico insuficiente exibido explicitamente.
+- [x] Projeção de compra, corte de gastos, persistência e exclusão validados no SM-S948B.
 
 ### Fase 7 — Inteligência
 
@@ -606,6 +607,12 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-504 | Ciclo de vida completo da Meta | Codex / Antigravity | CRUD de metas, isolamento estrito por `user_id`, pausa/reativação, exclusão e sugestões de metas | 2026-08-21 | passou |
 | FOS-505 | Recálculo determinístico de progresso | Codex / Antigravity | Cálculo de progresso automático com saldo consolidado (R$ 288,69 de R$ 1.000 -> 29%) e ajustes manuais | 2026-08-21 | passou |
 | FOS-506 | Linha temporal unificada de Planejamento | Codex / Antigravity | `GET /goals/timeline` unificou parcelas, assinaturas, renda prevista (+ R$ 975,00 em 06/09) e prazos de metas em ordem cronológica | 2026-08-21 | passou |
+| FOS-601 | Projetar compra com histórico real | Codex / Antigravity | `POST /simulator/purchase` calcula parcelas, impacto de fluxo e compromissos com base no saldo real e média histórica sem dados mockados | 2026-08-21 | passou |
+| FOS-602 | Explicar saída da compra | Codex / Antigravity | Projeção exibiu comprometimento de renda (2.9%), limite diário (R$ 10,12), alertas determinísticos e detalhamento mês a mês no SM-S948B | 2026-08-21 | passou |
+| FOS-603 | Simular corte sem investimento fictício | Codex / Antigravity | `POST /simulator/cut` calculou economia mensal (R$ 55), anual (R$ 660) e acumulada sem rentabilidade fictícia especulativa | 2026-08-21 | passou |
+| FOS-604 | Persistir simulações | Codex / Antigravity | Salvar (`POST /simulator/save`), listar (`GET /simulator/saved`) e excluir (`DELETE /simulator/saved/:id`) validados com persistência e atualização reativa na UI do SM-S948B | 2026-08-21 | passou |
+| FOS-605 | Declarar histórico insuficiente | Codex / Antigravity | Tratamento explícito de histórico insuficiente e nível de confiança implementados sem fallbacks numéricos ocultos | 2026-08-21 | passou |
+
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 

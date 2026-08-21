@@ -283,13 +283,19 @@ Tela lógica reportada pelo ADB: 720 × 1560.
 
 1. Confirmar que o workspace e os dois Git continuam no estado esperado; não limpar mudanças.
 2. Ler integralmente `AGENTS.md`, `CONTEXT.md` e `docs/FINANCEOS-VALIDATION-PLAN.md`.
-3. Iniciar a Fase 6 (Simulador Baseado em Dados Reais):
-   - FOS-601: Projetar compra com histórico real (entrada: valor, parcelas, descrição e primeiro vencimento; sem constantes).
-   - FOS-602: Explicar saída da compra (impacto, fluxo/saldo mensal, limite diário, renda comprometida, alertas e confiança).
-   - FOS-603: Simular corte sem investimento fictício (economia mensal, anual e acumulada, sem rentabilidade suposta).
-   - FOS-604: Persistir simulações (salvar, nomear, listar, excluir por ID com validação de propriedade).
-   - FOS-605: Declarar histórico insuficiente (dados insuficientes não são preenchidos com fallback numérico oculto).
-4. Fase 5 (Planejamento Real — FOS-501..506) foi concluída e validada no SM-S948B (APK SHA-256 `5153fb76667f76a32e6e08b0e050d096976a9325dbd8c064b743bdfe8e185ea5`).
+3. **Fase 6 (Simulador Baseado em Dados Reais — FOS-601..605) CONCLUÍDA e VALIDADA**:
+   - Backend: commit `c089e92` no Render (`/simulator/purchase`, `/simulator/cut`, `/simulator/save`, `/simulator/saved`, `/simulator/saved/:id`).
+   - Mobile: APK SHA-256 `6bccdd07f363869adea5959af91cac59d9dd4cda9618059565b314a56c879c51` instalado e testado no SM-S948B.
+   - Projeção de compra parcelada com impacto real na renda (2.9%), limite diário (R$ 10,12), alertas determinísticos e detalhamento mês a mês.
+   - Projeção de corte de gastos sem rentabilidade fictícia (R$ 55/mês -> R$ 660/ano).
+   - Persistência, listagem e exclusão de simulações validadas com sucesso na UI do aparelho.
+4. Iniciar a **Fase 7 (Inteligência Financeira e Grupos — FOS-701 a FOS-706)**:
+   - FOS-701: Calcular saúde financeira sem dimensões fixas (fluxo, reserva, compromissos, assinaturas, estabilidade e concentração vêm de dados reais).
+   - FOS-702: Expor metadados dos scores (período, qualidade, confiança e dimensões usadas).
+   - FOS-703: Consolidar nove grupos analíticos (índice lista grupos/resumos/severidade; detalhes carregam sob demanda).
+   - FOS-704: Manter IA opcional (sem Groq/Gemini, cálculo, gráfico, alertas e resumos determinísticos continuam 100% disponíveis).
+   - FOS-705: Restringir assistente Pierre (consulta resultados calculados e responde apenas perguntas/explicações abertas).
+   - FOS-706: Implementar Replay mobile real (gasto, maior compra, categoria crescente, estabelecimentos, melhora/piora e orientações).
 5. Quando backend mudar: testar, commit isolado, push `main`, esperar Render live.
 6. Quando mobile mudar: testar, build debug, instalar com `adb -r`, preservar sessão, validar no SM-S948B e triar logs.
 7. Atualizar o documento oficial somente com evidência. Mock/test unitário não equivale a validação com dados reais.
