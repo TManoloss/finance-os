@@ -157,12 +157,35 @@ CREATE TABLE IF NOT EXISTS financial_goals (
     goal_type TEXT NOT NULL,
     target_amount NUMERIC(12,2),
     current_amount NUMERIC(12,2) DEFAULT 0,
+    initial_amount NUMERIC(12,2) DEFAULT 0,
     start_date DATE NOT NULL,
     target_date DATE,
     category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    account_id UUID REFERENCES connected_accounts(id) ON DELETE SET NULL,
+    installment_id UUID REFERENCES installments(id) ON DELETE SET NULL,
     status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES connected_accounts(id) ON DELETE SET NULL;
+ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS installment_id UUID REFERENCES installments(id) ON DELETE SET NULL;
+ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS initial_amount NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Ajustes manuais de metas
+CREATE TABLE IF NOT EXISTS goal_adjustments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    goal_id UUID NOT NULL REFERENCES financial_goals(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount NUMERIC(12,2) NOT NULL,
+    note TEXT,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_goal_adjustments_goal_id ON goal_adjustments(goal_id);
+CREATE INDEX IF NOT EXISTS idx_goal_adjustments_user_id ON goal_adjustments(user_id);
+
 
 -- Simulações salvas
 CREATE TABLE IF NOT EXISTS saved_simulations (

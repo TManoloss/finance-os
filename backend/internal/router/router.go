@@ -159,11 +159,21 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	feed.PATCH("/:id/read", feedH.MarkAsRead)
 	feed.PATCH("/read-all", feedH.MarkAllAsRead)
 
-	// Goals
+	// Goals & Planning
 	goals := protected.Group("/goals")
 	goals.GET("", goalsH.List)
 	goals.POST("", goalsH.Create)
+	goals.GET("/timeline", goalsH.GetTimeline)
 	goals.GET("/suggest", goalsH.Suggest)
+	goals.POST("/recalculate", goalsH.Recalculate)
+	goals.GET("/:id", goalsH.Get)
+	goals.PATCH("/:id", goalsH.Update)
+	goals.DELETE("/:id", goalsH.Delete)
+	goals.POST("/:id/adjustments", goalsH.AddAdjustment)
+	goals.GET("/:id/adjustments", goalsH.ListAdjustments)
+
+	planning := protected.Group("/planning")
+	planning.GET("/timeline", goalsH.GetTimeline)
 
 	// Simulator
 	simulator := protected.Group("/simulator")
