@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS saved_simulations (
     name TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_saved_simulations_user_id ON saved_simulations(user_id);
 
 -- report_cache: Cache system for expensive agent reports
 CREATE TABLE IF NOT EXISTS report_cache (

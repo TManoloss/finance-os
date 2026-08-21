@@ -36,6 +36,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	impulseRadarService := service.NewImpulseRadarService(db)
 	gamificationService := service.NewGamificationService(db)
 	visualReportsService := service.NewVisualReportsService(db, cfg)
+	simulatorService := service.NewSimulatorService(db)
 
 	// Inicializa handlers
 	authH := handler.NewAuthHandler(authService, cfg)
@@ -47,7 +48,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	categoriesH := handler.NewCategoriesHandler(db)
 	feedH := handler.NewFeedHandler(feedService)
 	goalsH := handler.NewGoalsHandler(goalsService, cfg)
-	simulatorH := handler.NewSimulatorHandler()
+	simulatorH := handler.NewSimulatorHandler(simulatorService)
 	syncH := handler.NewSyncHandler(db, syncService, userRepo, encryptionService, cfg)
 	overviewH := handler.NewOverviewHandler(db, txRepo, feedService, installmentService)
 
@@ -178,7 +179,11 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	// Simulator
 	simulator := protected.Group("/simulator")
 	simulator.POST("/purchase", simulatorH.SimulatePurchase)
+	simulator.POST("/cut", simulatorH.SimulateCut)
 	simulator.POST("/cut-subscription", simulatorH.SimulateCut)
+	simulator.POST("/save", simulatorH.SaveSimulation)
+	simulator.GET("/saved", simulatorH.ListSaved)
+	simulator.DELETE("/saved/:id", simulatorH.DeleteSaved)
 
 	// DEBUG: Listar rotas registradas
 	for _, route := range e.Routes() {
