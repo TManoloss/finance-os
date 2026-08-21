@@ -103,6 +103,7 @@ Próximo ponto lógico: Fase 5 (Planejamento Real — FOS-501 a FOS-506).
 Em ordem do mais recente:
 
 ```text
+a5f56be feat(goals): implement 4 goal modes, manual adjustments, and planning timeline (FOS-502..506)
 5667fbb feat(feed): implement missing events for subscriptions, monthly close and category insights (FOS-405)
 d3f5781 docs: record adaptive alert validation limits
 4ba39b0 feat(feed): make financial alerts adaptive
@@ -122,7 +123,7 @@ f33ba61 fix(backend): shorten transaction account labels
 6c3ffd5 fix(backend): import completed widget updates
 ```
 
-O usuário confirmou o Render live para `4ba39b0` em 21/08/2026 às 14:19.
+O usuário confirmou o Render live para `a5f56be` em 21/08/2026.
 
 ## 7. Implementação atual relevante
 
@@ -282,14 +283,13 @@ Tela lógica reportada pelo ADB: 720 × 1560.
 
 1. Confirmar que o workspace e os dois Git continuam no estado esperado; não limpar mudanças.
 2. Ler integralmente `AGENTS.md`, `CONTEXT.md` e `docs/FINANCEOS-VALIDATION-PLAN.md`.
-3. Iniciar a Fase 5 (Planejamento Real):
-   - FOS-501: separar Contas de Planejar (saldos em Contas, parcelas e assinaturas em Planejar, sem linguagem de portfólio).
-   - FOS-502: quatro modos de Meta (limite de gastos, meta de renda, economia e quitação de dívida).
-   - FOS-503: ajustes manuais em tabela incremental.
-   - FOS-504: ciclo completo de Meta (criar, editar, pausar, concluir, excluir).
-   - FOS-505: recálculo nos eventos corretos com idempotência.
-   - FOS-506: linha temporal unificada de Planejamento.
-4. Manter FOS-404 parcial até haver Transação nova real ou um teste de integração PostgreSQL que execute as consultas completas do `FeedService`.
+3. Iniciar a Fase 6 (Simulador Baseado em Dados Reais):
+   - FOS-601: Projetar compra com histórico real (entrada: valor, parcelas, descrição e primeiro vencimento; sem constantes).
+   - FOS-602: Explicar saída da compra (impacto, fluxo/saldo mensal, limite diário, renda comprometida, alertas e confiança).
+   - FOS-603: Simular corte sem investimento fictício (economia mensal, anual e acumulada, sem rentabilidade suposta).
+   - FOS-604: Persistir simulações (salvar, nomear, listar, excluir por ID com validação de propriedade).
+   - FOS-605: Declarar histórico insuficiente (dados insuficientes não são preenchidos com fallback numérico oculto).
+4. Fase 5 (Planejamento Real — FOS-501..506) foi concluída e validada no SM-S948B (APK SHA-256 `5153fb76667f76a32e6e08b0e050d096976a9325dbd8c064b743bdfe8e185ea5`).
 5. Quando backend mudar: testar, commit isolado, push `main`, esperar Render live.
 6. Quando mobile mudar: testar, build debug, instalar com `adb -r`, preservar sessão, validar no SM-S948B e triar logs.
 7. Atualizar o documento oficial somente com evidência. Mock/test unitário não equivale a validação com dados reais.

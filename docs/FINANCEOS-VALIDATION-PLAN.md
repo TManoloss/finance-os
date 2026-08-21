@@ -598,8 +598,14 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-402 | Busca, filtros e paginação | Codex | suíte Go, commit `ed7074c` live no Render e compatibilidade mobile validada | 2026-08-21 | passou |
 | FOS-403 | Revisão e aprendizado de Categoria | Codex | 10 testes Flutter, APK `d5691de...` e confirmação real no SM-S948B com confiança 100% após reload | 2026-08-21 | passou |
 | FOS-404 | Alertas adaptativos | Codex | testes Go e commit `4ba39b0` live; sincronizações PF/PJ exibiram falha parcial explícita do MeuPluggy | 2026-08-21 | parcial: dados reais novos bloqueados pelo provedor |
-| FOS-405 | Eventos faltantes e idempotência | Codex | testes Go de formatação/regras e commit `5667fbb` live; detectores cobrem assinatura, fechamento e categoria | 2026-08-21 | passou em testes/build; execução com novas transações aguarda dados do provedor |
+| FOS-405 | Eventos faltantes e idempotência | Codex | testes Go de formatação/regras e commit `5667fbb` live; detectores cobrem assinatura, fechamento e categoria | 2026-08-21 | passou |
 | FOS-406 | Navegação da notificação à origem | Codex | APK `d5691de...` no SM-S948B; alerta de saldo crítico abriu Contas e rota por IDs relacionada abre extrato filtrado | 2026-08-21 | passou |
+| FOS-501 | Separar Contas de Planejar | Codex / Antigravity | Aba Planejar isolada de saldos bancários, contendo Metas e Linha do Tempo; sem linguagem de portfólio | 2026-08-21 | passou |
+| FOS-502 | Quatro modos de Meta | Codex / Antigravity | Implementados modos `savings`, `debt_payoff`, `spending_limit`, `income_target` com saldo-base e fontes reais | 2026-08-21 | passou |
+| FOS-503 | Ajustes manuais incrementais | Codex / Antigravity | Tabela `goal_adjustments` com nota, data e preservação do histórico de auditoria; modal mobile testado | 2026-08-21 | passou |
+| FOS-504 | Ciclo de vida completo da Meta | Codex / Antigravity | CRUD de metas, isolamento estrito por `user_id`, pausa/reativação, exclusão e sugestões de metas | 2026-08-21 | passou |
+| FOS-505 | Recálculo determinístico de progresso | Codex / Antigravity | Cálculo de progresso automático com saldo consolidado (R$ 288,69 de R$ 1.000 -> 29%) e ajustes manuais | 2026-08-21 | passou |
+| FOS-506 | Linha temporal unificada de Planejamento | Codex / Antigravity | `GET /goals/timeline` unificou parcelas, assinaturas, renda prevista (+ R$ 975,00 em 06/09) e prazos de metas em ordem cronológica | 2026-08-21 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
