@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS categories (
     parent_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES categories(id) ON DELETE SET NULL;
 
 INSERT INTO categories (user_id, name, color, icon)
 SELECT NULL, base.name, base.color, base.icon
