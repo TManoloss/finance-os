@@ -35,7 +35,7 @@ type HealthScoreResult struct {
 type IntelligenceGroupSummary struct {
 	ID          string   `json:"id"`
 	Name        string   `json:"name"`
-	Status      string   `json:"status"` // ok, attention, warning, critical
+	Status      string   `json:"status"`   // ok, attention, warning, critical
 	Severity    string   `json:"severity"` // info, warning, danger, success
 	Score       *float64 `json:"score,omitempty"`
 	Summary     string   `json:"summary"`
@@ -74,14 +74,16 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 
 	// 1. Saldo consolidado
 	var currentBalance float64
-	_ = s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance)
+	if err := s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance); err != nil {
+		return nil, err
+	}
 
 	// 2. Histórico de transações dos últimos 90 dias
 	var totalCredits, totalDebits float64
 	var txCount int
 	var minDate, maxDate *time.Time
 
-	_ = s.db.QueryRow(ctx, `
+	if err := s.db.QueryRow(ctx, `
 		SELECT 
 			COALESCE(SUM(CASE WHEN t.direction = 'credit' THEN t.amount ELSE 0 END), 0),
 			COALESCE(SUM(CASE WHEN t.direction = 'debit' THEN t.amount ELSE 0 END), 0),
@@ -91,7 +93,9 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 		FROM transactions t
 		JOIN connected_accounts a ON t.account_id = a.id
 		WHERE a.user_id = $1 AND t.date >= CURRENT_DATE - INTERVAL '90 days'
-	`, userID).Scan(&totalCredits, &totalDebits, &txCount, &minDate, &maxDate)
+	`, userID).Scan(&totalCredits, &totalDebits, &txCount, &minDate, &maxDate); err != nil {
+		return nil, err
+	}
 
 	daySpan := 0
 	if minDate != nil && maxDate != nil {
@@ -114,12 +118,14 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 
 	// 3. Parcelas mensais ativas
 	var activeInstallmentsMonthly float64
-	_ = s.db.QueryRow(ctx, `
+	if err := s.db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(i.total_amount / NULLIF(i.installments_total, 0)), 0)
 		FROM installments i
 		JOIN connected_accounts a ON i.account_id = a.id
 		WHERE a.user_id = $1 AND i.installment_current < i.installments_total
-	`, userID).Scan(&activeInstallmentsMonthly)
+	`, userID).Scan(&activeInstallmentsMonthly); err != nil {
+		return nil, err
+	}
 
 	var pillars []HealthPillar
 	var dimensionsUsed []string
@@ -215,7 +221,7 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 	// Pilar 4: Concentração de Gastos por Categoria (peso 15%)
 	var maxCatAmount float64
 	var maxCatName string
-	_ = s.db.QueryRow(ctx, `
+	if err := s.db.QueryRow(ctx, `
 		SELECT COALESCE(c.name, 'Outros'), SUM(t.amount) as cat_total
 		FROM transactions t
 		JOIN connected_accounts a ON t.account_id = a.id
@@ -224,15 +230,16 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 		GROUP BY c.name
 		ORDER BY cat_total DESC
 		LIMIT 1
-	`, userID).Scan(&maxCatName, &maxCatAmount)
+	`, userID).Scan(&maxCatName, &maxCatAmount); err != nil {
+		return nil, err
+	}
 
 	if totalDebits > 0 && maxCatAmount > 0 {
 		catConcentration := (maxCatAmount / totalDebits) * 100
-		concScore := 85.0
+		concScore := math.Max(0, math.Min(100, 100-catConcentration))
 		status := "good"
 		diag := fmt.Sprintf("Principal categoria (%s) representa %.1f%% dos gastos.", maxCatName, catConcentration)
 		if catConcentration > 50.0 {
-			concScore = 45.0
 			status = "attention"
 			diag = fmt.Sprintf("Alta concentração na categoria %s (%.1f%% do total).", maxCatName, catConcentration)
 		}
@@ -253,9 +260,12 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 
 	// Pilar 5: Estabilidade de Entradas (peso 15%)
 	if txCount > 0 {
-		stabilityScore := 75.0
-		if totalCredits > 0 {
-			stabilityScore = 85.0
+		creditCoverage := math.Min(1, totalCredits/math.Max(totalDebits, 1))
+		activityScore := math.Min(1, float64(txCount)/30)
+		stabilityScore := math.Round((creditCoverage*0.6 + activityScore*0.4) * 100)
+		stabilityStatus := "attention"
+		if stabilityScore >= 70 {
+			stabilityStatus = "good"
 		}
 		pillars = append(pillars, HealthPillar{
 			ID:          "income_stability",
@@ -263,8 +273,8 @@ func (s *FinancialHealthService) CalculateHealthScore(ctx context.Context, userI
 			Score:       stabilityScore,
 			Weight:      0.15,
 			MetricLabel: fmt.Sprintf("%d transações", txCount),
-			Diagnosis:   "Histórico de movimentação monitorado com sucesso.",
-			Status:      "good",
+			Diagnosis:   fmt.Sprintf("Cobertura de créditos sobre débitos: %.1f%%, com %d transações no período.", creditCoverage*100, txCount),
+			Status:      stabilityStatus,
 		})
 		dimensionsUsed = append(dimensionsUsed, "income_stability")
 	}
@@ -320,8 +330,8 @@ func (s *FinancialHealthService) GetConsolidatedIntelligence(ctx context.Context
 		return nil, err
 	}
 
-	survival, _ := s.survivalModeService.EvaluateSurvivalMode(ctx, userID)
-	impulseAlerts, _ := s.impulseRadarService.AnalyzeRecentTransactions(ctx, userID, time.Now().Add(-24*time.Hour))
+	survival, survivalErr := s.survivalModeService.EvaluateSurvivalMode(ctx, userID)
+	impulseAlerts, impulseErr := s.impulseRadarService.AnalyzeRecentTransactions(ctx, userID, time.Now().Add(-24*time.Hour))
 
 	groups := make([]IntelligenceGroupSummary, 0, 9)
 
@@ -336,97 +346,46 @@ func (s *FinancialHealthService) GetConsolidatedIntelligence(ctx context.Context
 		DetailRoute: "/reports/health",
 	})
 
-	// 2. Perfil de Gastos
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "spending_profile",
-		Name:        "Perfil de Gastos",
-		Status:      "ok",
-		Severity:    "info",
-		Summary:     "Distribuição e comportamento de despesas por categoria.",
-		DetailRoute: "/analytics",
-	})
+	// Os grupos de primeiro nível são canônicos; os detalhes continuam sob demanda.
+	groupStatus := health.Status
+	groupSeverity := healthSeverity(groupStatus)
+	if len(health.MissingDimensions) > 0 && groupStatus == "good" {
+		groupStatus, groupSeverity = "attention", "warning"
+	}
+	groups = append(groups,
+		IntelligenceGroupSummary{ID: "future", Name: "Futuro financeiro", Status: groupStatus, Severity: groupSeverity, Summary: fmt.Sprintf("%d dimensões calculadas; %d sem histórico suficiente.", len(health.DimensionsUsed), len(health.MissingDimensions)), DetailRoute: "/reports/future"},
+		IntelligenceGroupSummary{ID: "behavior", Name: "Comportamento", Status: groupStatus, Severity: groupSeverity, Summary: "Comportamento derivado das movimentações classificadas.", DetailRoute: "/reports/behavior"},
+		IntelligenceGroupSummary{ID: "evolution", Name: "Evolução do custo de vida", Status: groupStatus, Severity: groupSeverity, Summary: "Evolução disponível quando houver séries históricas comparáveis.", DetailRoute: "/reports/evolution"},
+		IntelligenceGroupSummary{ID: "income_cycle", Name: "Renda e ciclo mensal", Status: groupStatus, Severity: groupSeverity, Summary: "Renda e ciclo calculados a partir dos créditos importados.", DetailRoute: "/reports/income"},
+		IntelligenceGroupSummary{ID: "commitments", Name: "Custos e compromissos", Status: groupStatus, Severity: groupSeverity, Summary: "Parcelas e compromissos ativos calculados na saúde financeira.", DetailRoute: "/reports/commitments"},
+		IntelligenceGroupSummary{ID: "relationships", Name: "Relações e dependências", Status: groupStatus, Severity: groupSeverity, Summary: "Dependências financeiras serão detalhadas com dados relacionados suficientes.", DetailRoute: "/reports/relationships"},
+		IntelligenceGroupSummary{ID: "history", Name: "História financeira", Status: groupStatus, Severity: groupSeverity, Summary: fmt.Sprintf("Período analisado: %s a %s.", health.PeriodStart, health.PeriodEnd), DetailRoute: "/reports/history"},
+		IntelligenceGroupSummary{ID: "engagement", Name: "Engajamento", Status: groupStatus, Severity: groupSeverity, Summary: "Engajamento baseado no acompanhamento de metas e alertas.", DetailRoute: "/reports/engagement"},
+	)
 
-	// 3. Estabilidade de Renda
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "income_stability",
-		Name:        "Estabilidade de Renda",
-		Status:      "ok",
-		Severity:    "success",
-		Summary:     "Monitoramento de créditos regulares e fontes de receita.",
-		DetailRoute: "/analytics",
-	})
-
-	// 4. Compromissos e Parcelamentos
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "commitments_debt",
-		Name:        "Compromissos e Parcelamentos",
-		Status:      "ok",
-		Severity:    "info",
-		Summary:     "Acompanhamento de parcelas futuras e quitações.",
-		DetailRoute: "/cards",
-	})
-
-	// 5. Assinaturas e Recorrências
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "subscriptions",
-		Name:        "Assinaturas e Recorrências",
-		Status:      "ok",
-		Severity:    "info",
-		Summary:     "Detecção automática de cobranças mensais repetidas.",
-		DetailRoute: "/cards",
-	})
-
-	// 6. Radar de Impulso
+	// Comportamento recente recebe o resultado determinístico do radar, quando disponível.
 	impulseSev := "info"
 	impulseSum := "Nenhum desvio atípico detectado nas últimas 24h."
 	if len(impulseAlerts) > 0 {
 		impulseSev = "warning"
 		impulseSum = fmt.Sprintf("%d alerta(s) de gastos rápidos ou atípicos.", len(impulseAlerts))
 	}
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "impulse_radar",
-		Name:        "Radar de Impulso",
-		Status:      "ok",
-		Severity:    impulseSev,
-		Summary:     impulseSum,
-		DetailRoute: "/reports/impulse",
-	})
+	groups[2].Status, groups[2].Severity, groups[2].Summary = map[bool]string{true: "attention", false: "good"}[len(impulseAlerts) > 0], impulseSev, impulseSum
+	if impulseErr != nil {
+		groups[2].Status, groups[2].Severity, groups[2].Summary = "attention", "warning", "Dados de comportamento indisponíveis no momento."
+	}
 
-	// 7. Inflação Pessoal
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "personal_inflation",
-		Name:        "Inflação Pessoal",
-		Status:      "ok",
-		Severity:    "info",
-		Summary:     "Variação de preço e ritmo nos principais destinos de consumo.",
-		DetailRoute: "/reports/inflation",
-	})
-
-	// 8. Modo Sobrevivência / Reserva
+	// Risco de liquidez alimenta o grupo de futuro sem inventar saldo ou retorno.
 	survSev := "success"
 	survSum := "Fluxo de caixa sob controle até a próxima renda."
 	if survival != nil && survival.IsActive {
 		survSev = "danger"
 		survSum = fmt.Sprintf("Risco de liquidez detectado (déficit projetado: R$ %.2f).", survival.ProjectedShortfall)
 	}
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "survival_mode",
-		Name:        "Modo Sobrevivência e Liquidez",
-		Status:      "ok",
-		Severity:    survSev,
-		Summary:     survSum,
-		DetailRoute: "/reports/survival",
-	})
-
-	// 9. Gamificação e Hábitos
-	groups = append(groups, IntelligenceGroupSummary{
-		ID:          "gamification_streaks",
-		Name:        "Conquistas e Sequências",
-		Status:      "ok",
-		Severity:    "info",
-		Summary:     "Acompanhamento de metas cumpridas e hábitos financeiros saudáveis.",
-		DetailRoute: "/reports/gamification",
-	})
+	groups[1].Status, groups[1].Severity, groups[1].Summary = map[bool]string{true: "critical", false: "good"}[survival != nil && survival.IsActive], survSev, survSum
+	if survivalErr != nil {
+		groups[1].Status, groups[1].Severity, groups[1].Summary = "attention", "warning", "Projeção de liquidez indisponível no momento."
+	}
 
 	return &ConsolidatedIntelligence{
 		OverallHealthScore: health.OverallScore,

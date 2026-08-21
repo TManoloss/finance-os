@@ -82,7 +82,9 @@ func NewGoalsService(db *pgxpool.Pool) *GoalsService {
 
 // ListGoals retorna todas as metas do usuário após recalcular o progresso.
 func (s *GoalsService) ListGoals(ctx context.Context, userID string) ([]FinancialGoal, error) {
-	_ = s.UpdateGoalProgress(ctx, userID)
+	if err := s.UpdateGoalProgress(ctx, userID); err != nil {
+		return nil, err
+	}
 
 	query := `
 		SELECT 
@@ -168,6 +170,18 @@ func (s *GoalsService) CreateGoal(ctx context.Context, g FinancialGoal) (string,
 	if g.TargetAmount <= 0 {
 		return "", errors.New("valor alvo deve ser maior que zero")
 	}
+	if !validGoalType(g.GoalType) {
+		return "", errors.New("tipo de meta inválido")
+	}
+	if g.Status != "" && !validGoalStatus(GoalStatus(g.Status)) {
+		return "", errors.New("status de meta inválido")
+	}
+	if g.TargetDate != nil && g.TargetDate.Before(g.StartDate) {
+		return "", errors.New("data alvo não pode ser anterior ao início")
+	}
+	if err := s.validateGoalReferences(ctx, g); err != nil {
+		return "", err
+	}
 	if g.StartDate.IsZero() {
 		g.StartDate = time.Now()
 	}
@@ -178,7 +192,9 @@ func (s *GoalsService) CreateGoal(ctx context.Context, g FinancialGoal) (string,
 	// Se for economia (savings) e initial_amount não foi informado, busca o saldo atual da conta
 	if g.GoalType == GoalSavings && g.InitialAmount == 0 && g.AccountID != nil {
 		var currentBalance float64
-		_ = s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *g.AccountID, g.UserID).Scan(&currentBalance)
+		if err := s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *g.AccountID, g.UserID).Scan(&currentBalance); err != nil {
+			return "", err
+		}
 		g.InitialAmount = currentBalance
 	}
 
@@ -196,8 +212,40 @@ func (s *GoalsService) CreateGoal(ctx context.Context, g FinancialGoal) (string,
 	}
 
 	// Recalcula progresso
-	_ = s.UpdateGoalProgress(ctx, g.UserID)
+	if err := s.UpdateGoalProgress(ctx, g.UserID); err != nil {
+		return "", err
+	}
 	return id, nil
+}
+
+func validGoalType(t GoalType) bool {
+	return t == GoalSavings || t == GoalDebtPayoff || t == GoalSpendingLimit || t == GoalIncomeTarget
+}
+
+func validGoalStatus(s GoalStatus) bool {
+	return s == GoalStatusActive || s == GoalStatusPaused || s == GoalStatusCompleted || s == GoalStatusFailed
+}
+
+func (s *GoalsService) validateGoalReferences(ctx context.Context, g FinancialGoal) error {
+	if g.CategoryID != nil {
+		var exists bool
+		if err := s.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND (user_id IS NULL OR user_id = $2))`, *g.CategoryID, g.UserID).Scan(&exists); err != nil || !exists {
+			return errors.New("categoria não encontrada para este usuário")
+		}
+	}
+	if g.AccountID != nil {
+		var exists bool
+		if err := s.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM connected_accounts WHERE id = $1 AND user_id = $2)`, *g.AccountID, g.UserID).Scan(&exists); err != nil || !exists {
+			return errors.New("conta não encontrada para este usuário")
+		}
+	}
+	if g.InstallmentID != nil {
+		var exists bool
+		if err := s.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM installments i JOIN connected_accounts a ON a.id = i.account_id WHERE i.id = $1 AND a.user_id = $2)`, *g.InstallmentID, g.UserID).Scan(&exists); err != nil || !exists {
+			return errors.New("parcela não encontrada para este usuário")
+		}
+	}
+	return nil
 }
 
 // UpdateGoal atualiza campos de uma meta com isolamento por usuário.
@@ -211,29 +259,55 @@ func (s *GoalsService) UpdateGoal(ctx context.Context, userID, goalID string, up
 	setClauses := []string{"updated_at = NOW()"}
 	args := []interface{}{goalID, userID}
 	argIdx := 3
+	for key := range updates {
+		if key != "name" && key != "target_amount" && key != "status" && key != "target_date" {
+			return false, fmt.Errorf("campo de meta não permitido: %s", key)
+		}
+	}
 
-	if name, ok := updates["name"].(string); ok && strings.TrimSpace(name) != "" {
+	if raw, present := updates["name"]; present {
+		name, ok := raw.(string)
+		if !ok || strings.TrimSpace(name) == "" {
+			return false, errors.New("nome da meta inválido")
+		}
 		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
 		args = append(args, strings.TrimSpace(name))
 		argIdx++
 	}
-	if target, ok := updates["target_amount"].(float64); ok && target > 0 {
+	if raw, present := updates["target_amount"]; present {
+		target, ok := raw.(float64)
+		if !ok || target <= 0 {
+			return false, errors.New("valor alvo inválido")
+		}
 		setClauses = append(setClauses, fmt.Sprintf("target_amount = $%d", argIdx))
 		args = append(args, target)
 		argIdx++
 	}
-	if status, ok := updates["status"].(string); ok && status != "" {
+	if raw, present := updates["status"]; present {
+		status, ok := raw.(string)
+		if !ok || status == "" {
+			return false, errors.New("status de meta inválido")
+		}
+		if !validGoalStatus(GoalStatus(status)) {
+			return false, errors.New("status de meta inválido")
+		}
 		setClauses = append(setClauses, fmt.Sprintf("status = $%d", argIdx))
 		args = append(args, status)
 		argIdx++
 	}
-	if targetDateStr, ok := updates["target_date"].(string); ok {
+	if raw, present := updates["target_date"]; present {
+		targetDateStr, ok := raw.(string)
+		if !ok {
+			return false, errors.New("data alvo inválida")
+		}
 		if targetDateStr == "" {
 			setClauses = append(setClauses, "target_date = NULL")
 		} else if parsed, err := time.Parse("2006-01-02", targetDateStr); err == nil {
 			setClauses = append(setClauses, fmt.Sprintf("target_date = $%d", argIdx))
 			args = append(args, parsed)
 			argIdx++
+		} else {
+			return false, errors.New("data alvo inválida")
 		}
 	}
 
@@ -243,7 +317,9 @@ func (s *GoalsService) UpdateGoal(ctx context.Context, userID, goalID string, up
 		return false, err
 	}
 
-	_ = s.UpdateGoalProgress(ctx, userID)
+	if err := s.UpdateGoalProgress(ctx, userID); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -278,7 +354,9 @@ func (s *GoalsService) AddAdjustment(ctx context.Context, adj GoalAdjustment) (s
 		return "", err
 	}
 
-	_ = s.UpdateGoalProgress(ctx, adj.UserID)
+	if err := s.UpdateGoalProgress(ctx, adj.UserID); err != nil {
+		return "", err
+	}
 	return id, nil
 }
 
@@ -352,14 +430,16 @@ func (s *GoalsService) UpdateGoalProgress(ctx context.Context, userID string) er
 				// Se sem target_date e start_date é anterior ao mês atual, analisa o mês corrente
 				start = time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
 			}
-			s.db.QueryRow(ctx, `
+			if err := s.db.QueryRow(ctx, `
 				SELECT COALESCE(SUM(t.amount), 0)
 				FROM transactions t
 				JOIN connected_accounts a ON t.account_id = a.id
 				WHERE a.user_id = $1 AND t.direction = 'debit'
 				  AND ($2::uuid IS NULL OR t.category_id = $2)
 				  AND t.date >= $3 AND ($4::date IS NULL OR t.date <= $4)
-			`, userID, g.categoryID, start, g.targetDate).Scan(&autoAmount)
+			`, userID, g.categoryID, start, g.targetDate).Scan(&autoAmount); err != nil {
+				return err
+			}
 
 		case GoalIncomeTarget:
 			// 2. Meta de renda: soma créditos no período
@@ -367,21 +447,27 @@ func (s *GoalsService) UpdateGoalProgress(ctx context.Context, userID string) er
 			if g.targetDate == nil && start.Before(time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())) {
 				start = time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
 			}
-			s.db.QueryRow(ctx, `
+			if err := s.db.QueryRow(ctx, `
 				SELECT COALESCE(SUM(t.amount), 0)
 				FROM transactions t
 				JOIN connected_accounts a ON t.account_id = a.id
 				WHERE a.user_id = $1 AND t.direction = 'credit'
 				  AND t.date >= $2 AND ($3::date IS NULL OR t.date <= $3)
-			`, userID, start, g.targetDate).Scan(&autoAmount)
+			`, userID, start, g.targetDate).Scan(&autoAmount); err != nil {
+				return err
+			}
 
 		case GoalSavings:
 			// 3. Economia / Reserva: evolução da conta vinculada ou saldo total desde initial_amount
 			var currentBalance float64
 			if g.accountID != nil {
-				s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *g.accountID, userID).Scan(&currentBalance)
+				if err := s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *g.accountID, userID).Scan(&currentBalance); err != nil {
+					return err
+				}
 			} else {
-				s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance)
+				if err := s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance); err != nil {
+					return err
+				}
 			}
 			if g.initialAmount > 0 {
 				autoAmount = math.Max(0, currentBalance-g.initialAmount)
@@ -409,11 +495,13 @@ func (s *GoalsService) UpdateGoalProgress(ctx context.Context, userID string) er
 
 		// 5. Soma os ajustes manuais da meta
 		var adjustmentsTotal float64
-		s.db.QueryRow(ctx, `
+		if err := s.db.QueryRow(ctx, `
 			SELECT COALESCE(SUM(amount), 0)
 			FROM goal_adjustments
 			WHERE goal_id = $1 AND user_id = $2
-		`, g.id, userID).Scan(&adjustmentsTotal)
+		`, g.id, userID).Scan(&adjustmentsTotal); err != nil {
+			return err
+		}
 
 		totalCurrent := autoAmount + adjustmentsTotal
 		if totalCurrent < 0 {
@@ -438,11 +526,13 @@ func (s *GoalsService) UpdateGoalProgress(ctx context.Context, userID string) er
 			}
 		}
 
-		s.db.Exec(ctx, `
+		if _, err := s.db.Exec(ctx, `
 			UPDATE financial_goals
 			SET current_amount = $1, status = $2, updated_at = NOW()
 			WHERE id = $3 AND user_id = $4
-		`, totalCurrent, status, g.id, userID)
+		`, totalCurrent, status, g.id, userID); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -455,39 +545,50 @@ func (s *GoalsService) GetPlanningTimeline(ctx context.Context, userID string) (
 
 	// 1. Parcelas ativas
 	instRows, err := s.db.Query(ctx, `
-		SELECT i.id, i.merchant_name, i.total_amount, i.installments_total, i.installment_current, i.start_date
+		SELECT i.id, i.merchant_name, i.total_amount, i.installments_total, i.installment_current, i.start_date, i.next_due_date
 		FROM installments i
 		JOIN connected_accounts a ON i.account_id = a.id
 		WHERE a.user_id = $1 AND i.installment_current < i.installments_total
 	`, userID)
-	if err == nil {
-		defer instRows.Close()
-		for instRows.Next() {
-			var id, merchant string
-			var totalAmount float64
-			var totalParts, currentPart int
-			var startDate time.Time
-			if err := instRows.Scan(&id, &merchant, &totalAmount, &totalParts, &currentPart, &startDate); err == nil {
-				partAmount := totalAmount / float64(totalParts)
-				nextDue := startDate.AddDate(0, 1, 0)
-				if !nextDue.Before(today) {
-					items = append(items, PlanningTimelineItem{
-						Type:      "installment",
-						Title:     fmt.Sprintf("Parcela %s (%d/%d)", merchant, currentPart+1, totalParts),
-						Amount:    partAmount,
-						Direction: "debit",
-						Date:      nextDue,
-						Details: map[string]interface{}{
-							"installment_id":      id,
-							"merchant":            merchant,
-							"installment_current": currentPart + 1,
-							"installments_total":  totalParts,
-							"remaining_amount":    partAmount * float64(totalParts-currentPart),
-						},
-					})
-				}
+	if err != nil {
+		return nil, err
+	}
+	defer instRows.Close()
+	for instRows.Next() {
+		var id, merchant string
+		var totalAmount float64
+		var totalParts, currentPart int
+		var startDate time.Time
+		var nextDueDate *time.Time
+		if err := instRows.Scan(&id, &merchant, &totalAmount, &totalParts, &currentPart, &startDate, &nextDueDate); err != nil {
+			return nil, err
+		}
+		{
+			partAmount := totalAmount / float64(totalParts)
+			nextDue := startDate.AddDate(0, currentPart, 0)
+			if nextDueDate != nil {
+				nextDue = *nextDueDate
+			}
+			if !nextDue.Before(today) {
+				items = append(items, PlanningTimelineItem{
+					Type:      "installment",
+					Title:     fmt.Sprintf("Parcela %s (%d/%d)", merchant, currentPart+1, totalParts),
+					Amount:    partAmount,
+					Direction: "debit",
+					Date:      nextDue,
+					Details: map[string]interface{}{
+						"installment_id":      id,
+						"merchant":            merchant,
+						"installment_current": currentPart + 1,
+						"installments_total":  totalParts,
+						"remaining_amount":    partAmount * float64(totalParts-currentPart),
+					},
+				})
 			}
 		}
+	}
+	if err := instRows.Err(); err != nil {
+		return nil, err
 	}
 
 	// 2. Renda prevista recorrente (salário)
@@ -529,35 +630,42 @@ func (s *GoalsService) GetPlanningTimeline(ctx context.Context, userID string) (
 		FROM financial_goals
 		WHERE user_id = $1 AND status = 'active' AND target_date IS NOT NULL
 	`, userID)
-	if err == nil {
-		defer goalRows.Close()
-		for goalRows.Next() {
-			var id, name string
-			var goalType GoalType
-			var targetAmount, currentAmount float64
-			var targetDate time.Time
-			if err := goalRows.Scan(&id, &name, &goalType, &targetAmount, &currentAmount, &targetDate); err == nil {
-				if !targetDate.Before(today) {
-					rem := targetAmount - currentAmount
-					if rem < 0 {
-						rem = 0
-					}
-					items = append(items, PlanningTimelineItem{
-						Type:      "goal_deadline",
-						Title:     fmt.Sprintf("Meta: %s", name),
-						Amount:    rem,
-						Direction: "info",
-						Date:      targetDate,
-						Details: map[string]interface{}{
-							"goal_id":        id,
-							"goal_type":      goalType,
-							"target_amount":  targetAmount,
-							"current_amount": currentAmount,
-						},
-					})
+	if err != nil {
+		return nil, err
+	}
+	defer goalRows.Close()
+	for goalRows.Next() {
+		var id, name string
+		var goalType GoalType
+		var targetAmount, currentAmount float64
+		var targetDate time.Time
+		if err := goalRows.Scan(&id, &name, &goalType, &targetAmount, &currentAmount, &targetDate); err != nil {
+			return nil, err
+		}
+		{
+			if !targetDate.Before(today) {
+				rem := targetAmount - currentAmount
+				if rem < 0 {
+					rem = 0
 				}
+				items = append(items, PlanningTimelineItem{
+					Type:      "goal_deadline",
+					Title:     fmt.Sprintf("Meta: %s", name),
+					Amount:    rem,
+					Direction: "info",
+					Date:      targetDate,
+					Details: map[string]interface{}{
+						"goal_id":        id,
+						"goal_type":      goalType,
+						"target_amount":  targetAmount,
+						"current_amount": currentAmount,
+					},
+				})
 			}
 		}
+	}
+	if err := goalRows.Err(); err != nil {
+		return nil, err
 	}
 
 	// Ordena toda a timeline em ordem cronológica crescente
@@ -567,4 +675,3 @@ func (s *GoalsService) GetPlanningTimeline(ctx context.Context, userID string) (
 
 	return items, nil
 }
-

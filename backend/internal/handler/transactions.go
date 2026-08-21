@@ -15,7 +15,10 @@ import (
 type TransactionsHandler struct {
 	repo       repository.TransactionRepository
 	classifier *service.ClassifierService
+	goals      *service.GoalsService
 }
+
+func (h *TransactionsHandler) SetGoalsService(goals *service.GoalsService) { h.goals = goals }
 
 func NewTransactionsHandler(repo repository.TransactionRepository, classifier *service.ClassifierService) *TransactionsHandler {
 	return &TransactionsHandler{
@@ -124,6 +127,11 @@ func (h *TransactionsHandler) UpdateCategory(c echo.Context) error {
 	if !updated {
 		return response.Error(c, http.StatusNotFound, "transação ou categoria não encontrada")
 	}
+	if h.goals != nil {
+		if err := h.goals.UpdateGoalProgress(c.Request().Context(), userID); err != nil {
+			return response.Error(c, http.StatusInternalServerError, "erro ao recalcular metas")
+		}
+	}
 
 	return response.Success(c, http.StatusOK, map[string]string{
 		"message": "categoria atualizada com sucesso",
@@ -155,6 +163,11 @@ func (h *TransactionsHandler) CreateManual(c echo.Context) error {
 	id, err := h.repo.CreateManual(c.Request().Context(), userID, req.AccountID, req.Description, req.Direction, req.CategoryID, req.Amount, date)
 	if err != nil {
 		return response.Error(c, http.StatusBadRequest, "conta inválida")
+	}
+	if h.goals != nil {
+		if err := h.goals.UpdateGoalProgress(c.Request().Context(), userID); err != nil {
+			return response.Error(c, http.StatusInternalServerError, "erro ao recalcular metas")
+		}
 	}
 	return response.Success(c, http.StatusCreated, map[string]string{"id": id})
 }

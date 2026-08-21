@@ -67,6 +67,9 @@ func (h *SimulatorHandler) SaveSimulation(c echo.Context) error {
 
 	id, err := h.service.SaveSimulation(c.Request().Context(), userID, req.SimulationType, req.Name, req.InputParams, req.ResultJSON)
 	if err != nil {
+		if err.Error() == "tipo de simulação inválido" || err.Error() == "parâmetros e resultado da simulação são obrigatórios" {
+			return response.Error(c, http.StatusBadRequest, err.Error())
+		}
 		return response.Error(c, http.StatusInternalServerError, "erro ao salvar simulação")
 	}
 
@@ -105,4 +108,3 @@ func (h *SimulatorHandler) DeleteSaved(c echo.Context) error {
 		"message": "simulação excluída com sucesso",
 	})
 }
-

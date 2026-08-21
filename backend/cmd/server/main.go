@@ -80,12 +80,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Erro ao inicializar encryption service: %v", err)
 	}
-	
+
 	installmentService := service.NewInstallmentsService(dbPool)
 	classifierService := service.NewClassifierService(dbPool, cfg)
 	feedService := service.NewFeedService(dbPool)
 	syncService := service.NewSyncService(dbPool, installmentService, classifierService, feedService)
-	
+	syncService.SetGoalsService(service.NewGoalsService(dbPool))
+
 	scheduler := jobs.NewScheduler(dbPool, syncService, userRepo, encryptionService, cfg)
 	scheduler.Start()
 

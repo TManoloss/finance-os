@@ -38,20 +38,20 @@ type SimulationAlert struct {
 }
 
 type PurchaseSimulationResult struct {
-	Amount                 float64          `json:"amount"`
-	Installments           int              `json:"installments"`
-	InstallmentAmount      float64          `json:"installment_amount"`
-	Description            string           `json:"description"`
-	CurrentBalance         float64          `json:"current_balance"`
-	AvgMonthlyIncome       float64          `json:"avg_monthly_income"`
-	AvgMonthlyExpense      float64          `json:"avg_monthly_expense"`
-	MonthlyImpactPercent   float64          `json:"monthly_impact_percent"`
-	IncomeCommittedPercent float64          `json:"income_committed_percent"`
-	SafeDailyLimitAfter    float64          `json:"safe_daily_limit_after"`
-	Confidence             string           `json:"confidence"` // high, medium, low
-	HasSufficientHistory   bool             `json:"has_sufficient_history"`
-	HistoryNotice          string           `json:"history_notice,omitempty"`
-	ProjectedMonths        []ProjectedMonth `json:"projected_months"`
+	Amount                 float64           `json:"amount"`
+	Installments           int               `json:"installments"`
+	InstallmentAmount      float64           `json:"installment_amount"`
+	Description            string            `json:"description"`
+	CurrentBalance         float64           `json:"current_balance"`
+	AvgMonthlyIncome       float64           `json:"avg_monthly_income"`
+	AvgMonthlyExpense      float64           `json:"avg_monthly_expense"`
+	MonthlyImpactPercent   float64           `json:"monthly_impact_percent"`
+	IncomeCommittedPercent float64           `json:"income_committed_percent"`
+	SafeDailyLimitAfter    float64           `json:"safe_daily_limit_after"`
+	Confidence             string            `json:"confidence"` // high, medium, low
+	HasSufficientHistory   bool              `json:"has_sufficient_history"`
+	HistoryNotice          string            `json:"history_notice,omitempty"`
+	ProjectedMonths        []ProjectedMonth  `json:"projected_months"`
 	Alerts                 []SimulationAlert `json:"alerts"`
 }
 
@@ -62,23 +62,23 @@ type CutSimulationRequest struct {
 }
 
 type GoalImpact struct {
-	GoalID        string  `json:"goal_id"`
-	GoalName      string  `json:"goal_name"`
-	TargetAmount  float64 `json:"target_amount"`
-	Remaining     float64 `json:"remaining"`
-	MonthsFaster  int     `json:"months_faster"`
+	GoalID       string  `json:"goal_id"`
+	GoalName     string  `json:"goal_name"`
+	TargetAmount float64 `json:"target_amount"`
+	Remaining    float64 `json:"remaining"`
+	MonthsFaster int     `json:"months_faster"`
 }
 
 type CutSimulationResult struct {
-	MonthlyAmount        float64      `json:"monthly_amount"`
-	Description          string       `json:"description"`
-	CutPeriodMonths      int          `json:"cut_period_months"`
-	MonthlySavings       float64      `json:"monthly_savings"`
-	AnnualSavings        float64      `json:"annual_savings"`
-	AccumulatedSavings   float64      `json:"accumulated_savings"`
-	HasSufficientHistory bool         `json:"has_sufficient_history"`
-	Confidence           string       `json:"confidence"`
-	GoalImpacts          []GoalImpact `json:"goal_impacts"`
+	MonthlyAmount        float64           `json:"monthly_amount"`
+	Description          string            `json:"description"`
+	CutPeriodMonths      int               `json:"cut_period_months"`
+	MonthlySavings       float64           `json:"monthly_savings"`
+	AnnualSavings        float64           `json:"annual_savings"`
+	AccumulatedSavings   float64           `json:"accumulated_savings"`
+	HasSufficientHistory bool              `json:"has_sufficient_history"`
+	Confidence           string            `json:"confidence"`
+	GoalImpacts          []GoalImpact      `json:"goal_impacts"`
 	Alerts               []SimulationAlert `json:"alerts"`
 }
 
@@ -114,17 +114,23 @@ func (s *SimulatorService) SimulatePurchase(ctx context.Context, userID string, 
 
 	firstDue := time.Now()
 	if req.FirstDueDate != "" {
-		if parsed, err := time.Parse("2006-01-02", req.FirstDueDate); err == nil {
-			firstDue = parsed
+		parsed, err := time.Parse("2006-01-02", req.FirstDueDate)
+		if err != nil {
+			return nil, errors.New("data da primeira parcela inválida")
 		}
+		firstDue = parsed
 	}
 
 	// 1. Saldo consolidado ou da conta informada
 	var currentBalance float64
 	if req.AccountID != nil {
-		_ = s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *req.AccountID, userID).Scan(&currentBalance)
+		if err := s.db.QueryRow(ctx, "SELECT COALESCE(balance, 0) FROM connected_accounts WHERE id = $1 AND user_id = $2", *req.AccountID, userID).Scan(&currentBalance); err != nil {
+			return nil, errors.New("conta não encontrada para este usuário")
+		}
 	} else {
-		_ = s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance)
+		if err := s.db.QueryRow(ctx, "SELECT COALESCE(SUM(balance), 0) FROM connected_accounts WHERE user_id = $1", userID).Scan(&currentBalance); err != nil {
+			return nil, err
+		}
 	}
 
 	// 2. Histórico de transações dos últimos 90 dias
@@ -132,7 +138,7 @@ func (s *SimulatorService) SimulatePurchase(ctx context.Context, userID string, 
 	var txCount int
 	var minDate, maxDate *time.Time
 
-	_ = s.db.QueryRow(ctx, `
+	if err := s.db.QueryRow(ctx, `
 		SELECT 
 			COALESCE(SUM(CASE WHEN t.direction = 'credit' THEN t.amount ELSE 0 END), 0),
 			COALESCE(SUM(CASE WHEN t.direction = 'debit' THEN t.amount ELSE 0 END), 0),
@@ -142,7 +148,9 @@ func (s *SimulatorService) SimulatePurchase(ctx context.Context, userID string, 
 		FROM transactions t
 		JOIN connected_accounts a ON t.account_id = a.id
 		WHERE a.user_id = $1 AND t.date >= CURRENT_DATE - INTERVAL '90 days'
-	`, userID).Scan(&totalCredits, &totalDebits, &txCount, &minDate, &maxDate)
+	`, userID).Scan(&totalCredits, &totalDebits, &txCount, &minDate, &maxDate); err != nil {
+		return nil, err
+	}
 
 	// 3. Avaliação de suficiência de histórico (FOS-605)
 	daySpan := 0
@@ -168,12 +176,14 @@ func (s *SimulatorService) SimulatePurchase(ctx context.Context, userID string, 
 
 	// 4. Parcelas ativas existentes
 	var currentInstallmentsMonthly float64
-	_ = s.db.QueryRow(ctx, `
+	if err := s.db.QueryRow(ctx, `
 		SELECT COALESCE(SUM(i.total_amount / NULLIF(i.installments_total, 0)), 0)
 		FROM installments i
 		JOIN connected_accounts a ON i.account_id = a.id
 		WHERE a.user_id = $1 AND i.installment_current < i.installments_total
-	`, userID).Scan(&currentInstallmentsMonthly)
+	`, userID).Scan(&currentInstallmentsMonthly); err != nil {
+		return nil, err
+	}
 
 	installmentAmount := req.Amount / float64(req.Installments)
 
@@ -308,6 +318,28 @@ func (s *SimulatorService) SimulateCut(ctx context.Context, userID string, req C
 	annualSavings := req.MonthlyAmount * 12.0
 	accumulatedSavings := req.MonthlyAmount * float64(req.CutPeriodMonths)
 
+	var txCount int
+	var minDate, maxDate *time.Time
+	if err := s.db.QueryRow(ctx, `
+		SELECT COUNT(*), MIN(t.date), MAX(t.date)
+		FROM transactions t JOIN connected_accounts a ON a.id = t.account_id
+		WHERE a.user_id = $1 AND t.date >= CURRENT_DATE - INTERVAL '90 days'
+	`, userID).Scan(&txCount, &minDate, &maxDate); err != nil {
+		return nil, err
+	}
+	daySpan := 0
+	if minDate != nil && maxDate != nil {
+		daySpan = int(maxDate.Sub(*minDate).Hours() / 24)
+	}
+	hasSufficientHistory := txCount >= 3 && daySpan >= 7
+	confidence := "low"
+	if hasSufficientHistory {
+		confidence = "medium"
+	}
+	if txCount >= 15 && daySpan >= 30 {
+		confidence = "high"
+	}
+
 	// Avaliação de metas ativas para calcular aceleração de objetivos reais
 	goalRows, err := s.db.Query(ctx, `
 		SELECT id, name, target_amount, current_amount
@@ -316,22 +348,29 @@ func (s *SimulatorService) SimulateCut(ctx context.Context, userID string, req C
 	`, userID)
 
 	var goalImpacts []GoalImpact
-	if err == nil {
-		defer goalRows.Close()
-		for goalRows.Next() {
-			var g GoalImpact
-			var currentAmount float64
-			if err := goalRows.Scan(&g.GoalID, &g.GoalName, &g.TargetAmount, &currentAmount); err == nil {
-				remaining := g.TargetAmount - currentAmount
-				if remaining > 0 {
-					g.Remaining = remaining
-					// Quantos meses essa sobra mensal sozinha economiza
-					months := int(math.Ceil(remaining / req.MonthlyAmount))
-					g.MonthsFaster = months
-					goalImpacts = append(goalImpacts, g)
-				}
+	if err != nil {
+		return nil, err
+	}
+	defer goalRows.Close()
+	for goalRows.Next() {
+		var g GoalImpact
+		var currentAmount float64
+		if err := goalRows.Scan(&g.GoalID, &g.GoalName, &g.TargetAmount, &currentAmount); err != nil {
+			return nil, err
+		}
+		{
+			remaining := g.TargetAmount - currentAmount
+			if remaining > 0 {
+				g.Remaining = remaining
+				// Quantos meses essa sobra mensal sozinha economiza
+				months := int(math.Ceil(remaining / req.MonthlyAmount))
+				g.MonthsFaster = months
+				goalImpacts = append(goalImpacts, g)
 			}
 		}
+	}
+	if err := goalRows.Err(); err != nil {
+		return nil, err
 	}
 
 	var alerts []SimulationAlert
@@ -348,8 +387,8 @@ func (s *SimulatorService) SimulateCut(ctx context.Context, userID string, req C
 		MonthlySavings:       req.MonthlyAmount,
 		AnnualSavings:        annualSavings,
 		AccumulatedSavings:   accumulatedSavings,
-		HasSufficientHistory: true,
-		Confidence:           "high",
+		HasSufficientHistory: hasSufficientHistory,
+		Confidence:           confidence,
 		GoalImpacts:          goalImpacts,
 		Alerts:               alerts,
 	}, nil
@@ -357,6 +396,15 @@ func (s *SimulatorService) SimulateCut(ctx context.Context, userID string, req C
 
 // SaveSimulation persiste uma simulação realizada (FOS-604).
 func (s *SimulatorService) SaveSimulation(ctx context.Context, userID, simType, name string, inputParams, resultJSON map[string]interface{}) (string, error) {
+	if simType != "purchase" && simType != "cut" {
+		return "", errors.New("tipo de simulação inválido")
+	}
+	if inputParams == nil || resultJSON == nil {
+		return "", errors.New("parâmetros e resultado da simulação são obrigatórios")
+	}
+	if err := validateSavedSimulation(simType, inputParams, resultJSON); err != nil {
+		return "", err
+	}
 	if strings.TrimSpace(name) == "" {
 		name = fmt.Sprintf("Simulação de %s em %s", simType, time.Now().Format("02/01/2006"))
 	}
@@ -377,6 +425,35 @@ func (s *SimulatorService) SaveSimulation(ctx context.Context, userID, simType, 
 		RETURNING id
 	`, userID, simType, name, inputBytes, resultBytes).Scan(&id)
 	return id, err
+}
+
+func validateSavedSimulation(simType string, input, result map[string]interface{}) error {
+	number := func(m map[string]interface{}, key string) (float64, bool) { v, ok := m[key].(float64); return v, ok }
+	if simType == "purchase" {
+		amount, ok := number(input, "amount")
+		if !ok || amount <= 0 {
+			return errors.New("parâmetros de compra inválidos")
+		}
+		resultAmount, ok := number(result, "amount")
+		if !ok || math.Abs(resultAmount-amount) > 0.005 {
+			return errors.New("resultado não corresponde aos parâmetros da compra")
+		}
+		if n, ok := number(input, "installments"); ok {
+			if rn, rok := number(result, "installments"); !rok || rn != n {
+				return errors.New("parcelas do resultado não correspondem aos parâmetros")
+			}
+		}
+		return nil
+	}
+	monthly, ok := number(input, "monthly_amount")
+	if !ok || monthly <= 0 {
+		return errors.New("parâmetros de corte inválidos")
+	}
+	resultMonthly, ok := number(result, "monthly_amount")
+	if !ok || math.Abs(resultMonthly-monthly) > 0.005 {
+		return errors.New("resultado não corresponde aos parâmetros do corte")
+	}
+	return nil
 }
 
 // ListSavedSimulations lista as simulações salvas do usuário com isolamento estrito.

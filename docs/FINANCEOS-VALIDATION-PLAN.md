@@ -604,20 +604,20 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-501 | Separar Contas de Planejar | Codex / Antigravity | Aba Planejar isolada de saldos bancários, contendo Metas e Linha do Tempo; sem linguagem de portfólio | 2026-08-21 | passou |
 | FOS-502 | Quatro modos de Meta | Codex / Antigravity | Implementados modos `savings`, `debt_payoff`, `spending_limit`, `income_target` com saldo-base e fontes reais | 2026-08-21 | passou |
 | FOS-503 | Ajustes manuais incrementais | Codex / Antigravity | Tabela `goal_adjustments` com nota, data e preservação do histórico de auditoria; modal mobile testado | 2026-08-21 | passou |
-| FOS-504 | Ciclo de vida completo da Meta | Codex / Antigravity | CRUD de metas, isolamento estrito por `user_id`, pausa/reativação, exclusão e sugestões de metas | 2026-08-21 | passou |
-| FOS-505 | Recálculo determinístico de progresso | Codex / Antigravity | Cálculo de progresso automático com saldo consolidado (R$ 288,69 de R$ 1.000 -> 29%) e ajustes manuais | 2026-08-21 | passou |
-| FOS-506 | Linha temporal unificada de Planejamento | Codex / Antigravity | `GET /goals/timeline` unificou parcelas, assinaturas, renda prevista (+ R$ 975,00 em 06/09) e prazos de metas em ordem cronológica | 2026-08-21 | passou |
-| FOS-601 | Projetar compra com histórico real | Codex / Antigravity | `POST /simulator/purchase` calcula parcelas, impacto de fluxo e compromissos com base no saldo real e média histórica sem dados mockados | 2026-08-21 | passou |
+| FOS-504 | Ciclo de vida completo da Meta | Codex / Antigravity | CRUD e validação de propriedade dos vínculos foram corrigidos; sugestões sem dados reais retornam indisponível | 2026-08-21 | parcial |
+| FOS-505 | Recálculo determinístico de progresso | Codex / Antigravity | Recálculo agora ocorre após sincronização, lançamento manual, correção de categoria e ajustes; falta validação integrada com dados de produção | 2026-08-21 | parcial |
+| FOS-506 | Linha temporal unificada de Planejamento | Codex / Antigravity | Parcelas usam `next_due_date`/parcela atual e erros não são silenciosos; assinaturas e próximas despesas ainda requerem integração | 2026-08-21 | parcial |
+| FOS-601 | Projetar compra com histórico real | Codex / Antigravity | Projeção valida datas e falhas de consulta; assinaturas e compromissos não parcelados ainda requerem integração | 2026-08-21 | parcial |
 | FOS-602 | Explicar saída da compra | Codex / Antigravity | Projeção exibiu comprometimento de renda (2.9%), limite diário (R$ 10,12), alertas determinísticos e detalhamento mês a mês no SM-S948B | 2026-08-21 | passou |
-| FOS-603 | Simular corte sem investimento fictício | Codex / Antigravity | `POST /simulator/cut` calculou economia mensal (R$ 55), anual (R$ 660) e acumulada sem rentabilidade fictícia especulativa | 2026-08-21 | passou |
-| FOS-604 | Persistir simulações | Codex / Antigravity | Salvar (`POST /simulator/save`), listar (`GET /simulator/saved`) e excluir (`DELETE /simulator/saved/:id`) validados com persistência e atualização reativa na UI do SM-S948B | 2026-08-21 | passou |
-| FOS-605 | Declarar histórico insuficiente | Codex / Antigravity | Tratamento explícito de histórico insuficiente e nível de confiança implementados sem fallbacks numéricos ocultos | 2026-08-21 | passou |
-| FOS-701 | Calcular saúde sem dimensão fixa | Codex / Antigravity | Pilares reais (fluxo, reserva, compromissos, distribuição, estabilidade) calculados deterministicamente no Go com histórico dos últimos 90 dias | 2026-08-21 | passou |
+| FOS-603 | Simular corte sem investimento fictício | Codex / Antigravity | Economia continua determinística; confiança agora depende do histórico real e falhas de consulta não viram sucesso | 2026-08-21 | parcial |
+| FOS-604 | Persistir simulações | Codex / Antigravity | Persistência valida tipo, parâmetros e correspondência básica entre entrada e resultado; recomputação integral no servidor ainda pendente | 2026-08-21 | parcial |
+| FOS-605 | Declarar histórico insuficiente | Codex / Antigravity | Compra e corte informam histórico insuficiente sem confiança fabricada | 2026-08-21 | parcial |
+| FOS-701 | Calcular saúde sem dimensão fixa | Codex / Antigravity | Concentração e estabilidade deixaram de usar pontuações constantes; validação com séries reais ainda pendente | 2026-08-21 | parcial |
 | FOS-702 | Expor metadados dos scores | Codex / Antigravity | Metadados expostos (`period_start`, `period_end`, `quality: HIGH`, `confidence: 95%`, `dimensions_used`) validados na tela Saúde Financeira no SM-S948B (score 48/100) | 2026-08-21 | passou |
-| FOS-703 | Consolidar nove grupos | Codex / Antigravity | `GET /intelligence/summary` e `GET /reports/intelligence/summary` consolidam os 9 grupos analíticos com severidade, score e resumo determinísticos | 2026-08-21 | passou |
+| FOS-703 | Consolidar nove grupos | Codex / Antigravity | Grupos canônicos e estados derivados de saúde/dados foram alinhados; detalhes sob demanda e cobertura de cada grupo ainda pendentes | 2026-08-21 | parcial |
 | FOS-704 | Manter IA opcional | Codex / Antigravity | Cálculos, pontuações, diagnósticos, gráficos e resumos funcionam 100% no Go/Postgres sem dependência externa de LLM | 2026-08-21 | passou |
-| FOS-705 | Restringir Pierre | Codex / Antigravity | Pierre consome e sintetiza dados determinísticos estruturados existentes | 2026-08-21 | passou |
-| FOS-706 | Implementar Replay mobile real | Codex / Antigravity | `GET /reports/monthly-replay` com dados reais do mês (Agosto 2026: R$ 5.631,66 gastos, R$ 5.865,94 entradas, saldo positivo, maior volume no SM-S948B) | 2026-08-21 | passou |
+| FOS-705 | Restringir Pierre | Codex / Antigravity | Nenhuma alteração auditável neste diff; requer evidência de integração mobile/backend | 2026-08-21 | não validado |
+| FOS-706 | Implementar Replay mobile real | Codex / Antigravity | Backend possui endpoint, mas a aceitação mobile não foi demonstrada neste diff | 2026-08-21 | não validado |
 
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.

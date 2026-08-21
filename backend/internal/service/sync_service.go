@@ -21,7 +21,12 @@ type SyncService struct {
 	installmentService *InstallmentsService
 	classifierService  *ClassifierService
 	feedService        *FeedService
+	goalsService       *GoalsService
 }
+
+// SetGoalsService conecta o recálculo de metas ao fluxo de sincronização sem quebrar
+// os construtores usados por jobs e ferramentas legadas.
+func (s *SyncService) SetGoalsService(goals *GoalsService) { s.goalsService = goals }
 
 // NewSyncService cria uma nova instância de SyncService.
 func NewSyncService(db *pgxpool.Pool, installmentService *InstallmentsService, classifierService *ClassifierService, feedService *FeedService) *SyncService {
@@ -171,6 +176,11 @@ func (s *SyncService) SyncItem(ctx context.Context, userID, itemID string, plugg
 			}
 		}
 
+	}
+	if s.goalsService != nil {
+		if err := s.goalsService.UpdateGoalProgress(ctx, userID); err != nil {
+			return totalSaved, err
+		}
 	}
 
 	log.Printf("[SyncItem] Sync completo: item %s, user %s, total %d transações salvas", itemID, userID, totalSaved)

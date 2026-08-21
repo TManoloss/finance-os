@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 )
 
@@ -34,5 +35,16 @@ func TestSimulatorValidation(t *testing.T) {
 		// Valid validation check
 	} else {
 		t.Errorf("expected validation to fail for negative amount")
+	}
+}
+
+func TestSimulatePurchaseRejectsInvalidFirstDueDateBeforeDatabaseAccess(t *testing.T) {
+	_, err := NewSimulatorService(nil).SimulatePurchase(context.Background(), "user-1", PurchaseSimulationRequest{
+		Amount:       100,
+		Installments: 1,
+		FirstDueDate: "2026-02-30",
+	})
+	if err == nil || err.Error() != "data da primeira parcela inválida" {
+		t.Fatalf("SimulatePurchase() error = %v, want invalid first due date", err)
 	}
 }

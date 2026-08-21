@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/finance-os/backend/internal/config"
@@ -50,15 +51,15 @@ func (h *GoalsHandler) Get(c echo.Context) error {
 func (h *GoalsHandler) Create(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 	var req struct {
-		Name          string   `json:"name"`
-		GoalType      string   `json:"goal_type"`
-		TargetAmount  float64  `json:"target_amount"`
-		InitialAmount float64  `json:"initial_amount"`
-		StartDate     string   `json:"start_date"`
-		TargetDate    *string  `json:"target_date"`
-		CategoryID    *string  `json:"category_id"`
-		AccountID     *string  `json:"account_id"`
-		InstallmentID *string  `json:"installment_id"`
+		Name          string  `json:"name"`
+		GoalType      string  `json:"goal_type"`
+		TargetAmount  float64 `json:"target_amount"`
+		InitialAmount float64 `json:"initial_amount"`
+		StartDate     string  `json:"start_date"`
+		TargetDate    *string `json:"target_date"`
+		CategoryID    *string `json:"category_id"`
+		AccountID     *string `json:"account_id"`
+		InstallmentID *string `json:"installment_id"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -71,15 +72,22 @@ func (h *GoalsHandler) Create(c echo.Context) error {
 
 	startDate := time.Now()
 	if req.StartDate != "" {
-		if parsed, err := time.Parse("2006-01-02", req.StartDate); err == nil {
-			startDate = parsed
+		parsed, err := time.Parse("2006-01-02", req.StartDate)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "data inicial inválida")
 		}
+		startDate = parsed
 	}
 
 	var targetDate *time.Time
 	if req.TargetDate != nil && *req.TargetDate != "" {
-		if parsed, err := time.Parse("2006-01-02", *req.TargetDate); err == nil {
-			targetDate = &parsed
+		parsed, err := time.Parse("2006-01-02", *req.TargetDate)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "data alvo inválida")
+		}
+		targetDate = &parsed
+		if parsed.Before(startDate) {
+			return response.Error(c, http.StatusBadRequest, "data alvo não pode ser anterior ao início")
 		}
 	}
 
@@ -99,7 +107,12 @@ func (h *GoalsHandler) Create(c echo.Context) error {
 
 	id, err := h.service.CreateGoal(c.Request().Context(), g)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao criar meta: "+err.Error())
+		message := "erro ao criar meta"
+		if strings.Contains(err.Error(), "inválid") || strings.Contains(err.Error(), "não encontrada") || strings.Contains(err.Error(), "obrigatório") || strings.Contains(err.Error(), "maior") {
+			message = err.Error()
+			return response.Error(c, http.StatusBadRequest, message)
+		}
+		return response.Error(c, http.StatusInternalServerError, message)
 	}
 	g.ID = id
 	return response.Success(c, http.StatusCreated, g)
@@ -117,6 +130,9 @@ func (h *GoalsHandler) Update(c echo.Context) error {
 
 	updated, err := h.service.UpdateGoal(c.Request().Context(), userID, goalID, updates)
 	if err != nil {
+		if err.Error() == "status de meta inválido" || err.Error() == "data alvo inválida" {
+			return response.Error(c, http.StatusBadRequest, err.Error())
+		}
 		return response.Error(c, http.StatusInternalServerError, "erro ao atualizar meta")
 	}
 	if !updated {
@@ -163,9 +179,11 @@ func (h *GoalsHandler) AddAdjustment(c echo.Context) error {
 
 	adjDate := time.Now()
 	if req.Date != "" {
-		if parsed, err := time.Parse("2006-01-02", req.Date); err == nil {
-			adjDate = parsed
+		parsed, err := time.Parse("2006-01-02", req.Date)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "data do ajuste inválida")
 		}
+		adjDate = parsed
 	}
 
 	adj := service.GoalAdjustment{
@@ -178,7 +196,7 @@ func (h *GoalsHandler) AddAdjustment(c echo.Context) error {
 
 	id, err := h.service.AddAdjustment(c.Request().Context(), adj)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao registrar ajuste: "+err.Error())
+		return response.Error(c, http.StatusInternalServerError, "erro ao registrar ajuste")
 	}
 	adj.ID = id
 	return response.Success(c, http.StatusCreated, adj)
@@ -225,23 +243,12 @@ func (h *GoalsHandler) Suggest(c echo.Context) error {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		// Fallback amigável se o serviço de agentes estiver indisponível
-		return response.Success(c, http.StatusOK, []map[string]interface{}{
-			{
-				"name":          "Reserva de Emergência",
-				"goal_type":     "savings",
-				"target_amount": 3000.00,
-				"description":   "Construa uma reserva equivalente a 3 meses de gastos básicos.",
-			},
-			{
-				"name":          "Controle de Alimentação",
-				"goal_type":     "spending_limit",
-				"target_amount": 600.00,
-				"description":   "Defina um teto mensal para compras de alimentação e delivery.",
-			},
-		})
+		return response.Error(c, http.StatusServiceUnavailable, "sugestões indisponíveis no momento")
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return response.Error(c, http.StatusServiceUnavailable, "sugestões indisponíveis no momento")
+	}
 
 	var suggestions interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&suggestions); err != nil {
@@ -249,4 +256,3 @@ func (h *GoalsHandler) Suggest(c echo.Context) error {
 	}
 	return response.Success(c, http.StatusOK, suggestions)
 }
-

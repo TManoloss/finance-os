@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"testing"
 	"time"
@@ -25,6 +26,55 @@ func TestGoalStatuses(t *testing.T) {
 		if string(gs) != expected[i] {
 			t.Errorf("GoalStatus[%d] = %s, want %s", i, gs, expected[i])
 		}
+	}
+}
+
+func TestCreateGoalRejectsInvalidFieldsBeforeDatabaseAccess(t *testing.T) {
+	start := time.Date(2026, time.August, 20, 0, 0, 0, 0, time.UTC)
+	targetBeforeStart := start.AddDate(0, 0, -1)
+
+	for name, test := range map[string]struct {
+		goal FinancialGoal
+		want string
+	}{
+		"goal type": {
+			goal: FinancialGoal{
+				Name:         "Reserva",
+				GoalType:     GoalType("unknown"),
+				TargetAmount: 100,
+				StartDate:    start,
+				Status:       string(GoalStatusActive),
+			},
+			want: "tipo de meta inválido",
+		},
+		"status": {
+			goal: FinancialGoal{
+				Name:         "Reserva",
+				GoalType:     GoalSavings,
+				TargetAmount: 100,
+				StartDate:    start,
+				Status:       "unknown",
+			},
+			want: "status de meta inválido",
+		},
+		"target date": {
+			goal: FinancialGoal{
+				Name:         "Reserva",
+				GoalType:     GoalSavings,
+				TargetAmount: 100,
+				StartDate:    start,
+				TargetDate:   &targetBeforeStart,
+				Status:       string(GoalStatusActive),
+			},
+			want: "data alvo não pode ser anterior ao início",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := NewGoalsService(nil).CreateGoal(context.Background(), test.goal)
+			if err == nil || err.Error() != test.want {
+				t.Fatalf("CreateGoal() error = %v, want %q", err, test.want)
+			}
+		})
 	}
 }
 
