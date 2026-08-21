@@ -353,7 +353,8 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 - [x] FOS-401: contrato Flutter tipado e validado com resposta real no SM-S948B.
 - [x] FOS-402: busca, filtros combináveis e paginação publicados no `GET /transactions`.
-- [ ] FOS-403 a FOS-406 implementados.
+- [x] FOS-403: detalhe mobile confirma/corrige Categoria, conclui revisão e aprende Regra do Usuário.
+- [ ] FOS-404 a FOS-406 implementados.
 - [ ] Fórmulas adaptativas testadas com e sem histórico.
 - [ ] Origem de todo Alerta navegável quando existente.
 
@@ -513,6 +514,8 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 | Contrato de Movimentações | passou | Conta, Categoria, recorrência, confiança e revisão tipadas; parser Flutter testado e dados reais carregados no SM-S948B |
 | Busca, filtros e paginação | passou | commit `ed7074c` live no Render; testes Go cobrem busca, período, Conta, Categoria, tipo, revisão e metadados de página |
 | Distinção PF/PJ no extrato | passou | a resposta real exibiu lançamentos de `Nubank PJ` e `Nubank PF` no mesmo extrato sem perder a origem |
+| Revisão de Categoria | passou | `FARMACIA E DROGARIA NI`, da `Nubank PJ`, foi confirmada em Saúde no SM-S948B; após recarregar, revisão permaneceu concluída e confiança retornou 100% |
+| Logs após revisão | passou | Luna Max removeu avisos do sistema e não encontrou `FATAL EXCEPTION`, `E/flutter`, `Unhandled Exception` ou `AndroidRuntime` |
 
 ### Cenários de aceite ponta a ponta
 
@@ -590,6 +593,7 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-305 | Origem do saldo e Alerta — rodada final | Codex | `low_balance` abriu Contas; IDs relacionados cobertos no backend e roteador Flutter | 2026-08-20 | passou |
 | FOS-401 | Contrato tipado de Movimentação | Codex | testes Flutter, APK `a06ab210...` e extrato real carregado no SM-S948B | 2026-08-21 | passou |
 | FOS-402 | Busca, filtros e paginação | Codex | suíte Go, commit `ed7074c` live no Render e compatibilidade mobile validada | 2026-08-21 | passou |
+| FOS-403 | Revisão e aprendizado de Categoria | Codex | 10 testes Flutter, APK `d5691de...` e confirmação real no SM-S948B com confiança 100% após reload | 2026-08-21 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 
