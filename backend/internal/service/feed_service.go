@@ -208,9 +208,45 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 				s.CreateEvent(ctx, userID, EventDuplicateCharge, title, desc, &amount, "alert", []string{txID, dupID})
 			}
 		}
+
+		// 6. Detect Subscription Change (Mudança de valor em assinatura/recorrente)
+		if direction == "debit" {
+			var prevID string
+			var prevAmount float64
+			var prevDate time.Time
+			err := s.db.QueryRow(ctx, `
+				SELECT t.id, t.amount, t.date
+				FROM transactions t
+				JOIN connected_accounts a ON t.account_id = a.id
+				WHERE a.user_id = $1
+				  AND t.direction = 'debit'
+				  AND LOWER(COALESCE(NULLIF(t.merchant_name, ''), t.description)) = LOWER($2)
+				  AND t.id != $3
+				  AND t.date BETWEEN CAST($4 AS DATE) - INTERVAL '45 days' AND CAST($4 AS DATE) - INTERVAL '20 days'
+				ORDER BY t.date DESC
+				LIMIT 1
+			`, userID, description, txID, tx["date"]).Scan(&prevID, &prevAmount, &prevDate)
+
+			if err == nil && prevID != "" && math.Abs(amount-prevAmount) >= 1.0 {
+				var alreadyEmitted bool
+				_ = s.db.QueryRow(ctx, `
+					SELECT EXISTS(
+						SELECT 1 FROM feed_events
+						WHERE user_id = $1 AND type = $2
+						  AND created_at > NOW() - INTERVAL '30 days'
+						  AND (related_tx_ids @> ARRAY[$3]::uuid[] OR related_tx_ids @> ARRAY[$4]::uuid[])
+					)
+				`, userID, EventSubscriptionChange, txID, prevID).Scan(&alreadyEmitted)
+
+				if !alreadyEmitted {
+					title, desc, severity := formatSubscriptionChange(description, prevAmount, amount)
+					s.CreateEvent(ctx, userID, EventSubscriptionChange, title, desc, &amount, severity, []string{txID, prevID})
+				}
+			}
+		}
 	}
 
-	// 6. Detect Low Balance (Global check after all txs processed)
+	// 7. Detect Low Balance (Global check after all txs processed)
 	var totalBalance float64
 	s.db.QueryRow(ctx, "SELECT SUM(balance) FROM connected_accounts WHERE user_id = $1", userID).Scan(&totalBalance)
 
@@ -276,7 +312,143 @@ func (s *FeedService) GenerateEvents(ctx context.Context, userID string, txs []m
 		}
 	}
 
+	// 8. Detect Monthly Close (Fechamento do mês anterior)
+	var hasMonthlyClose bool
+	_ = s.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM feed_events
+			WHERE user_id = $1 AND type = $2
+			  AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
+		)
+	`, userID, EventMonthlyClose).Scan(&hasMonthlyClose)
+
+	if !hasMonthlyClose {
+		var totalSpent, totalIncome float64
+		var txCount int
+		err := s.db.QueryRow(ctx, `
+			SELECT 
+				COALESCE(SUM(CASE WHEN t.direction = 'debit' THEN t.amount ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN t.direction = 'credit' THEN t.amount ELSE 0 END), 0),
+				COUNT(*)
+			FROM transactions t
+			JOIN connected_accounts a ON t.account_id = a.id
+			WHERE a.user_id = $1
+			  AND t.date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+			  AND t.date < DATE_TRUNC('month', CURRENT_DATE)
+		`, userID).Scan(&totalSpent, &totalIncome, &txCount)
+
+		if err == nil && txCount > 0 {
+			prevMonth := time.Now().AddDate(0, -1, 0)
+			monthName := portugueseMonthName(prevMonth.Month())
+			title, desc := formatMonthlyClose(monthName, totalSpent, totalIncome)
+			s.CreateEvent(ctx, userID, EventMonthlyClose, title, desc, &totalSpent, "info", nil)
+		}
+	}
+
+	// 9. Detect Category Spike Insight (Aumento expressivo por categoria vs mês anterior)
+	var hasCategoryInsight bool
+	_ = s.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM feed_events
+			WHERE user_id = $1 AND type = $2
+			  AND created_at >= DATE_TRUNC('month', CURRENT_DATE)
+		)
+	`, userID, EventAgentInsight).Scan(&hasCategoryInsight)
+
+	if !hasCategoryInsight {
+		var catName string
+		var currTotal, prevTotal, growthPct float64
+		var txIDs []string
+		err := s.db.QueryRow(ctx, `
+			WITH prev_month AS (
+				SELECT t.category_id, c.name as category_name, SUM(t.amount) as prev_total
+				FROM transactions t
+				JOIN connected_accounts a ON t.account_id = a.id
+				JOIN categories c ON t.category_id = c.id
+				WHERE a.user_id = $1 AND t.direction = 'debit'
+				  AND t.date >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+				  AND t.date < DATE_TRUNC('month', CURRENT_DATE)
+				GROUP BY t.category_id, c.name
+				HAVING SUM(t.amount) >= 100
+			), curr_month AS (
+				SELECT t.category_id, c.name as category_name, SUM(t.amount) as curr_total,
+				       ARRAY_AGG(t.id::text) as tx_ids
+				FROM transactions t
+				JOIN connected_accounts a ON t.account_id = a.id
+				JOIN categories c ON t.category_id = c.id
+				WHERE a.user_id = $1 AND t.direction = 'debit'
+				  AND t.date >= DATE_TRUNC('month', CURRENT_DATE)
+				GROUP BY t.category_id, c.name
+				HAVING SUM(t.amount) >= 150
+			)
+			SELECT curr.category_name, curr.curr_total, prev.prev_total,
+			       ((curr.curr_total - prev.prev_total) / prev.prev_total) * 100 as growth_pct,
+			       curr.tx_ids
+			FROM curr_month curr
+			JOIN prev_month prev ON curr.category_id = prev.category_id
+			WHERE curr.curr_total >= prev.prev_total * 1.50
+			ORDER BY (curr.curr_total - prev.prev_total) DESC
+			LIMIT 1
+		`, userID).Scan(&catName, &currTotal, &prevTotal, &growthPct, &txIDs)
+
+		if err == nil && catName != "" {
+			title, desc := formatCategorySpike(catName, currTotal, prevTotal, growthPct)
+			limitIDs := txIDs
+			if len(limitIDs) > 5 {
+				limitIDs = limitIDs[:5]
+			}
+			s.CreateEvent(ctx, userID, EventAgentInsight, title, desc, &currTotal, "warning", limitIDs)
+		}
+	}
+
 	return nil
+}
+
+func formatSubscriptionChange(merchant string, oldAmount, newAmount float64) (title, desc, severity string) {
+	diff := newAmount - oldAmount
+	if diff > 0 {
+		return "Aumento na assinatura 💳",
+			fmt.Sprintf("A cobrança de %s passou de R$ %s para R$ %s (+R$ %s).", merchant, formatAmount(oldAmount), formatAmount(newAmount), formatAmount(diff)),
+			"warning"
+	}
+	return "Redução na assinatura 🎉",
+		fmt.Sprintf("A cobrança de %s reduziu de R$ %s para R$ %s (-R$ %s).", merchant, formatAmount(oldAmount), formatAmount(newAmount), formatAmount(-diff)),
+		"info"
+}
+
+func formatMonthlyClose(monthName string, totalSpent, totalIncome float64) (title, desc string) {
+	net := totalIncome - totalSpent
+	sign := ""
+	if net > 0 {
+		sign = "+"
+	}
+	return fmt.Sprintf("Fechamento de %s 📊", monthName),
+		fmt.Sprintf("No mês anterior, você teve R$ %s em gastos e R$ %s em entradas (resultado líquido: %sR$ %s).",
+			formatAmount(totalSpent), formatAmount(totalIncome), sign, formatAmount(net))
+}
+
+func formatCategorySpike(categoryName string, currTotal, prevTotal, growthPct float64) (title, desc string) {
+	return fmt.Sprintf("Aumento em %s 📈", categoryName),
+		fmt.Sprintf("Seus gastos com %s este mês (R$ %s) já superam em %.0f%% o total do mês anterior (R$ %s).",
+			categoryName, formatAmount(currTotal), growthPct, formatAmount(prevTotal))
+}
+
+func portugueseMonthName(m time.Month) string {
+	months := map[time.Month]string{
+		time.January:   "Janeiro",
+		time.February:  "Fevereiro",
+		time.March:     "Março",
+		time.April:     "Abril",
+		time.May:       "Maio",
+		time.June:      "Junho",
+		time.July:      "Julho",
+		time.August:    "Agosto",
+		time.September: "Setembro",
+		time.October:   "Outubro",
+		time.November:  "Novembro",
+		time.December:  "Dezembro",
+	}
+	return months[m]
 }
 
 func unusualSpendingThreshold(medianDebit float64) float64 {

@@ -43,3 +43,62 @@ func TestIsSalaryDescription(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatSubscriptionChange(t *testing.T) {
+	title, desc, severity := formatSubscriptionChange("Netflix", 39.90, 55.90)
+	if title != "Aumento na assinatura 💳" {
+		t.Errorf("expected title 'Aumento na assinatura 💳', got %q", title)
+	}
+	if severity != "warning" {
+		t.Errorf("expected severity 'warning', got %q", severity)
+	}
+	if desc != "A cobrança de Netflix passou de R$ 39.90 para R$ 55.90 (+R$ 16.00)." {
+		t.Errorf("unexpected description: %q", desc)
+	}
+
+	titleRed, descRed, severityRed := formatSubscriptionChange("Spotify", 34.90, 21.90)
+	if titleRed != "Redução na assinatura 🎉" {
+		t.Errorf("expected title 'Redução na assinatura 🎉', got %q", titleRed)
+	}
+	if severityRed != "info" {
+		t.Errorf("expected severity 'info', got %q", severityRed)
+	}
+	if descRed != "A cobrança de Spotify reduziu de R$ 34.90 para R$ 21.90 (-R$ 13.00)." {
+		t.Errorf("unexpected description: %q", descRed)
+	}
+}
+
+func TestFormatMonthlyClose(t *testing.T) {
+	title, desc := formatMonthlyClose("Julho", 1500.50, 3000.00)
+	if title != "Fechamento de Julho 📊" {
+		t.Errorf("expected title 'Fechamento de Julho 📊', got %q", title)
+	}
+	if desc != "No mês anterior, você teve R$ 1500.50 em gastos e R$ 3000.00 em entradas (resultado líquido: +R$ 1499.50)." {
+		t.Errorf("unexpected description: %q", desc)
+	}
+
+	_, descDeficit := formatMonthlyClose("Agosto", 4000.00, 3000.00)
+	if descDeficit != "No mês anterior, você teve R$ 4000.00 em gastos e R$ 3000.00 em entradas (resultado líquido: R$ -1000.00)." {
+		t.Errorf("unexpected description: %q", descDeficit)
+	}
+}
+
+func TestFormatCategorySpike(t *testing.T) {
+	title, desc := formatCategorySpike("Alimentação", 450.00, 200.00, 125.0)
+	if title != "Aumento em Alimentação 📈" {
+		t.Errorf("expected title 'Aumento em Alimentação 📈', got %q", title)
+	}
+	if desc != "Seus gastos com Alimentação este mês (R$ 450.00) já superam em 125% o total do mês anterior (R$ 200.00)." {
+		t.Errorf("unexpected description: %q", desc)
+	}
+}
+
+func TestPortugueseMonthName(t *testing.T) {
+	if got := portugueseMonthName(1); got != "Janeiro" {
+		t.Errorf("got %q, want 'Janeiro'", got)
+	}
+	if got := portugueseMonthName(12); got != "Dezembro" {
+		t.Errorf("got %q, want 'Dezembro'", got)
+	}
+}
+
