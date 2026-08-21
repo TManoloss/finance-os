@@ -355,9 +355,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 - [x] FOS-402: busca, filtros combináveis e paginação publicados no `GET /transactions`.
 - [x] FOS-403: detalhe mobile confirma/corrige Categoria, conclui revisão e aprende Regra do Usuário.
 - [ ] FOS-404: fórmulas adaptativas implementadas e testadas; validação com nova Transação real bloqueada pelo Item MeuPluggy.
-- [ ] FOS-405 e FOS-406 implementados.
+- [x] FOS-405 e FOS-406 implementados.
 - [ ] Fórmulas adaptativas testadas com e sem histórico.
-- [ ] Origem de todo Alerta navegável quando existente.
+- [x] Origem de todo Alerta navegável quando existente.
 
 ### Fase 5 — Planejamento
 
@@ -598,6 +598,8 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-402 | Busca, filtros e paginação | Codex | suíte Go, commit `ed7074c` live no Render e compatibilidade mobile validada | 2026-08-21 | passou |
 | FOS-403 | Revisão e aprendizado de Categoria | Codex | 10 testes Flutter, APK `d5691de...` e confirmação real no SM-S948B com confiança 100% após reload | 2026-08-21 | passou |
 | FOS-404 | Alertas adaptativos | Codex | testes Go e commit `4ba39b0` live; sincronizações PF/PJ exibiram falha parcial explícita do MeuPluggy | 2026-08-21 | parcial: dados reais novos bloqueados pelo provedor |
+| FOS-405 | Eventos faltantes e idempotência | Codex | testes Go de formatação/regras e commit `5667fbb` live; detectores cobrem assinatura, fechamento e categoria | 2026-08-21 | passou em testes/build; execução com novas transações aguarda dados do provedor |
+| FOS-406 | Navegação da notificação à origem | Codex | APK `d5691de...` no SM-S948B; alerta de saldo crítico abriu Contas e rota por IDs relacionada abre extrato filtrado | 2026-08-21 | passou |
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.
 

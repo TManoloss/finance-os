@@ -93,16 +93,17 @@ Concluídas no escopo documentado:
 - FOS-402: passou. Backend aceita busca, período, Conta, Categoria, direção, `needs_review` e paginação.
 - FOS-403: passou no Samsung com dado real.
 - FOS-404: implementado e coberto por testes Go, commit live; validação com nova Transação real está bloqueada pelo MeuPluggy.
-- FOS-405: ainda não implementado. Faltam mudança de assinatura, fechamento mensal e insight relevante com idempotência.
-- FOS-406: parcial. Leitura/origem básica existe; é preciso auditar todos os tipos de Alerta e garantir origem navegável quando houver.
+- FOS-405: passou em testes e build. Detectores de mudança de assinatura, fechamento mensal e insight por categoria implementados com idempotência (commit `5667fbb`).
+- FOS-406: passou no Samsung com APK `d5691de...`. Alerta de saldo crítico abriu `/accounts`; alertas com IDs vinculados filtram `/movements?ids=...`.
 
-Próximo ponto lógico: FOS-405, sem marcar FOS-404 como validado até uma sincronização importar Transação nova e realmente executar `FeedService.GenerateEvents`.
+Próximo ponto lógico: Fase 5 (Planejamento Real — FOS-501 a FOS-506).
 
 ## 6. Últimos commits importantes na `main`
 
 Em ordem do mais recente:
 
 ```text
+5667fbb feat(feed): implement missing events for subscriptions, monthly close and category insights (FOS-405)
 d3f5781 docs: record adaptive alert validation limits
 4ba39b0 feat(feed): make financial alerts adaptive
 7abfbee fix(categories): deduplicate names in listings
@@ -281,16 +282,17 @@ Tela lógica reportada pelo ADB: 720 × 1560.
 
 1. Confirmar que o workspace e os dois Git continuam no estado esperado; não limpar mudanças.
 2. Ler integralmente `AGENTS.md`, `CONTEXT.md` e `docs/FINANCEOS-VALIDATION-PLAN.md`.
-3. Trabalhar no FOS-405:
-   - evento de mudança de assinatura;
-   - fechamento mensal;
-   - insight relevante;
-   - idempotência explícita para cada tipo.
-4. Auditar FOS-406 por tipo de Alerta: leitura, marcar como lido e navegação até Transação/Compromisso quando houver origem.
-5. Manter FOS-404 parcial até haver Transação nova real ou um teste de integração PostgreSQL que execute as consultas completas do `FeedService`.
-6. Quando backend mudar: testar, commit isolado, push `main`, esperar Render live.
-7. Quando mobile mudar: testar, build debug, instalar com `adb -r`, preservar sessão, validar no SM-S948B e triar logs.
-8. Atualizar o documento oficial somente com evidência. Mock/test unitário não equivale a validação com dados reais.
+3. Iniciar a Fase 5 (Planejamento Real):
+   - FOS-501: separar Contas de Planejar (saldos em Contas, parcelas e assinaturas em Planejar, sem linguagem de portfólio).
+   - FOS-502: quatro modos de Meta (limite de gastos, meta de renda, economia e quitação de dívida).
+   - FOS-503: ajustes manuais em tabela incremental.
+   - FOS-504: ciclo completo de Meta (criar, editar, pausar, concluir, excluir).
+   - FOS-505: recálculo nos eventos corretos com idempotência.
+   - FOS-506: linha temporal unificada de Planejamento.
+4. Manter FOS-404 parcial até haver Transação nova real ou um teste de integração PostgreSQL que execute as consultas completas do `FeedService`.
+5. Quando backend mudar: testar, commit isolado, push `main`, esperar Render live.
+6. Quando mobile mudar: testar, build debug, instalar com `adb -r`, preservar sessão, validar no SM-S948B e triar logs.
+7. Atualizar o documento oficial somente com evidência. Mock/test unitário não equivale a validação com dados reais.
 
 ## 13. Armadilhas conhecidas
 
