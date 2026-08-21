@@ -153,63 +153,33 @@ func (h *ReportsHandler) GetCashflow(c echo.Context) error {
 	return response.Success(c, http.StatusOK, result)
 }
 
-// GetBehavioralInsights retorna insights comportamentais gerados por IA.
+// GetBehavioralInsights retorna padrões calculados do extrato; IA é opcional para explicação.
 func (h *ReportsHandler) GetBehavioralInsights(c echo.Context) error {
 	userID := c.Get("user_id").(string)
-
-	url := fmt.Sprintf("%s/reports/behavioral/%s", h.cfg.AgentsServiceURL, userID)
-
-	resp, err := http.Get(url)
+	result, err := h.visualReportsService.GetBehavioralInsights(c.Request().Context(), userID)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
+		return response.Error(c, http.StatusInternalServerError, "erro ao calcular insights comportamentais")
 	}
-	defer resp.Body.Close()
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
-	}
-
 	return response.Success(c, http.StatusOK, result)
 }
 
 // GetInvisibleSpending busca gastos invisíveis (assinaturas esquecidas, duplicatas, etc).
 func (h *ReportsHandler) GetInvisibleSpending(c echo.Context) error {
 	userID := c.Get("user_id").(string)
-
-	url := fmt.Sprintf("%s/reports/invisible-spending/%s", h.cfg.AgentsServiceURL, userID)
-
-	resp, err := http.Get(url)
+	result, err := h.visualReportsService.GetInvisibleSpending(c.Request().Context(), userID)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
+		return response.Error(c, http.StatusInternalServerError, "erro ao calcular gastos recorrentes")
 	}
-	defer resp.Body.Close()
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
-	}
-
 	return response.Success(c, http.StatusOK, result)
 }
 
 // GetProjections retorna as projeções financeiras para o fim do mês e próximos 3 meses.
 func (h *ReportsHandler) GetProjections(c echo.Context) error {
 	userID := c.Get("user_id").(string)
-
-	url := fmt.Sprintf("%s/reports/projection/%s", h.cfg.AgentsServiceURL, userID)
-
-	resp, err := http.Get(url)
+	result, err := h.visualReportsService.GetProjections(c.Request().Context(), userID)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "falha ao comunicar com o serviço de agentes")
+		return response.Error(c, http.StatusInternalServerError, "erro ao calcular projeções")
 	}
-	defer resp.Body.Close()
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return response.Error(c, http.StatusInternalServerError, "erro ao decodificar resposta")
-	}
-
 	return response.Success(c, http.StatusOK, result)
 }
 
