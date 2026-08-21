@@ -35,15 +35,32 @@ func (h *TransactionsHandler) ListTransactions(c echo.Context) error {
 	pageSize, _ := strconv.Atoi(c.QueryParam("page_size"))
 	if pageSize <= 0 {
 		pageSize = 50
+	} else if pageSize > 100 {
+		pageSize = 100
+	}
+	search := strings.TrimSpace(c.QueryParam("q"))
+	if search == "" {
+		search = strings.TrimSpace(c.QueryParam("search"))
 	}
 
 	filters := repository.TransactionFilters{
 		UserID:     userID,
+		Search:     search,
 		AccountID:  c.QueryParam("account_id"),
 		CategoryID: c.QueryParam("category_id"),
 		Direction:  c.QueryParam("direction"),
 		Page:       page,
 		PageSize:   pageSize,
+	}
+	if direction := c.QueryParam("direction"); direction != "" && direction != "debit" && direction != "credit" {
+		return response.Error(c, http.StatusBadRequest, "tipo de movimentação inválido")
+	}
+	if rawReview := c.QueryParam("needs_review"); rawReview != "" {
+		needsReview, err := strconv.ParseBool(rawReview)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "needs_review deve ser true ou false")
+		}
+		filters.NeedsReview = &needsReview
 	}
 	if rawIDs := c.QueryParam("ids"); rawIDs != "" {
 		for _, id := range strings.Split(rawIDs, ",") {
@@ -54,10 +71,18 @@ func (h *TransactionsHandler) ListTransactions(c echo.Context) error {
 	}
 
 	if from := c.QueryParam("from_date"); from != "" {
-		filters.FromDate, _ = time.Parse("2006-01-02", from)
+		var err error
+		filters.FromDate, err = time.Parse("2006-01-02", from)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "from_date inválida")
+		}
 	}
 	if to := c.QueryParam("to_date"); to != "" {
-		filters.ToDate, _ = time.Parse("2006-01-02", to)
+		var err error
+		filters.ToDate, err = time.Parse("2006-01-02", to)
+		if err != nil {
+			return response.Error(c, http.StatusBadRequest, "to_date inválida")
+		}
 	}
 
 	transactions, total, err := h.repo.GetTransactions(c.Request().Context(), filters)

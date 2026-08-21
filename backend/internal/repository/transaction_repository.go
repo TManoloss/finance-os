@@ -11,15 +11,17 @@ import (
 
 // TransactionFilters define os filtros para listagem de transações.
 type TransactionFilters struct {
-	UserID     string
-	IDs        []string
-	AccountID  string
-	CategoryID string
-	FromDate   time.Time
-	ToDate     time.Time
-	Direction  string // debit, credit
-	Page       int
-	PageSize   int
+	UserID      string
+	IDs         []string
+	Search      string
+	AccountID   string
+	CategoryID  string
+	FromDate    time.Time
+	ToDate      time.Time
+	Direction   string // debit, credit
+	NeedsReview *bool
+	Page        int
+	PageSize    int
 }
 
 // TransactionSummary representa o resumo financeiro de um período.
@@ -101,7 +103,8 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 
 	query := `
 		SELECT 
-			t.id, t.amount, t.direction, t.description, t.merchant_name, t.date, t.is_recurring,
+			t.id, t.account_id, t.amount, t.direction, t.description, t.merchant_name, t.date,
+			t.is_recurring, t.confidence_score, t.needs_review,
 			c.id as category_id, c.name as category_name, c.color as category_color,
 			COALESCE(NULLIF(acc.connection_label, ''),
 				'Conta • final ' || NULLIF(acc.account_number_last4, ''),
@@ -116,6 +119,11 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	if len(f.IDs) > 0 {
 		query += fmt.Sprintf(" AND t.id::text = ANY($%d)", argCount)
 		args = append(args, f.IDs)
+		argCount++
+	}
+	if f.Search != "" {
+		query += fmt.Sprintf(" AND (t.description ILIKE '%%' || $%d || '%%' OR COALESCE(t.merchant_name, '') ILIKE '%%' || $%d || '%%')", argCount, argCount)
+		args = append(args, f.Search)
 		argCount++
 	}
 
@@ -144,6 +152,11 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 		args = append(args, f.Direction)
 		argCount++
 	}
+	if f.NeedsReview != nil {
+		query += fmt.Sprintf(" AND t.needs_review = $%d", argCount)
+		args = append(args, *f.NeedsReview)
+		argCount++
+	}
 
 	// Total count para paginação
 	countQuery := "SELECT COUNT(*) FROM (" + query + ") as total"
@@ -167,19 +180,23 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	for rows.Next() {
 		var tx struct {
 			ID            string
+			AccountID     string
 			Amount        float64
 			Direction     string
 			Description   string
 			MerchantName  *string
 			Date          time.Time
 			IsRecurring   bool
+			Confidence    *float64
+			NeedsReview   bool
 			CategoryID    *string
 			CategoryName  *string
 			CategoryColor *string
 			AccountName   string
 		}
 		err := rows.Scan(
-			&tx.ID, &tx.Amount, &tx.Direction, &tx.Description, &tx.MerchantName, &tx.Date, &tx.IsRecurring,
+			&tx.ID, &tx.AccountID, &tx.Amount, &tx.Direction, &tx.Description, &tx.MerchantName, &tx.Date,
+			&tx.IsRecurring, &tx.Confidence, &tx.NeedsReview,
 			&tx.CategoryID, &tx.CategoryName, &tx.CategoryColor, &tx.AccountName,
 		)
 		if err != nil {
@@ -187,22 +204,28 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 		}
 
 		item := map[string]interface{}{
-			"id":            tx.ID,
-			"amount":        tx.Amount,
-			"direction":     tx.Direction,
-			"description":   tx.Description,
-			"merchant_name": tx.MerchantName,
-			"date":          tx.Date,
-			"is_recurring":  tx.IsRecurring,
-			"account_name":  tx.AccountName,
-			"category":      nil,
+			"id":               tx.ID,
+			"amount":           tx.Amount,
+			"direction":        tx.Direction,
+			"description":      tx.Description,
+			"merchant_name":    tx.MerchantName,
+			"date":             tx.Date,
+			"is_recurring":     tx.IsRecurring,
+			"confidence_score": tx.Confidence,
+			"needs_review":     tx.NeedsReview,
+			"account_name":     tx.AccountName,
+			"account": map[string]interface{}{
+				"id":   tx.AccountID,
+				"name": tx.AccountName,
+			},
+			"category": nil,
 		}
 
 		if tx.CategoryID != nil {
 			item["category"] = map[string]interface{}{
 				"id":    *tx.CategoryID,
-				"name":  *tx.CategoryName,
-				"color": *tx.CategoryColor,
+				"name":  tx.CategoryName,
+				"color": tx.CategoryColor,
 			}
 		}
 
