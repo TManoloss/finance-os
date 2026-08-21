@@ -16,6 +16,35 @@ INSERT INTO categories (name, color, icon) VALUES
 ('Outros', '#8888A0', 'more_horiz')
 ON CONFLICT DO NOTHING;
 
+-- Subcategorias usadas para distinguir canais dentro de cada categoria principal.
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Delivery', 'restaurant'),
+    ('Restaurante', 'restaurant'),
+    ('Mercado', 'shopping_cart'),
+    ('Padaria', 'bakery_dining'),
+    ('Loja de conveniência', 'local_convenience_store')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Alimentação'
+WHERE NOT EXISTS (
+    SELECT 1 FROM categories existing
+    WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id
+);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Transporte por aplicativo', 'local_taxi'),
+    ('Combustível', 'local_gas_station'),
+    ('Transporte público', 'directions_bus')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Transporte'
+WHERE NOT EXISTS (
+    SELECT 1 FROM categories existing
+    WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id
+);
+
 -- Usuário de teste
 -- Password: admin123
 INSERT INTO users (id, name, email, password_hash)

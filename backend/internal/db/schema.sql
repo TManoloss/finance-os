@@ -48,6 +48,36 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+INSERT INTO categories (user_id, name, color, icon)
+SELECT NULL, base.name, base.color, base.icon
+FROM (VALUES
+    ('Alimentação', '#FF6B6B', 'restaurant'), ('Transporte', '#4D96FF', 'directions_car'),
+    ('Saúde', '#6BCB77', 'medical_services'), ('Lazer', '#FFD93D', 'celebration'),
+    ('Assinaturas', '#7C6FFF', 'subscriptions'), ('Moradia', '#FF9F45', 'home'),
+    ('Educação', '#A084E8', 'school'), ('Investimentos', '#4ECDC4', 'trending_up'),
+    ('Renda', '#19A7CE', 'payments'), ('Pet', '#FF85B3', 'pets'),
+    ('Emergências', '#FF4949', 'report_problem'), ('Outros', '#8888A0', 'more_horiz')
+) AS base(name, color, icon)
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = base.name);
+
+-- Subcategorias canônicas; a transação mantém a categoria principal via parent_id.
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Delivery', 'restaurant'), ('Restaurante', 'restaurant'), ('Mercado', 'shopping_cart'),
+    ('Padaria', 'bakery_dining'), ('Loja de conveniência', 'local_convenience_store')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Alimentação'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Transporte por aplicativo', 'local_taxi'), ('Combustível', 'local_gas_station'), ('Transporte público', 'directions_bus')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Transporte'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
 CREATE INDEX IF NOT EXISTS idx_connected_accounts_user_id ON connected_accounts(user_id);
 ALTER TABLE connected_accounts DROP CONSTRAINT IF EXISTS connected_accounts_pluggy_account_id_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_connected_accounts_user_pluggy_account

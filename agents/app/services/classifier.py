@@ -6,6 +6,15 @@ from app.models.transaction import TransactionClassifyRequest
 
 # Regras estáticas para estabelecimentos comuns (Economiza IA)
 STATIC_RULES = {
+	# Subcategorias de alimentação (a categoria pai é Alimentação)
+	r"IFOOD|IFD |RAPPI|UBER EATS|ZE DELIVERY|DELIVERY": "Delivery",
+	r"SUPERMERCADO|ATACADAO|CARREFOUR|PAO DE ACUCAR|CONDOR|MUFFATO|PARANA SUPERMERCADO|COOP |MERCADO|HORTIFRUTI|SACOLAO|ASSAI|ST MARCHE|SAMS CLUB": "Mercado",
+	r"RESTAURANTE|LANCHONETE|PADARIA|PANIFICADORA|DOCERIA|SORVETERIA|CAFE|COFFEE|BURGER|MCDONALDS|BK |SPOLETO|OAKBERRY|CHURRASCARIA|PIZZARIA|HAMBURGUERIA|GARCIA": "Restaurante",
+	r"PADARIA|PANIFICADORA": "Padaria",
+	r"CONVENIENCIA|CONVENIÊNCIA|AM/PM|BR MANIA": "Loja de conveniência",
+	# Subcategorias de transporte
+	r"UBER|99APP|99 TAXI|CABIFY": "Transporte por aplicativo",
+	r"POSTO|GASOLINA|COMBUSTIVEL|SHELL|IPIRANGA|PETROBRAS|ALCOOL|ETANOL|AUTO POSTO": "Combustível",
 	# Alimentação
 	r"IFOOD|IFD |RAPPI|ZE DELIVERY|RESTAURANTE|LANCHONETE|PADARIA|PANIFICADORA|DOCERIA|SORVETERIA|CAFE|COFFEE|BURGER|MCDONALDS|BK |SPOLETO|OAKBERRY|CHURRASCARIA|PIZZARIA|HAMBURGUERIA|GARCIA": "Alimentação",
 	r"SUPERMERCADO|ATACADAO|CARREFOUR|PAO DE ACUCAR|CONDOR|MUFFATO|PARANA SUPERMERCADO|COOP |MERCADO|HORTIFRUTI|SACOLAO|CONVENIENCIA": "Alimentação",
@@ -53,9 +62,10 @@ Sua tarefa é receber os dados de uma transação e retornar o nome da categoria
 
 ATENÇÃO: No Brasil, muitas transações Pix/Transferência são gastos reais. Se a descrição contiver um nome de empresa (ex: GARCIA HAMBURGUERIA, UBER, IFOOD), ignore o fato de ser uma "Transferência" e classifique pelo estabelecimento.
 
-Categorias disponíveis:
-- Alimentação (restaurantes, delivery, supermercados, padarias)
+Categorias disponíveis (as subcategorias mantêm a categoria pai):
+- Alimentação > Delivery, Restaurante, Mercado, Padaria, Loja de conveniência
 - Transporte (uber, 99, combustível, estacionamento, pedágio)
+- Transporte > Transporte por aplicativo, Combustível, Transporte público
 - Saúde (farmácias, hospitais, consultas, exames)
 - Lazer (cinema, shows, viagens, hobbies, compras de variedades, shopee, amazon)
 - Assinaturas (netflix, spotify, saas, icloud, streaming)

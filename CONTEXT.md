@@ -24,6 +24,10 @@ _Avoid_: Payment, transfer
 The financial-purpose label assigned to a transaction.
 _Avoid_: Tag, merchant
 
+**Subcategory**:
+A more specific channel or purpose nested under a Category, such as Delivery under Alimentação or Transporte por aplicativo under Transporte. It refines analysis without replacing the parent Category.
+_Avoid_: Separate top-level category, merchant
+
 **Rule**:
 A reusable classification association learned for one user or provided as a global default.
 _Avoid_: Category, alert rule

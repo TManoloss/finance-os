@@ -491,8 +491,12 @@ func (h *ReportsHandler) GetMealCost(c echo.Context) error {
 
 // GetConvenienceIndex retorna o relatório de índice de conveniência.
 func (h *ReportsHandler) GetConvenienceIndex(c echo.Context) error {
-	periodKey := time.Now().Format("2006-01")
-	return h.getCachedOrTrigger(c, "convenience_analysis", periodKey)
+	userID := c.Get("user_id").(string)
+	result, err := h.visualReportsService.GetConvenienceIndex(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao calcular índice de conveniência")
+	}
+	return response.Success(c, http.StatusOK, result)
 }
 
 // GetTicketAnalysis retorna o relatório de análise de tickets.

@@ -4,8 +4,74 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 )
+
+// GetConvenienceIndex identifica canais de conveniência e preserva a categoria
+// principal/subcategoria para que Delivery não seja confundido com Alimentação.
+func (s *VisualReportsService) GetConvenienceIndex(ctx context.Context, userID string) (map[string]interface{}, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT t.amount, COALESCE(t.merchant_name,''), t.description,
+		COALESCE(c.name,''), COALESCE(parent.name,'')
+		FROM transactions t JOIN connected_accounts a ON a.id=t.account_id
+		LEFT JOIN categories c ON c.id=t.category_id
+		LEFT JOIN categories parent ON parent.id=c.parent_id
+		WHERE a.user_id=$1 AND t.direction='debit' AND t.date >= CURRENT_DATE - INTERVAL '90 days'
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	channels := map[string]map[string]interface{}{}
+	var totalSpent, totalIncome float64
+	for rows.Next() {
+		var amount float64
+		var merchant, description, category, parent string
+		if err := rows.Scan(&amount, &merchant, &description, &category, &parent); err != nil {
+			return nil, err
+		}
+		totalSpent += amount
+		text := strings.ToLower(merchant + " " + description + " " + category)
+		channel := ""
+		if strings.Contains(text, "ifood") || strings.Contains(text, "rappi") || strings.Contains(text, "uber eats") || strings.Contains(text, "delivery") || category == "Delivery" {
+			channel = "delivery"
+		}
+		if channel == "" && (strings.Contains(text, "uber") || strings.Contains(text, "99app") || category == "Transporte por aplicativo") {
+			channel = "transporte_por_aplicativo"
+		}
+		if channel == "" && (category == "Loja de conveniência" || strings.Contains(text, "conveniência") || strings.Contains(text, "conveniencia")) {
+			channel = "loja_de_conveniencia"
+		}
+		if channel != "" {
+			entry, ok := channels[channel]
+			if !ok {
+				entry = map[string]interface{}{"spent": 0.0, "count": 0, "category": parent}
+				channels[channel] = entry
+			}
+			entry["spent"] = entry["spent"].(float64) + amount
+			entry["count"] = entry["count"].(int) + 1
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := s.db.QueryRow(ctx, `SELECT COALESCE(SUM(amount) FILTER (WHERE direction='credit'),0) FROM transactions t JOIN connected_accounts a ON a.id=t.account_id WHERE a.user_id=$1 AND t.date >= CURRENT_DATE - INTERVAL '90 days'`, userID).Scan(&totalIncome); err != nil {
+		return nil, err
+	}
+	for name, entry := range channels {
+		spent := entry["spent"].(float64)
+		entry["name"] = name
+		entry["monthly_spent"] = spent / 3
+		entry["premium_assumption_percent"] = 60
+		entry["estimated_premium_monthly"] = (spent - spent/1.6) / 3
+	}
+	convenienceTotal := 0.0
+	for _, entry := range channels {
+		convenienceTotal += entry["spent"].(float64)
+	}
+	return map[string]interface{}{"period_days": 90, "total_spent": totalSpent, "total_income": totalIncome, "convenience_spent": convenienceTotal, "monthly_convenience_spent": convenienceTotal / 3, "convenience_percentage": math.Round(convenienceTotal/math.Max(totalSpent, 1)*1000) / 10, "by_channel": channels, "quality": map[bool]string{true: "high", false: "low"}[totalSpent > 0], "note": "O prêmio é uma estimativa comparativa; a categoria e o canal vêm das transações classificadas."}, nil
+}
 
 // GetBehavioralInsights calcula padrões observáveis sem depender de um provedor de IA.
 func (s *VisualReportsService) GetBehavioralInsights(ctx context.Context, userID string) (map[string]interface{}, error) {
@@ -143,11 +209,25 @@ func (s *VisualReportsService) GetProjections(ctx context.Context, userID string
 	`, userID).Scan(&installments); err != nil {
 		return nil, err
 	}
+	months := buildProjectionMonths(time.Now(), balance, income, expense, installments)
+	return map[string]interface{}{"period_days": 90, "starting_balance": balance, "average_monthly_income": income, "average_monthly_expense": expense, "monthly_commitments": installments, "months": months, "quality": map[bool]string{true: "high", false: "low"}[income+expense > 0]}, nil
+}
+
+func buildProjectionMonths(start time.Time, balance, income, expense, commitments float64) []map[string]interface{} {
 	months := make([]map[string]interface{}, 0, 3)
 	running := balance
 	for i := 1; i <= 3; i++ {
-		running += income - expense - installments
-		months = append(months, map[string]interface{}{"month": time.Now().AddDate(0, i, 0).Format("2006-01"), "starting_balance": running - income + expense + installments, "income": income, "expenses": expense, "commitments": installments, "ending_balance": running, "negative": running < 0})
+		starting := running
+		running += income - expense - commitments
+		months = append(months, map[string]interface{}{
+			"month":            start.AddDate(0, i, 0).Format("2006-01"),
+			"starting_balance": starting,
+			"income":           income,
+			"expenses":         expense,
+			"commitments":      commitments,
+			"ending_balance":   running,
+			"negative":         running < 0,
+		})
 	}
-	return map[string]interface{}{"period_days": 90, "starting_balance": balance, "average_monthly_income": income, "average_monthly_expense": expense, "monthly_commitments": installments, "months": months, "quality": map[bool]string{true: "high", false: "low"}[income+expense > 0]}, nil
+	return months
 }
