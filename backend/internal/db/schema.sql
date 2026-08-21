@@ -54,9 +54,10 @@ SELECT NULL, base.name, base.color, base.icon
 FROM (VALUES
     ('Alimentação', '#FF6B6B', 'restaurant'), ('Transporte', '#4D96FF', 'directions_car'),
     ('Saúde', '#6BCB77', 'medical_services'), ('Lazer', '#FFD93D', 'celebration'),
-    ('Assinaturas', '#7C6FFF', 'subscriptions'), ('Moradia', '#FF9F45', 'home'),
+    ('Contas', '#64748B', 'receipt_long'), ('Compras', '#F97316', 'shopping_bag'),
+    ('Financeiro', '#14B8A6', 'account_balance'), ('Assinaturas', '#7C6FFF', 'subscriptions'), ('Moradia', '#FF9F45', 'home'),
     ('Educação', '#A084E8', 'school'), ('Investimentos', '#4ECDC4', 'trending_up'),
-    ('Renda', '#19A7CE', 'payments'), ('Pet', '#FF85B3', 'pets'),
+    ('Renda', '#19A7CE', 'payments'), ('Pet', '#FF85B3', 'pets'), ('Transferência', '#94A3B8', 'swap_horiz'),
     ('Emergências', '#FF4949', 'report_problem'), ('Outros', '#8888A0', 'more_horiz')
 ) AS base(name, color, icon)
 WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = base.name);
@@ -78,6 +79,95 @@ FROM (VALUES
 ) AS child(name, icon)
 JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Transporte'
 WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Moradia', 'home'), ('Energia', 'bolt'), ('Água', 'water_drop'),
+    ('Internet e telefonia', 'wifi'), ('Seguros', 'shield'), ('Impostos e taxas', 'receipt')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Contas'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Investimentos', 'trending_up'), ('Tarifas e juros', 'percent'), ('Impostos', 'account_balance_wallet')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Financeiro'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Vestuário', 'checkroom'), ('Casa', 'chair'), ('Eletrônicos', 'devices'), ('Marketplace', 'storefront')
+) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Compras'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Farmácia', 'medication'), ('Consultas', 'medical_information'), ('Exames', 'science'), ('Plano de saúde', 'health_and_safety')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Saúde'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Cinema e eventos', 'local_activity'), ('Viagens', 'flight'), ('Hobbies', 'sports_esports'), ('Jogos', 'sports_esports')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Lazer'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Streaming', 'play_circle'), ('Software', 'apps'), ('Nuvem', 'cloud')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Assinaturas'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Cursos', 'school'), ('Escola e faculdade', 'school'), ('Livros', 'menu_book')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Educação'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Salário', 'payments'), ('Freelance', 'work'), ('Vendas', 'sell'), ('Rendimentos', 'savings')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Renda'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Ração', 'pets'), ('Veterinário', 'medical_services'), ('Higiene', 'cleaning_services')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Pet'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Multas', 'gavel'), ('Reparos', 'build'), ('Imprevistos', 'warning')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Emergências'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+INSERT INTO categories (user_id, name, color, icon, parent_id)
+SELECT NULL, child.name, parent.color, child.icon, parent.id
+FROM (VALUES
+    ('Entre contas', 'swap_horiz'), ('Pix pessoal', 'payments'), ('Pagamento de fatura', 'credit_card')) AS child(name, icon)
+JOIN categories parent ON parent.user_id IS NULL AND parent.name = 'Transferência'
+WHERE NOT EXISTS (SELECT 1 FROM categories existing WHERE existing.user_id IS NULL AND existing.name = child.name AND existing.parent_id = parent.id);
+
+-- Categorias antigas que mudaram de grupo continuam apontando para os mesmos lançamentos.
+UPDATE categories child SET parent_id = parent.id
+FROM categories parent
+WHERE child.user_id IS NULL AND parent.user_id IS NULL
+  AND ((child.name = 'Moradia' AND parent.name = 'Contas')
+    OR (child.name = 'Investimentos' AND parent.name = 'Financeiro'))
+  AND child.id <> parent.id;
 
 CREATE INDEX IF NOT EXISTS idx_connected_accounts_user_id ON connected_accounts(user_id);
 ALTER TABLE connected_accounts DROP CONSTRAINT IF EXISTS connected_accounts_pluggy_account_id_key;

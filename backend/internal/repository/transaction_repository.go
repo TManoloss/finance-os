@@ -105,13 +105,14 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 		SELECT 
 			t.id, t.account_id, t.amount, t.direction, t.description, t.merchant_name, t.date,
 			t.is_recurring, t.confidence_score, t.needs_review,
-			c.id as category_id, c.name as category_name, c.color as category_color,
+			c.id as category_id, c.name as category_name, c.color as category_color, parent.name as category_parent_name,
 			COALESCE(NULLIF(acc.connection_label, ''),
 				'Conta • final ' || NULLIF(acc.account_number_last4, ''),
 				acc.institution_name) as account_name
 		FROM transactions t
 		JOIN connected_accounts acc ON t.account_id = acc.id
 		LEFT JOIN categories c ON t.category_id = c.id
+		LEFT JOIN categories parent ON parent.id = c.parent_id
 		WHERE acc.user_id = $1
 	`
 	args := []interface{}{f.UserID}
@@ -179,25 +180,26 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 	transactions := []map[string]interface{}{}
 	for rows.Next() {
 		var tx struct {
-			ID            string
-			AccountID     string
-			Amount        float64
-			Direction     string
-			Description   string
-			MerchantName  *string
-			Date          time.Time
-			IsRecurring   bool
-			Confidence    *float64
-			NeedsReview   bool
-			CategoryID    *string
-			CategoryName  *string
-			CategoryColor *string
-			AccountName   string
+			ID             string
+			AccountID      string
+			Amount         float64
+			Direction      string
+			Description    string
+			MerchantName   *string
+			Date           time.Time
+			IsRecurring    bool
+			Confidence     *float64
+			NeedsReview    bool
+			CategoryID     *string
+			CategoryName   *string
+			CategoryColor  *string
+			CategoryParent *string
+			AccountName    string
 		}
 		err := rows.Scan(
 			&tx.ID, &tx.AccountID, &tx.Amount, &tx.Direction, &tx.Description, &tx.MerchantName, &tx.Date,
 			&tx.IsRecurring, &tx.Confidence, &tx.NeedsReview,
-			&tx.CategoryID, &tx.CategoryName, &tx.CategoryColor, &tx.AccountName,
+			&tx.CategoryID, &tx.CategoryName, &tx.CategoryColor, &tx.CategoryParent, &tx.AccountName,
 		)
 		if err != nil {
 			return nil, 0, err
@@ -223,9 +225,10 @@ func (r *pgTransactionRepository) GetTransactions(ctx context.Context, f Transac
 
 		if tx.CategoryID != nil {
 			item["category"] = map[string]interface{}{
-				"id":    *tx.CategoryID,
-				"name":  tx.CategoryName,
-				"color": tx.CategoryColor,
+				"id":          *tx.CategoryID,
+				"name":        tx.CategoryName,
+				"color":       tx.CategoryColor,
+				"parent_name": tx.CategoryParent,
 			}
 		}
 

@@ -12,6 +12,35 @@ STATIC_RULES = {
 	r"PADARIA|PANIFICADORA": "Padaria",
 	r"RESTAURANTE|LANCHONETE|DOCERIA|SORVETERIA|CAFE|COFFEE|BURGER|MCDONALDS|BK |SPOLETO|OAKBERRY|CHURRASCARIA|PIZZARIA|HAMBURGUERIA|GARCIA": "Restaurante",
 	r"CONVENIENCIA|CONVENIÊNCIA|AM/PM|BR MANIA": "Loja de conveniência",
+	# Subcategorias de contas e financeiro
+	r"ALUGUEL|CONDOMINIO|CONDOMÍNIO|IMOBILIARIA|IMOBILIÁRIA": "Moradia",
+	r"COPEL|ENEL|LIGHT|CELESC|ENERGIA|CONTA DE LUZ": "Energia",
+	r"SANEPAR|SABESP|SANEAMENTO|CONTA DE AGUA|CONTA DE ÁGUA": "Água",
+	r"INTERNET|VIVO|CLARO|TIM|OI |TELEFONE|TELECOM": "Internet e telefonia",
+	r"SEGURO|PORTO SEGURO|SULAMERICA|SULAMÉRICA": "Seguros",
+	r"IPTU|IPVA|DARF|IMPOSTO|TAXA MUNICIPAL": "Impostos e taxas",
+	r"TARIFA|TARIFAS|JUROS|IOF|ENCARGO": "Tarifas e juros",
+	r"INVESTIMENTOS|CDB|TESOURO|APORT|XP INVESTIMENTOS|BTG PACTUAL|CORRETORA|NUINVEST|INTER INVEST": "Investimentos",
+	# Subcategorias de compras
+	r"SHOPEE|MERCADO.?LIVRE|MAGAZINE.*LUIZA|CASAS.*BAHIA|ALIEXPRESS|SHEIN": "Marketplace",
+	r"ROUPA|VESTUARIO|VESTUÁRIO|CALCADO|CALÇADO|RENNER|RIACHUELO|ZARA": "Vestuário",
+	r"ELETRONICO|ELETRÔNICO|CELULAR|NOTEBOOK|COMPUTADOR|KABUM": "Eletrônicos",
+	# Subcategorias de saúde, lazer, assinaturas e educação
+	r"DROGASIL|RAIA|PACHECO|FARMACIA|FARMÁCIA|DROGARIA": "Farmácia",
+	r"CLINICA|CLÍNICA|MEDICO|MÉDICO|DENTISTA|ODONTO|CONSULTA": "Consultas",
+	r"EXAME|LABORATORIO|LABORATÓRIO|RESSONANCIA|RESSONÂNCIA": "Exames",
+	r"UNIMED|AMIL|BRADESCO SAUDE|BRADESCO SAÚDE|PLANO DE SAUDE|PLANO DE SAÚDE": "Plano de saúde",
+	r"CINEMA|CINE |SHOW|TEATRO|EVENTO|INGRESSO": "Cinema e eventos",
+	r"VIAGEM|HOTEL|AIRBNB|DECOLAR|BOOKING|TURISMO": "Viagens",
+	r"NETFLIX|SPOTIFY|DISNEYPLUS|HBO|AMAZON PRIME|CRUNCHYROLL|YOUTUBE": "Streaming",
+	r"CANVA|ADOBE|MICROSOFT 365|GOOGLE.*STORAGE|ICLOUD|SOFTWARE": "Software",
+	r"CURSO|UDEMY|HOTMART|ALURA": "Cursos",
+	r"LIVRO|LIVRARIA|KINDLE": "Livros",
+	# Subcategorias de renda e transferências
+	r"SALARIO|SALÁRIO|PROVENTO|FOLHA DE PAGAMENTO|PR[ÓO]?-LABORE": "Salário",
+	r"FREELA|FREELANCE|SERVIÇO PRESTADO|SERVIÇO": "Freelance",
+	r"VENDA|VENDA RECEBIDA|VENDEDOR": "Vendas",
+	r"DIVIDENDO|RENDIMENTO|RESGATE": "Rendimentos",
 	# Subcategorias de transporte
 	r"UBER|99APP|99 TAXI|CABIFY": "Transporte por aplicativo",
 	r"POSTO|GASOLINA|COMBUSTIVEL|SHELL|IPIRANGA|PETROBRAS|ALCOOL|ETANOL|AUTO POSTO": "Combustível",
@@ -62,16 +91,24 @@ Sua tarefa é receber os dados de uma transação e retornar o nome da categoria
 
 ATENÇÃO: No Brasil, muitas transações Pix/Transferência são gastos reais. Se a descrição contiver um nome de empresa (ex: GARCIA HAMBURGUERIA, UBER, IFOOD), ignore o fato de ser uma "Transferência" e classifique pelo estabelecimento.
 
-Categorias disponíveis (as subcategorias mantêm a categoria pai):
+Categorias disponíveis (retorne a subcategoria quando houver; ela mantém a categoria pai):
+- Contas > Moradia, Energia, Água, Internet e telefonia, Seguros, Impostos e taxas
 - Alimentação > Delivery, Restaurante, Mercado, Padaria, Loja de conveniência
-- Transporte (uber, 99, combustível, estacionamento, pedágio)
 - Transporte > Transporte por aplicativo, Combustível, Transporte público
+- Compras > Vestuário, Casa, Eletrônicos, Marketplace
+- Financeiro > Investimentos, Tarifas e juros, Impostos
+- Saúde > Farmácia, Consultas, Exames, Plano de saúde
+- Lazer > Cinema e eventos, Viagens, Hobbies, Jogos
+- Assinaturas > Streaming, Software, Nuvem
+- Educação > Cursos, Escola e faculdade, Livros
+- Renda > Salário, Freelance, Vendas, Rendimentos
+- Pet > Ração, Veterinário, Higiene
+- Emergências > Multas, Reparos, Imprevistos
+- Transferência > Entre contas, Pix pessoal, Pagamento de fatura
 - Saúde (farmácias, hospitais, consultas, exames)
-- Lazer (cinema, shows, viagens, hobbies, compras de variedades, shopee, amazon)
-- Assinaturas (netflix, spotify, saas, icloud, streaming)
-- Moradia (aluguel, condomínio, luz, água, internet, materiais de construção)
+- Lazer (cinema, shows, viagens, hobbies)
+- Assinaturas (streaming, software, nuvem)
 - Educação (cursos, livros, mensalidades, escolas)
-- Investimentos (corretoras, aportes, bolsa)
 - Renda (salário, dividendos, vendas, pix recebido de clientes)
 - Pet (petshop, veterinário, ração)
 - Emergências (imprevistos, multas)
