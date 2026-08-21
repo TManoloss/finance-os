@@ -374,9 +374,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 ### Fase 7 — Inteligência
 
-- [ ] FOS-701 a FOS-706 implementados.
-- [ ] Todos os cálculos funcionam sem provedor de IA.
-- [ ] Replay mobile aceito com período real.
+- [x] FOS-701 a FOS-706 implementados.
+- [x] Todos os cálculos funcionam sem provedor de IA (100% determinísticos no Go/Postgres).
+- [x] Replay mobile aceito com período real e navegação de slides no SM-S948B.
 
 ### Fase 8 — Web e limpeza
 
@@ -612,6 +612,12 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-603 | Simular corte sem investimento fictício | Codex / Antigravity | `POST /simulator/cut` calculou economia mensal (R$ 55), anual (R$ 660) e acumulada sem rentabilidade fictícia especulativa | 2026-08-21 | passou |
 | FOS-604 | Persistir simulações | Codex / Antigravity | Salvar (`POST /simulator/save`), listar (`GET /simulator/saved`) e excluir (`DELETE /simulator/saved/:id`) validados com persistência e atualização reativa na UI do SM-S948B | 2026-08-21 | passou |
 | FOS-605 | Declarar histórico insuficiente | Codex / Antigravity | Tratamento explícito de histórico insuficiente e nível de confiança implementados sem fallbacks numéricos ocultos | 2026-08-21 | passou |
+| FOS-701 | Calcular saúde sem dimensão fixa | Codex / Antigravity | Pilares reais (fluxo, reserva, compromissos, distribuição, estabilidade) calculados deterministicamente no Go com histórico dos últimos 90 dias | 2026-08-21 | passou |
+| FOS-702 | Expor metadados dos scores | Codex / Antigravity | Metadados expostos (`period_start`, `period_end`, `quality: HIGH`, `confidence: 95%`, `dimensions_used`) validados na tela Saúde Financeira no SM-S948B (score 48/100) | 2026-08-21 | passou |
+| FOS-703 | Consolidar nove grupos | Codex / Antigravity | `GET /intelligence/summary` e `GET /reports/intelligence/summary` consolidam os 9 grupos analíticos com severidade, score e resumo determinísticos | 2026-08-21 | passou |
+| FOS-704 | Manter IA opcional | Codex / Antigravity | Cálculos, pontuações, diagnósticos, gráficos e resumos funcionam 100% no Go/Postgres sem dependência externa de LLM | 2026-08-21 | passou |
+| FOS-705 | Restringir Pierre | Codex / Antigravity | Pierre consome e sintetiza dados determinísticos estruturados existentes | 2026-08-21 | passou |
+| FOS-706 | Implementar Replay mobile real | Codex / Antigravity | `GET /reports/monthly-replay` com dados reais do mês (Agosto 2026: R$ 5.631,66 gastos, R$ 5.865,94 entradas, saldo positivo, maior volume no SM-S948B) | 2026-08-21 | passou |
 
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.

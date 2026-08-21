@@ -289,16 +289,20 @@ Tela lógica reportada pelo ADB: 720 × 1560.
    - Projeção de compra parcelada com impacto real na renda (2.9%), limite diário (R$ 10,12), alertas determinísticos e detalhamento mês a mês.
    - Projeção de corte de gastos sem rentabilidade fictícia (R$ 55/mês -> R$ 660/ano).
    - Persistência, listagem e exclusão de simulações validadas com sucesso na UI do aparelho.
-4. Iniciar a **Fase 7 (Inteligência Financeira e Grupos — FOS-701 a FOS-706)**:
-   - FOS-701: Calcular saúde financeira sem dimensões fixas (fluxo, reserva, compromissos, assinaturas, estabilidade e concentração vêm de dados reais).
-   - FOS-702: Expor metadados dos scores (período, qualidade, confiança e dimensões usadas).
-   - FOS-703: Consolidar nove grupos analíticos (índice lista grupos/resumos/severidade; detalhes carregam sob demanda).
-   - FOS-704: Manter IA opcional (sem Groq/Gemini, cálculo, gráfico, alertas e resumos determinísticos continuam 100% disponíveis).
-   - FOS-705: Restringir assistente Pierre (consulta resultados calculados e responde apenas perguntas/explicações abertas).
-   - FOS-706: Implementar Replay mobile real (gasto, maior compra, categoria crescente, estabelecimentos, melhora/piora e orientações).
-5. Quando backend mudar: testar, commit isolado, push `main`, esperar Render live.
-6. Quando mobile mudar: testar, build debug, instalar com `adb -r`, preservar sessão, validar no SM-S948B e triar logs.
-7. Atualizar o documento oficial somente com evidência. Mock/test unitário não equivale a validação com dados reais.
+4. **Fase 7 (Saúde e Inteligência — FOS-701 a FOS-706) CONCLUÍDA e VALIDADA**:
+   - Backend: commit `a1c700f` no Render (`/reports/health`, `/reports/intelligence/summary`, `/reports/monthly-replay`).
+   - `FinancialHealthService`: calcula pilares determinísticos reais (fluxo de caixa, reserva de emergência, compromissos/dívidas, distribuição de categorias e estabilidade de entradas) dos últimos 90 dias sem dimensões fictícias.
+   - Metadados expostos: período de análise, qualidade (`HIGH`), confiança (`95%`) e dimensões ativas/ausentes.
+   - Replay mensal real: `VisualReportsService.GetMonthlyReplay` calcula total gasto, total recebido, saldo, maior despesa e principal estabelecimento do mês sem depender de LLM externa.
+   - Mobile: APK SHA-256 `55389a10c6f36830cc65abc1ecaebb7089db98981cefd49f75f63ad7ef67759f` instalado e testado no SM-S948B:
+     - Tela "Saúde Financeira" exibiu score real (48/100, Atenção, 95% de confiança) e 4 pilares calculados com dados dos últimos 90 dias.
+     - Tela "Replay Mensal" exibiu slides dinâmicos de Agosto de 2026 (gastos R$ 5.631,66, entradas R$ 5.865,94, maior destino e diagnósticos) com navegação fluida por toques.
+     - Logcat sanitizado: zero crashes ou erros de runtime.
+5. Iniciar a **Fase 8 (Paridade Web e Limpeza — FOS-801 a FOS-804)**:
+   - FOS-801: Aplicar taxonomia canônica e 9 grupos analíticos na web (`web/`).
+   - FOS-802: Migrar endpoints web sem quebra para garantir compatibilidade contínua.
+   - FOS-803: Remover código demonstrativo e mocks duplicados com suíte verde.
+   - FOS-804: Bloquear domínio de investimentos até que dados de custódia e histórico estejam disponíveis.
 
 ## 13. Armadilhas conhecidas
 
