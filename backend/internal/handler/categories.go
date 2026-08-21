@@ -21,10 +21,10 @@ func (h *CategoriesHandler) ListCategories(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 
 	query := `
-		SELECT id, name, color, icon, user_id
+		SELECT DISTINCT ON (LOWER(name)) id, name, color, icon, user_id
 		FROM categories
 		WHERE user_id = $1 OR user_id IS NULL
-		ORDER BY name ASC
+		ORDER BY LOWER(name), (user_id IS NOT NULL) DESC, created_at DESC
 	`
 	rows, err := h.db.Query(c.Request().Context(), query, userID)
 	if err != nil {
@@ -46,10 +46,10 @@ func (h *CategoriesHandler) ListCategories(c echo.Context) error {
 		}
 
 		categories = append(categories, map[string]interface{}{
-			"id":      cat.ID,
-			"name":    cat.Name,
-			"color":   cat.Color,
-			"icon":    cat.Icon,
+			"id":        cat.ID,
+			"name":      cat.Name,
+			"color":     cat.Color,
+			"icon":      cat.Icon,
 			"is_system": cat.UserID == nil,
 		})
 	}
