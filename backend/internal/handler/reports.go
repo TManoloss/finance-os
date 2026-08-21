@@ -20,9 +20,10 @@ type ReportsHandler struct {
 	impulseRadarService  *service.ImpulseRadarService
 	gamificationService  *service.GamificationService
 	visualReportsService *service.VisualReportsService
+	healthService        *service.FinancialHealthService
 }
 
-func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService, gamificationService *service.GamificationService, visualReportsService *service.VisualReportsService) *ReportsHandler {
+func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService *service.SurvivalModeService, impulseRadarService *service.ImpulseRadarService, gamificationService *service.GamificationService, visualReportsService *service.VisualReportsService, healthService *service.FinancialHealthService) *ReportsHandler {
 	return &ReportsHandler{
 		db:                   db,
 		cfg:                  cfg,
@@ -30,6 +31,7 @@ func NewReportsHandler(db *pgxpool.Pool, cfg *config.Config, survivalModeService
 		impulseRadarService:  impulseRadarService,
 		gamificationService:  gamificationService,
 		visualReportsService: visualReportsService,
+		healthService:        healthService,
 	}
 }
 
@@ -211,9 +213,28 @@ func (h *ReportsHandler) GetProjections(c echo.Context) error {
 	return response.Success(c, http.StatusOK, result)
 }
 
-// GetHealthScore retorna o score de saúde financeira e recomendações.
+// GetHealthScore retorna o score de saúde financeira determinístico (FOS-701, FOS-702).
 func (h *ReportsHandler) GetHealthScore(c echo.Context) error {
-	return response.Error(c, http.StatusServiceUnavailable, "saúde financeira indisponível até todas as dimensões usarem dados reais")
+	userID := c.Get("user_id").(string)
+
+	score, err := h.healthService.CalculateHealthScore(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao calcular score de saúde")
+	}
+
+	return response.Success(c, http.StatusOK, score)
+}
+
+// GetIntelligenceSummary retorna o resumo consolidado dos 9 grupos analíticos (FOS-703, FOS-704).
+func (h *ReportsHandler) GetIntelligenceSummary(c echo.Context) error {
+	userID := c.Get("user_id").(string)
+
+	summary, err := h.healthService.GetConsolidatedIntelligence(c.Request().Context(), userID)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "erro ao obter resumo analítico")
+	}
+
+	return response.Success(c, http.StatusOK, summary)
 }
 
 // GetTopMerchants retorna a lista de principais estabelecimentos.

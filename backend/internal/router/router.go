@@ -37,12 +37,13 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	gamificationService := service.NewGamificationService(db)
 	visualReportsService := service.NewVisualReportsService(db, cfg)
 	simulatorService := service.NewSimulatorService(db)
+	healthService := service.NewFinancialHealthService(db, survivalModeService, impulseRadarService)
 
 	// Inicializa handlers
 	authH := handler.NewAuthHandler(authService, cfg)
 	accountsH := handler.NewAccountsHandler(db, syncService, encryptionService, userRepo, cfg)
 	transactionsH := handler.NewTransactionsHandler(txRepo, classifierService)
-	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService, impulseRadarService, gamificationService, visualReportsService)
+	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService, impulseRadarService, gamificationService, visualReportsService, healthService)
 	cardsH := handler.NewCardsHandler(installmentService, subscriptionService)
 	chatH := handler.NewChatHandler(cfg)
 	categoriesH := handler.NewCategoriesHandler(db)
@@ -136,8 +137,16 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	reports.GET("/loyalty", reportsH.GetLoyalty)
 	reports.GET("/dependency-map", reportsH.GetDependencyMap)
 	reports.GET("/monthly-replay", reportsH.GetMonthlyReplay)
+	reports.GET("/replay", reportsH.GetMonthlyReplay)
 	reports.GET("/spending-heatmap", reportsH.GetSpendingHeatmap)
+	reports.GET("/health", reportsH.GetHealthScore)
+	reports.GET("/intelligence/summary", reportsH.GetIntelligenceSummary)
 	reports.POST("/trigger/:type", reportsH.TriggerAgent)
+
+	// Intelligence (consolidated 9 groups)
+	intelligence := protected.Group("/intelligence")
+	intelligence.GET("/summary", reportsH.GetIntelligenceSummary)
+	intelligence.GET("/health", reportsH.GetHealthScore)
 
 	// Merchants
 	merchants := protected.Group("/merchants")
