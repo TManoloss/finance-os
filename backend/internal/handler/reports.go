@@ -600,10 +600,17 @@ func (h *ReportsHandler) GetMonthlyReplay(c echo.Context) error {
 	userID := c.Get("user_id").(string)
 	month := c.QueryParam("month") // YYYY-MM
 	if month == "" {
-		month = time.Now().Format("2006-01")
+		loc, err := time.LoadLocation("America/Sao_Paulo")
+		if err != nil {
+			return response.Error(c, http.StatusInternalServerError, "erro ao configurar horário financeiro")
+		}
+		month = time.Now().In(loc).Format("2006-01")
+	}
+	if _, err := time.Parse("2006-01", month); err != nil {
+		return response.Error(c, http.StatusBadRequest, "mês inválido; use o formato AAAA-MM")
 	}
 
-	result, err := h.visualReportsService.GetMonthlyReplay(userID, month)
+	result, err := h.visualReportsService.GetMonthlyReplay(c.Request().Context(), userID, month)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "erro ao obter monthly replay")
 	}

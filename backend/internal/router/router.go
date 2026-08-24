@@ -47,7 +47,7 @@ func Setup(e *echo.Echo, db *pgxpool.Pool, cfg *config.Config) {
 	transactionsH.SetGoalsService(goalsService)
 	reportsH := handler.NewReportsHandler(db, cfg, survivalModeService, impulseRadarService, gamificationService, visualReportsService, healthService)
 	cardsH := handler.NewCardsHandler(installmentService, subscriptionService)
-	chatH := handler.NewChatHandler(cfg)
+	chatH := handler.NewChatHandler(cfg, healthService, visualReportsService)
 	categoriesH := handler.NewCategoriesHandler(db)
 	feedH := handler.NewFeedHandler(feedService)
 	goalsH := handler.NewGoalsHandler(goalsService, cfg)

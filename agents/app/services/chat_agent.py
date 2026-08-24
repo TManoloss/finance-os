@@ -1,81 +1,72 @@
 import json
 from app.services.base_agent import BaseAgent
 from app.models.chat import ChatRequest
-from agents.cfo_agent import CFOAgent
 
 CHAT_SYSTEM_PROMPT = """
-Você é o Pierre, um assistente financeiro pessoal inteligente e amigável.
-Sua missão é ajudar o usuário a entender suas finanças, responder perguntas sobre gastos e dar dicas de economia.
+Você é o Pierre, o explicador opcional do FinanceOS.
+Sua missão é responder perguntas abertas e explicar resultados que já foram calculados pelo FinanceOS.
 
 Diretrizes de Resposta:
-1. Use os dados contextuais fornecidos para responder com precisão.
-2. Use formatação MARKDOWN para tornar a resposta visual e organizada:
+1. Use somente os resultados calculados no contexto fornecido.
+2. Não calcule métricas novas, não invente valores e não trate inferências como fatos.
+3. Se o contexto não contiver a resposta, diga explicitamente que não há dados suficientes.
+4. O FinanceOS não envia, recebe ou paga dinheiro e não executa investimentos.
+5. Use formatação MARKDOWN para tornar a resposta visual e organizada:
    - Use **negrito** para destacar valores ou estabelecimentos.
    - Use TABELAS para comparar gastos ou listar itens.
    - Use listas com marcadores para dicas ou recomendações.
-3. Seja conciso, mas útil.
-4. Use um tom amigável e informal, mas profissional.
-5. Fale sempre em português do Brasil.
+6. Seja conciso, útil e profissional.
+7. Fale sempre em português do Brasil.
 
-Contexto do Usuário (JSON):
+Resultados calculados do Usuário (JSON):
 {context}
 """
 
+
+def build_fallback_response(context: dict) -> str:
+    parts = [
+        "A explicação por IA está indisponível agora, mas seus cálculos continuam disponíveis."
+    ]
+    intelligence = context.get("intelligence") or {}
+    score = intelligence.get("overall_health_score")
+    if isinstance(score, (int, float)):
+        status = {
+            "excellent": "excelente",
+            "good": "boa",
+            "fair": "regular",
+            "attention": "em atenção",
+            "critical": "crítica",
+        }.get(intelligence.get("health_status"), "sem classificação")
+        parts.append(
+            f"Sua saúde financeira está em **{score:.0f}/100** ({status})."
+        )
+
+    replay = context.get("monthly_replay") or {}
+    parts.extend(str(item) for item in replay.get("insights", []) if item)
+    guidance = replay.get("next_month_guidance")
+    if guidance:
+        parts.append(str(guidance))
+
+    return "\n\n".join(parts)
+
+
 class ChatAgent(BaseAgent):
-    def __init__(self):
-        super().__init__()
-        self.cfo_agent = CFOAgent()
-
     async def run(self, chat_req: ChatRequest):
-        # 1. Detectar se a pergunta é uma explicação de gastos
-        explanation_keywords = ["por que", "explica", "o que aconteceu", "por que gastei", "motivo do gasto"]
-        message_lower = chat_req.message.lower()
-        
-        if any(kw in message_lower for kw in explanation_keywords):
-            result = await self.cfo_agent.explain_period_spending(chat_req.user_id, chat_req.message)
-            return {"response": result["explanation"], "is_explanation": True, "context": result["context"]}
-
-        conn = await self.get_db_connection()
+        context = chat_req.context or {}
+        system_prompt = CHAT_SYSTEM_PROMPT.format(
+            context=json.dumps(context, default=str)
+        )
+        history = "".join(
+            f"{message.role}: {message.content}\n" for message in chat_req.history[-10:]
+        )
         try:
-            # 2. Buscar Contexto Relevante (Últimas transações e resumo do mês)
-            rows = await conn.fetch("""
-                SELECT t.description, t.amount, t.direction, t.date, c.name as category
-                FROM transactions t
-                JOIN connected_accounts acc ON t.account_id = acc.id
-                LEFT JOIN categories c ON t.category_id = c.id
-                WHERE acc.user_id = $1
-                ORDER BY t.date DESC
-                LIMIT 20
-            """, chat_req.user_id)
-            
-            summary_rows = await conn.fetch("""
-                SELECT c.name as category, SUM(t.amount) as total
-                FROM transactions t
-                JOIN connected_accounts acc ON t.account_id = acc.id
-                JOIN categories c ON t.category_id = c.id
-                WHERE acc.user_id = $1 AND t.direction = 'debit' AND t.date >= date_trunc('month', now())
-                GROUP BY c.name
-            """, chat_req.user_id)
-
-            context_data = {
-                "recent_transactions": [dict(r) for r in rows],
-                "monthly_spending_by_category": [dict(r) for r in summary_rows]
+            response_text = await self.llm.completion(
+                f"{history}user: {chat_req.message}", system_prompt=system_prompt
+            )
+            return {"response": response_text, "source": "calculated_results"}
+        except Exception:
+            return {
+                "response": build_fallback_response(context),
+                "source": "deterministic_fallback",
+                "fallback": True,
             }
-            
-            # 3. Montar Prompt com Histórico
-            system_prompt = CHAT_SYSTEM_PROMPT.format(context=json.dumps(context_data, default=str))
-            
-            # Simula histórico de mensagens para o LLM
-            full_prompt = ""
-            if chat_req.history:
-                for msg in chat_req.history:
-                    full_prompt += f"{msg.role}: {msg.content}\n"
-            full_prompt += f"user: {chat_req.message}"
-
-            # 4. Chamar LLM
-            response_text = await self.llm.completion(full_prompt, system_prompt=system_prompt)
-            
-            return {"response": response_text}
-
-        finally:
-            await conn.close()
