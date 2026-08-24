@@ -6,8 +6,14 @@ from app.services.chat_agent import ChatAgent
 
 
 class FakeLLM:
-    def __init__(self, *, fail=False):
+    def __init__(
+        self,
+        *,
+        fail=False,
+        response="Explicação baseada nos resultados calculados.",
+    ):
         self.fail = fail
+        self.response = response
         self.prompt = None
         self.system_prompt = None
 
@@ -16,7 +22,7 @@ class FakeLLM:
         self.system_prompt = system_prompt
         if self.fail:
             raise RuntimeError("LLM indisponível")
-        return "Explicação baseada nos resultados calculados."
+        return self.response
 
 
 def make_agent(llm):
@@ -79,6 +85,30 @@ class ChatAgentContractTest(unittest.TestCase):
         self.assertEqual(result["source"], "deterministic_fallback")
         self.assertTrue(result["fallback"])
         self.assertEqual(agent.db_calls, 0)
+        self.assertIn("78/100", result["response"])
+        self.assertIn("Gastos reduziram 12,5%", result["response"])
+        self.assertIn("Reserve R$ 300", result["response"])
+
+    def test_provider_error_string_returns_safe_deterministic_fallback(self):
+        provider_error = (
+            "ERRO_CRITICO_LLM: Ambos os provedores falharam em cascata! "
+            "Primário (Groq): model_not_found | Secundário (Gemini): erro interno"
+        )
+        agent = make_agent(FakeLLM(response=provider_error))
+        request = ChatRequest(
+            user_id="user-1",
+            message="Explique meu fechamento mensal.",
+            context=calculated_context(),
+        )
+
+        result = asyncio.run(agent.run(request))
+
+        self.assertEqual(result["source"], "deterministic_fallback")
+        self.assertTrue(result["fallback"])
+        self.assertEqual(agent.db_calls, 0)
+        response = result["response"].lower()
+        for forbidden in ("groq", "gemini", "model_not_found", "erro interno"):
+            self.assertNotIn(forbidden, response)
         self.assertIn("78/100", result["response"])
         self.assertIn("Gastos reduziram 12,5%", result["response"])
         self.assertIn("Reserve R$ 300", result["response"])

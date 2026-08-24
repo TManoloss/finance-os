@@ -83,7 +83,7 @@ Esta é uma auditoria estática do repositório, não uma validação de produç
 | Mobile | [`app_router.dart`](../mobile/lib/core/router/app_router.dart) e [`main_layout.dart`](../mobile/lib/core/layout/main_layout.dart) mantêm cinco branches com os rótulos antigos. | A shell existe, mas não implementa a arquitetura canônica. |
 | Sessão mobile | [`auth_provider.dart`](../mobile/lib/features/auth/presentation/auth_provider.dart) guarda access/refresh tokens em storage seguro e tenta renovar ao iniciar. | Implementação `real`, aceite de restauração ainda pendente. |
 | Simulador | [`simulator.go`](../backend/internal/handler/simulator.go) projeta de saldo fixo, meses fixos, comprometimento fixo e retorno de 45%; [`simulator_screen.dart`](../mobile/lib/features/simulator/presentation/simulator_screen.dart) chama `/simulator/cut`, rota inexistente. | `mock`; deve ser ocultado. |
-| Replay | Web consome `/reports/monthly-replay`; [`replay_screen.dart`](../mobile/lib/features/reports/presentation/replay_screen.dart) declara dados mockados. | Web `parcial`; mobile `mock`. |
+| Replay | Web e mobile consomem `/reports/monthly-replay`; o mobile exibe os seis resultados calculados do mês. | Web `parcial`; mobile `validada` no SM-S948B em 2026-08-24. |
 | Web | Páginas atuais cobrem dashboard, transações, cartões, relatórios, chat, simulador e configurações. | Compatibilidade precisa ser preservada enquanto os contratos evoluem. |
 | Testes | Existem três testes Go de serviço, nenhum teste Python, e dois testes Flutter. | Cobertura insuficiente para qualquer promoção ampla a `validada`. |
 
@@ -115,9 +115,9 @@ Esta é uma auditoria estática do repositório, não uma validação de produç
 | Simulação de corte | `oculta` | contrato mobile corrigido; UI oculta e endpoint responde `503` | economia mensal/anual/acumulada antes de reexpor |
 | Saúde financeira | `oculta` | UI redirecionada/oculta e backend responde `503` enquanto dimensões forem fixas | todas dimensões calculadas e metadados de qualidade |
 | Análises especializadas | `parcial` | endpoints Go/Python e telas web/mobile | grupos consolidados, lazy load e fallback |
-| Pierre | `parcial` | chat e fallback Groq/Gemini | somente perguntas abertas/explicações, sem bloquear produto |
+| Pierre | `parcial` | contexto calculado e fallback determinístico implementados; correção contra vazamento de erro de provedor aguarda publicação | repetir aceite no dispositivo após deploy |
 | Replay web | `parcial` | endpoint e tela com mês fixo na entrada de relatórios | dados do período escolhido e aceite mensal |
-| Replay mobile | `mock` | tela explicitamente demonstrativa | dados reais e seis resultados mínimos |
+| Replay mobile | `validada` | seis telas com dados reais aceitas no SM-S948B | acompanhar regressão mensal |
 | Navegação mobile canônica | `parcial` | cinco branches com destinos/rótulos antigos | `Hoje / Movimentações / Planejar / Análises / Mais` |
 | Paridade web | `parcial` | fluxos principais existem com taxonomia anterior | taxonomia e agrupamentos canônicos após mobile |
 
@@ -376,9 +376,9 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 
 - [x] FOS-701 a FOS-704 implementados.
 - [ ] FOS-705: Pierre limitado a resultados calculados, com fallback determinístico; aceite no Render/dispositivo pendente.
-- [ ] FOS-706: seis resultados do Replay cobertos por contrato; aceite no Render/dispositivo pendente.
+- [x] FOS-706: seis resultados do Replay cobertos por contrato e aceitos no Render/dispositivo.
 - [x] Todos os cálculos funcionam sem provedor de IA (100% determinísticos no Go/Postgres).
-- [ ] Replay mobile aceito com categoria crescente, melhora/piora e orientação no SM-S948B.
+- [x] Replay mobile aceito com categoria crescente, melhora/piora e orientação no SM-S948B.
 
 ### Fase 8 — Web e limpeza
 
@@ -618,8 +618,8 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-702 | Expor metadados dos scores | Codex / Antigravity | Metadados expostos (`period_start`, `period_end`, `quality: HIGH`, `confidence: 95%`, `dimensions_used`) validados na tela Saúde Financeira no SM-S948B (score 48/100) | 2026-08-21 | passou |
 | FOS-703 | Consolidar nove grupos | Codex / Antigravity | Grupos canônicos e estados derivados de saúde/dados foram alinhados; detalhes sob demanda e cobertura de cada grupo ainda pendentes | 2026-08-21 | parcial |
 | FOS-704 | Manter IA opcional | Codex / Antigravity | Cálculos, pontuações, diagnósticos, gráficos e resumos funcionam 100% no Go/Postgres sem dependência externa de LLM | 2026-08-21 | passou |
-| FOS-705 | Restringir Pierre | Codex | Backend envia somente Inteligência/Replay calculados; `ChatAgent` não consulta banco; falha de IA/agents retorna explicação determinística; testes Go e Python verdes | 2026-08-24 | parcial: publicação e aceite no dispositivo pendentes |
-| FOS-706 | Implementar Replay mobile real | Codex | Contrato expõe gasto, maior compra, Categoria crescente, estabelecimento, melhora/piora e orientação; ausência de dados não vira saldo positivo; testes Go/Flutter verdes | 2026-08-24 | parcial: publicação e aceite no dispositivo pendentes |
+| FOS-705 | Restringir Pierre | Codex | Backend envia somente Inteligência/Replay calculados; `ChatAgent` não consulta banco; regressão impede que erro `ERRO_*` do provedor chegue ao usuário; testes Python verdes | 2026-08-24 | parcial: correção aguarda publicação e novo aceite no dispositivo |
+| FOS-706 | Implementar Replay mobile real | Codex | Contrato e SM-S948B exibiram gasto, maior compra, Categoria crescente, estabelecimento, melhora/piora e orientação com dados reais | 2026-08-24 | validado |
 
 
 Formato de evidência aceito: link para teste automatizado e sua execução, captura/log sanitizado de cenário real, ou checklist manual reproduzível de dispositivo. “Funciona na minha máquina”, screenshot sem contexto e mera referência a código não promovem estado para `validada`.

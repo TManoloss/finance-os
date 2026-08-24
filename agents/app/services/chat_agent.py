@@ -63,6 +63,8 @@ class ChatAgent(BaseAgent):
             response_text = await self.llm.completion(
                 f"{history}user: {chat_req.message}", system_prompt=system_prompt
             )
+            if not response_text or response_text.lstrip().startswith("ERRO_"):
+                raise RuntimeError("Provedor de IA indisponível")
             return {"response": response_text, "source": "calculated_results"}
         except Exception:
             return {
