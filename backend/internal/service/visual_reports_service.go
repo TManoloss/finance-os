@@ -286,9 +286,9 @@ func (s *VisualReportsService) GetMonthlyReplay(ctx context.Context, userID, mon
 	if !hasData {
 		insights = append(insights, "Nenhuma movimentação encontrada para este mês.")
 	} else if netSavings >= 0 {
-		insights = append(insights, fmt.Sprintf("Mês com saldo positivo: você fechou com sobra de R$ %.2f.", netSavings))
+		insights = append(insights, fmt.Sprintf("Mês com saldo positivo: você fechou com sobra de R$ %s.", formatAmount(netSavings)))
 	} else {
-		insights = append(insights, fmt.Sprintf("Mês com déficit de R$ %.2f em relação às entradas.", math.Abs(netSavings)))
+		insights = append(insights, fmt.Sprintf("Mês com déficit de R$ %s em relação às entradas.", formatAmount(math.Abs(netSavings))))
 	}
 
 	if prevMonthSpent > 0 {
@@ -300,7 +300,7 @@ func (s *VisualReportsService) GetMonthlyReplay(ctx context.Context, userID, mon
 	}
 
 	if topCatName != "" {
-		insights = append(insights, fmt.Sprintf("Sua principal área de despesas foi %s (R$ %.2f).", topCatName, topCatTotal))
+		insights = append(insights, fmt.Sprintf("Sua principal área de despesas foi %s (R$ %s).", topCatName, formatAmount(topCatTotal)))
 	}
 
 	return &MonthlyReplayResult{

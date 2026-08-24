@@ -375,7 +375,7 @@ Uma fase só termina quando todos os requisitos da fase têm evidência registra
 ### Fase 7 — Inteligência
 
 - [x] FOS-701 a FOS-704 implementados.
-- [ ] FOS-705: Pierre limitado a resultados calculados, com fallback determinístico; aceite no Render/dispositivo pendente.
+- [x] FOS-705: Pierre limitado a resultados calculados, com fallback determinístico aceito no Render/dispositivo.
 - [x] FOS-706: seis resultados do Replay cobertos por contrato e aceitos no Render/dispositivo.
 - [x] Todos os cálculos funcionam sem provedor de IA (100% determinísticos no Go/Postgres).
 - [x] Replay mobile aceito com categoria crescente, melhora/piora e orientação no SM-S948B.
@@ -618,7 +618,7 @@ Adicionar uma linha por funcionalidade e por nova tentativa. Não sobrescrever f
 | FOS-702 | Expor metadados dos scores | Codex / Antigravity | Metadados expostos (`period_start`, `period_end`, `quality: HIGH`, `confidence: 95%`, `dimensions_used`) validados na tela Saúde Financeira no SM-S948B (score 48/100) | 2026-08-21 | passou |
 | FOS-703 | Consolidar nove grupos | Codex / Antigravity | Grupos canônicos e estados derivados de saúde/dados foram alinhados; detalhes sob demanda e cobertura de cada grupo ainda pendentes | 2026-08-21 | parcial |
 | FOS-704 | Manter IA opcional | Codex / Antigravity | Cálculos, pontuações, diagnósticos, gráficos e resumos funcionam 100% no Go/Postgres sem dependência externa de LLM | 2026-08-21 | passou |
-| FOS-705 | Restringir Pierre | Codex | Backend envia somente Inteligência/Replay calculados; `ChatAgent` não consulta banco; regressão impede que erro `ERRO_*` do provedor chegue ao usuário; testes Python verdes | 2026-08-24 | parcial: correção aguarda publicação e novo aceite no dispositivo |
+| FOS-705 | Restringir Pierre | Codex | SM-S948B recebeu somente saldo, evolução, Categoria e orientação calculados; regressão impede que erro `ERRO_*` do provedor chegue ao usuário; testes Python verdes | 2026-08-24 | validado |
 | FOS-706 | Implementar Replay mobile real | Codex | Contrato e SM-S948B exibiram gasto, maior compra, Categoria crescente, estabelecimento, melhora/piora e orientação com dados reais | 2026-08-24 | validado |
 
 

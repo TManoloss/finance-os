@@ -45,3 +45,20 @@ func TestReplayOutcome(t *testing.T) {
 		})
 	}
 }
+
+func TestPierreCurrencyStringsUseBrazilianSeparators(t *testing.T) {
+	for _, tt := range []struct {
+		amount float64
+		want   string
+	}{
+		{amount: 60.10, want: "R$ 60,10"},
+		{amount: 2644.99, want: "R$ 2.644,99"},
+	} {
+		t.Run(tt.want, func(t *testing.T) {
+			got := "R$ " + formatAmount(tt.amount)
+			if got != tt.want {
+				t.Fatalf("currency string = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

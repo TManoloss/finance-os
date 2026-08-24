@@ -8,7 +8,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
+
+var brlNumberPrinter = message.NewPrinter(language.BrazilianPortuguese)
 
 type FeedEventType string
 
@@ -474,5 +478,5 @@ func (s *FeedService) CreateEvent(ctx context.Context, userID string, eventType 
 }
 
 func formatAmount(a float64) string {
-	return string(fmt.Sprintf("%.2f", a))
+	return brlNumberPrinter.Sprintf("%.2f", a)
 }
