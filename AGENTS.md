@@ -2,6 +2,12 @@
 
 Estas regras se aplicam a criação de funcionalidades, testes em dispositivo e depuração neste projeto, desde que as ferramentas e modelos estejam disponíveis e não conflitem com instruções de maior prioridade.
 
+## Contexto obrigatório
+
+- Antes de alterar domínio ou terminologia, leia `CONTEXT.md`; ele é o glossário canônico e não contém decisões técnicas.
+- Antes de implementar ou validar requisitos FinanceOS, leia `docs/FINANCEOS-VALIDATION-PLAN.md`; ele é a fonte oficial de requisitos, critérios e evidências.
+- Antes de continuar trabalho existente, publicar no Render, mexer no app Flutter ou testar no Samsung, leia `docs/FINANCEOS-HANDOFF.md`; ele registra arquitetura, fluxos, comandos, estado Git, limitações e próximo trabalho.
+
 ## Papéis
 
 - O agente principal atua como Engenheiro e Arquiteto Principal em `gpt-5.6-sol` com esforço médio: define o plano estrutural, limites de arquitetura, contratos e decisões complexas de lógica.

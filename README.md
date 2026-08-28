@@ -1,6 +1,6 @@
 # Personal Finance OS
 
-Sistema de gestão financeira pessoal e familiar com Open Finance e IA.
+Sistema de acompanhamento e decisão financeira pessoal com Open Finance e explicações opcionais por IA. Não movimenta dinheiro nem executa investimentos.
 
 ## Como iniciar o ambiente local
 
@@ -25,3 +25,9 @@ O banco de dados PostgreSQL estará disponível na porta `5432` (ou a definida e
 - `agents/`: Serviço de agentes em Python com FastAPI.
 - `web/`: Dashboard em Next.js.
 - `mobile/`: App em Flutter.
+
+## Documentação canônica
+
+- [`CONTEXT.md`](CONTEXT.md): vocabulário do domínio.
+- [`docs/FINANCEOS-VALIDATION-PLAN.md`](docs/FINANCEOS-VALIDATION-PLAN.md): requisitos, critérios e evidências.
+- [`docs/FINANCEOS-HANDOFF.md`](docs/FINANCEOS-HANDOFF.md): arquitetura, fluxos, deploy, testes e estado para continuar em outra sessão.
